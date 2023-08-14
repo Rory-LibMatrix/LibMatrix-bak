@@ -5,6 +5,10 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix", "LibMatrix\LibMatrix.csproj", "{2A07D7DA-7B8F-432D-8AD3-9679B58A7C19}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.ExampleBot", "LibMatrix.ExampleBot\LibMatrix.ExampleBot.csproj", "{E81BDE83-7DC0-4639-A373-0D63029D620F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.DebugDataValidationApi", "LibMatrix.DebugDataValidationApi\LibMatrix.DebugDataValidationApi.csproj", "{EA172316-118E-4CDE-9DCE-B9747D4DC183}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{2A07D7DA-7B8F-432D-8AD3-9679B58A7C19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A07D7DA-7B8F-432D-8AD3-9679B58A7C19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A07D7DA-7B8F-432D-8AD3-9679B58A7C19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E81BDE83-7DC0-4639-A373-0D63029D620F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E81BDE83-7DC0-4639-A373-0D63029D620F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E81BDE83-7DC0-4639-A373-0D63029D620F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E81BDE83-7DC0-4639-A373-0D63029D620F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA172316-118E-4CDE-9DCE-B9747D4DC183}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA172316-118E-4CDE-9DCE-B9747D4DC183}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA172316-118E-4CDE-9DCE-B9747D4DC183}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA172316-118E-4CDE-9DCE-B9747D4DC183}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
