@@ -1,0 +1,14 @@
+using System.Text.Json.Serialization;
+using LibMatrix.Extensions;
+using LibMatrix.Interfaces;
+
+namespace LibMatrix.StateEventTypes.Spec;
+
+[MatrixEvent(EventName = "m.space.parent")]
+public class SpaceParentEventData : IStateEventType {
+    [JsonPropertyName("via")]
+    public string[]? Via { get; set; }
+
+    [JsonPropertyName("canonical")]
+    public bool? Canonical { get; set; }
+}
