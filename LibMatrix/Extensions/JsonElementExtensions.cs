@@ -14,7 +14,7 @@ public static class JsonElementExtensions {
         //     return false;
 
         Console.WriteLine($"{objectType.Name} {objectPropertyName}");
-        bool unknownPropertyFound = false;
+        var unknownPropertyFound = false;
         var mappedPropsDict = objectType.GetProperties()
             .Where(x => x.GetCustomAttribute<JsonPropertyNameAttribute>() is not null)
             .ToDictionary(x => x.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name, x => x);
@@ -61,7 +61,7 @@ public static class JsonElementExtensions {
             propertyType = propertyType.GetGenericArguments()[0];
         }
 
-        bool switchResult = false;
+        var switchResult = false;
         switch (field.Value.ValueKind) {
             case JsonValueKind.Array:
                 switchResult = field.Value.EnumerateArray().Aggregate(switchResult,

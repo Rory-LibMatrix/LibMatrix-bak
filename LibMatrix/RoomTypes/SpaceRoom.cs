@@ -3,7 +3,7 @@ using LibMatrix.Extensions;
 namespace LibMatrix.RoomTypes;
 
 public class SpaceRoom : GenericRoom {
-    private readonly AuthenticatedHomeServer _homeServer;
+    private new readonly AuthenticatedHomeServer _homeServer;
     private readonly GenericRoom _room;
 
     public SpaceRoom(AuthenticatedHomeServer homeServer, string roomId) : base(homeServer, roomId) {

@@ -23,13 +23,16 @@ public class FileStorageProvider : IStorageProvider {
         }
     }
 
-    public async Task SaveObjectAsync<T>(string key, T value) => await File.WriteAllTextAsync(Path.Join(TargetPath, key), ObjectExtensions.ToJson(value));
+    public async Task SaveObjectAsync<T>(string key, T value) => await File.WriteAllTextAsync(Path.Join(TargetPath, key), value?.ToJson());
 
     public async Task<T?> LoadObjectAsync<T>(string key) => JsonSerializer.Deserialize<T>(await File.ReadAllTextAsync(Path.Join(TargetPath, key)));
 
-    public async Task<bool> ObjectExistsAsync(string key) => File.Exists(Path.Join(TargetPath, key));
+    public Task<bool> ObjectExistsAsync(string key) => Task.FromResult(File.Exists(Path.Join(TargetPath, key)));
 
-    public async Task<List<string>> GetAllKeysAsync() => Directory.GetFiles(TargetPath).Select(Path.GetFileName).ToList();
+    public Task<List<string>> GetAllKeysAsync() => Task.FromResult(Directory.GetFiles(TargetPath).Select(Path.GetFileName).ToList());
 
-    public async Task DeleteObjectAsync(string key) => File.Delete(Path.Join(TargetPath, key));
+    public Task DeleteObjectAsync(string key) {
+        File.Delete(Path.Join(TargetPath, key));
+        return Task.CompletedTask;
+    }
 }

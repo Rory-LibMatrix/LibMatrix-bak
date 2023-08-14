@@ -32,14 +32,13 @@ public class AuthenticatedHomeServer : IHomeServer {
     public string AccessToken { get; set; }
 
 
-    public async Task<GenericRoom> GetRoom(string roomId) => new(this, roomId);
+    public Task<GenericRoom> GetRoom(string roomId) => Task.FromResult<GenericRoom>(new(this, roomId));
 
     public async Task<List<GenericRoom>> GetJoinedRooms() {
-        var rooms = new List<GenericRoom>();
         var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
 
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
-        foreach (var room in roomsJson.GetProperty("joined_rooms").EnumerateArray()) rooms.Add(new GenericRoom(this, room.GetString()));
+        var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => new GenericRoom(this, room.GetString()!)).ToList();
 
         Console.WriteLine($"Fetched {rooms.Count} rooms");
 

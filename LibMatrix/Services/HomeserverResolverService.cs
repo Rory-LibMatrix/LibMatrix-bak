@@ -18,13 +18,13 @@ public class HomeserverResolverService {
     public async Task<string> ResolveHomeserverFromWellKnown(string homeserver) {
         var res = await _resolveHomeserverFromWellKnown(homeserver);
         if (!res.StartsWith("http")) res = "https://" + res;
-        if (res.EndsWith(":443")) res = res.Substring(0, res.Length - 4);
+        if (res.EndsWith(":443")) res = res[..^4];
         return res;
     }
 
     private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        SemaphoreSlim sem = _wellKnownSemaphores.GetOrCreate(homeserver, _ => new SemaphoreSlim(1, 1));
+        var sem = _wellKnownSemaphores.GetOrCreate(homeserver, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
         if (_wellKnownCache.ContainsKey(homeserver)) {
             sem.Release();
@@ -32,19 +32,18 @@ public class HomeserverResolverService {
         }
 
         string? result = null;
-        _logger.LogInformation($"Attempting to resolve homeserver: {homeserver}");
+        _logger.LogInformation("Attempting to resolve homeserver: {}", homeserver);
         result ??= await _tryResolveFromClientWellknown(homeserver);
         result ??= await _tryResolveFromServerWellknown(homeserver);
         result ??= await _tryCheckIfDomainHasHomeserver(homeserver);
 
-        if (result is not null) {
-            _logger.LogInformation($"Resolved homeserver: {homeserver} -> {result}");
-            _wellKnownCache[homeserver] = result;
-            sem.Release();
-            return result;
-        }
+        if (result is null) throw new InvalidDataException($"Failed to resolve homeserver for {homeserver}! Is it online and configured correctly?");
 
-        throw new InvalidDataException($"Failed to resolve homeserver for {homeserver}! Is it online and configured correctly?");
+        //success!
+        _logger.LogInformation("Resolved homeserver: {} -> {}", homeserver, result);
+        _wellKnownCache[homeserver] = result;
+        sem.Release();
+        return result;
     }
 
     private async Task<string?> _tryResolveFromClientWellknown(string homeserver) {
@@ -72,7 +71,7 @@ public class HomeserverResolverService {
     }
 
     private async Task<string?> _tryCheckIfDomainHasHomeserver(string homeserver) {
-        _logger.LogInformation($"Checking if {homeserver} hosts a homeserver...");
+        _logger.LogInformation("Checking if {} hosts a homeserver...", homeserver);
         if (await _httpClient.CheckSuccessStatus($"{homeserver}/_matrix/client/versions"))
             return homeserver;
         _logger.LogInformation("No homeserver on shortname...");

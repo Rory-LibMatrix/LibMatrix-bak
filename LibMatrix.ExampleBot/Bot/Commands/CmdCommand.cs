@@ -1,23 +1,23 @@
 using LibMatrix.ExampleBot.Bot.Interfaces;
+using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.ExampleBot.Bot.Commands;
 
 public class CmdCommand : ICommand {
-    public string Name { get; } = "cmd";
-    public string Description { get; } = "Runs a command on the host system";
+    public string Name => "cmd";
+    public string Description => "Runs a command on the host system";
 
-    public async Task<bool> CanInvoke(CommandContext ctx) {
-        return ctx.MessageEvent.Sender.EndsWith(":rory.gay");
+    public Task<bool> CanInvoke(CommandContext ctx) {
+        return Task.FromResult(ctx.MessageEvent.Sender.EndsWith(":rory.gay"));
     }
 
     public async Task Invoke(CommandContext ctx) {
-        var cmd = "\"";
-        foreach (var arg in ctx.Args) cmd += arg + " ";
+        var cmd = ctx.Args.Aggregate("\"", (current, arg) => current + arg + " ");
 
         cmd = cmd.Trim();
         cmd += "\"";
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new() {
+        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData {
             Body = $"Command being executed: `{cmd}`"
         });
 
@@ -34,7 +34,7 @@ public class CmdCommand : ICommand {
             msg += output[0] + "\n";
             output.RemoveAt(0);
             if ((output.Count > 0 && (msg + output[0]).Length > 64000) || output.Count == 0) {
-                await ctx.Room.SendMessageEventAsync("m.room.message", new() {
+                await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData {
                     FormattedBody = $"```ansi\n{msg}\n```",
                     // Body = Markdig.Markdown.ToHtml(msg),
                     Format = "org.matrix.custom.html"

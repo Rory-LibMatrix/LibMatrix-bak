@@ -100,8 +100,8 @@ public class GenericRoom {
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
         var res = GetFullStateAsync();
         await foreach (var member in res) {
-            if (member.Type != "m.room.member") continue;
-            if (joinedOnly && (member.TypedContent as RoomMemberEventData).Membership is not "join") continue;
+            if (member?.Type != "m.room.member") continue;
+            if (joinedOnly && (member.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
             yield return member;
         }
     }
@@ -147,15 +147,15 @@ public class GenericRoom {
 
     public async Task KickAsync(string userId, string? reason = null) =>
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/kick",
-            new UserIdAndReason() { UserId = userId, Reason = reason });
+            new UserIdAndReason { UserId = userId, Reason = reason });
 
     public async Task BanAsync(string userId, string? reason = null) =>
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/ban",
-            new UserIdAndReason() { UserId = userId, Reason = reason });
+            new UserIdAndReason { UserId = userId, Reason = reason });
 
     public async Task UnbanAsync(string userId) =>
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
-            new UserIdAndReason() { UserId = userId });
+            new UserIdAndReason { UserId = userId });
 
     public async Task<EventIdResponse> SendStateEventAsync(string eventType, object content) =>
         await (await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))

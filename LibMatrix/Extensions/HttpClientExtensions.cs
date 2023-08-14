@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
@@ -23,7 +24,7 @@ public class MatrixHttpClient : HttpClient {
         CancellationToken cancellationToken) {
         Console.WriteLine($"Sending request to {request.RequestUri}");
         try {
-            HttpRequestOptionsKey<bool> WebAssemblyEnableStreamingResponseKey =
+            var WebAssemblyEnableStreamingResponseKey =
                 new HttpRequestOptionsKey<bool>("WebAssemblyEnableStreamingResponse");
             request.Options.Set(WebAssemblyEnableStreamingResponseKey, true);
         }
@@ -33,26 +34,23 @@ public class MatrixHttpClient : HttpClient {
         }
 
         var a = await base.SendAsync(request, cancellationToken);
-        if (!a.IsSuccessStatusCode) {
-            var content = await a.Content.ReadAsStringAsync(cancellationToken);
-            if (content.StartsWith('{')) {
-                var ex = JsonSerializer.Deserialize<MatrixException>(content);
-                ex.RawContent = content;
-                // Console.WriteLine($"Failed to send request: {ex}");
-                if (ex?.RetryAfterMs is not null) {
-                    await Task.Delay(ex.RetryAfterMs.Value, cancellationToken);
-                    typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
-                        ?.SetValue(request, 0);
-                    return await SendAsync(request, cancellationToken);
-                }
+        if (a.IsSuccessStatusCode) return a;
 
-                throw ex!;
-            }
+        //error handling
+        var content = await a.Content.ReadAsStringAsync(cancellationToken);
+        if (!content.StartsWith('{')) throw new InvalidDataException("Encountered invalid data:\n" + content);
+        //we have a matrix error
+        var ex = JsonSerializer.Deserialize<MatrixException>(content);
+        Debug.Assert(ex != null, nameof(ex) + " != null");
+        ex.RawContent = content;
+        // Console.WriteLine($"Failed to send request: {ex}");
+        if (ex?.RetryAfterMs is null) throw ex!;
+        //we have a ratelimit error
+        await Task.Delay(ex.RetryAfterMs.Value, cancellationToken);
+        typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(request, 0);
+        return await SendAsync(request, cancellationToken);
 
-            throw new InvalidDataException("Encountered invalid data:\n" + content);
-        }
-
-        return a;
     }
 
     // GetFromJsonAsync
@@ -66,7 +64,7 @@ public class MatrixHttpClient : HttpClient {
     }
 
     // GetStreamAsync
-    public async Task<Stream> GetStreamAsync(string requestUri, CancellationToken cancellationToken = default) {
+    public new async Task<Stream> GetStreamAsync(string requestUri, CancellationToken cancellationToken = default) {
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         var response = await SendAsync(request, cancellationToken);

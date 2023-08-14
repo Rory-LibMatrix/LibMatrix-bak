@@ -29,7 +29,7 @@ public class StateEvent {
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
-                Console.WriteLine("Content:\n" + ObjectExtensions.ToJson(RawContent));
+                Console.WriteLine("Content:\n" + (RawContent?.ToJson() ?? "null"));
             }
 
             return null;
@@ -72,7 +72,7 @@ public class StateEvent {
     }
 
     [JsonIgnore]
-    public Type GetType {
+    public new Type GetType {
         get {
             var type = GetStateEventType(Type);
 
@@ -106,7 +106,7 @@ public class StateEvent {
     public string dtype {
         get {
             var res = GetType().Name switch {
-                "StateEvent`1" => $"StateEvent",
+                "StateEvent`1" => "StateEvent",
                 _ => GetType().Name
             };
             return res;

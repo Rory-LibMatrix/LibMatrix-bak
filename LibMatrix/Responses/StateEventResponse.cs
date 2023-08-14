@@ -23,7 +23,7 @@ public class StateEventResponse : StateEvent {
     public string UserId { get; set; }
 
     [JsonPropertyName("replaces_state")]
-    public string ReplacesState { get; set; }
+    public new string ReplacesState { get; set; }
 
     public class UnsignedData {
         [JsonPropertyName("age")]

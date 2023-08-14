@@ -76,10 +76,9 @@ public class SyncHelper {
             .Where(x => x.StartsWith("sync"))
             .ToList()
             .Select(x => _storageService.CacheStorageProvider.DeleteObjectAsync(x)));
-        SyncResult? sync = null;
-        string? nextBatch = since;
+        var nextBatch = since;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
-            sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter,
+            var sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter,
                 cancellationToken: cancellationToken);
             nextBatch = sync?.NextBatch ?? nextBatch;
             if (sync is null) continue;

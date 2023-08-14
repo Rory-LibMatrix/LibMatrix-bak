@@ -10,7 +10,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "Open",
-        builder => builder.AllowAnyOrigin().AllowAnyHeader());
+        policy => policy.AllowAnyOrigin().AllowAnyHeader());
 });
 
 var app = builder.Build();

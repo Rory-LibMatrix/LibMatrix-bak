@@ -14,12 +14,12 @@ public class LocalRoomQueryFilter {
     public bool Federatable { get; set; } = true;
     public bool Public { get; set; } = true;
 
-    public int JoinedMembersGreaterThan { get; set; } = 0;
+    public int JoinedMembersGreaterThan { get; set; }
     public int JoinedMembersLessThan { get; set; } = int.MaxValue;
 
-    public int JoinedLocalMembersGreaterThan { get; set; } = 0;
+    public int JoinedLocalMembersGreaterThan { get; set; }
     public int JoinedLocalMembersLessThan { get; set; } = int.MaxValue;
-    public int StateEventsGreaterThan { get; set; } = 0;
+    public int StateEventsGreaterThan { get; set; }
     public int StateEventsLessThan { get; set; } = int.MaxValue;
 
 

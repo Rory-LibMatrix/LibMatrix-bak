@@ -14,12 +14,11 @@ public class HomeserverProviderService {
 
     public HomeserverProviderService(TieredStorageService tieredStorageService,
         ILogger<HomeserverProviderService> logger, HomeserverResolverService homeserverResolverService) {
-        Console.WriteLine("Homeserver provider service instantiated!");
         _tieredStorageService = tieredStorageService;
         _logger = logger;
         _homeserverResolverService = homeserverResolverService;
-        logger.LogDebug(
-            $"New HomeserverProviderService created with TieredStorageService<{string.Join(", ", tieredStorageService.GetType().GetProperties().Select(x => x.Name))}>!");
+        logger.LogDebug("New HomeserverProviderService created with TieredStorageService<{}>!",
+            string.Join(", ", tieredStorageService.GetType().GetProperties().Select(x => x.Name)));
     }
 
     private static Dictionary<string, SemaphoreSlim> _authenticatedHomeserverSemaphore = new();
@@ -27,7 +26,7 @@ public class HomeserverProviderService {
 
     public async Task<AuthenticatedHomeServer> GetAuthenticatedWithToken(string homeserver, string accessToken,
         string? overrideFullDomain = null) {
-        SemaphoreSlim sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver+accessToken, _ => new SemaphoreSlim(1, 1));
+        var sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver+accessToken, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
         if (_authenticatedHomeServerCache.ContainsKey(homeserver+accessToken)) {
             sem.Release();
@@ -64,7 +63,7 @@ public class HomeserverProviderService {
         string? overrideFullDomain = null) {
         var hs = await GetRemoteHomeserver(homeserver, overrideFullDomain);
         var payload = new LoginRequest {
-            Identifier = new() { User = user },
+            Identifier = new LoginRequest.LoginIdentifier { User = user },
             Password = password
         };
         var resp = await hs._httpClient.PostAsJsonAsync("/_matrix/client/v3/login", payload);

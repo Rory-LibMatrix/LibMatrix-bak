@@ -14,13 +14,13 @@ public class ValidationController : ControllerBase {
     }
 
     [HttpPost("/validate/{type}")]
-    public async Task<bool> Get([FromRoute] string type, [FromBody] JsonElement content) {
-        Type t = Type.GetType(type);
+    public Task<bool> Get([FromRoute] string type, [FromBody] JsonElement content) {
+        var t = Type.GetType(type);
         if (t is null) {
             Console.WriteLine($"Type `{type}` does not exist!");
             throw new ArgumentException($"Unknown type {type}!");
         }
         Console.WriteLine($"Validating {type}...");
-        return content.FindExtraJsonElementFields(t, "$");
+        return Task.FromResult(content.FindExtraJsonElementFields(t, "$"));
     }
 }

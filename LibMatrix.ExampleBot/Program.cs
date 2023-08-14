@@ -11,7 +11,7 @@ Console.WriteLine("Hello, World!");
 
 var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
     services.AddScoped<TieredStorageService>(x =>
-        new(
+        new TieredStorageService(
             cacheStorageProvider: new FileStorageProvider("bot_data/cache/"),
             dataStorageProvider: new FileStorageProvider("bot_data/data/")
         )

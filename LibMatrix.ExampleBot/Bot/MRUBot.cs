@@ -23,7 +23,7 @@ public class MRUBot : IHostedService {
         _configuration = configuration;
         _logger.LogInformation("Getting commands...");
         _commands = services.GetServices<ICommand>();
-        _logger.LogInformation($"Got {_commands.Count()} commands!");
+        _logger.LogInformation("Got {} commands!", _commands.Count());
     }
 
     /// <summary>Triggered when the application host is ready to start the service.</summary>
@@ -37,7 +37,7 @@ public class MRUBot : IHostedService {
                 _configuration.AccessToken);
         }
         catch (Exception e) {
-            _logger.LogError(e.Message);
+            _logger.LogError("{}", e.Message);
             throw;
         }
 
@@ -57,36 +57,36 @@ public class MRUBot : IHostedService {
                     x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
             _logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventData).Reason}");
-            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club" ) {
+            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club") {
                 try {
                     var senderProfile = await hs.GetProfile(inviteEvent.Sender);
                     await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
-                    _logger.LogError(e.ToString());
+                    _logger.LogError("{}", e.ToString());
                     await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
         hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
             _logger.LogInformation(
-                $"Got timeline event in {@event.RoomId}: {@event.ToJson(indent: false, ignoreNull: true)}");
+                "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: false, ignoreNull: true));
 
             var room = await hs.GetRoom(@event.RoomId);
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
             if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
-
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData() {
+                            new RoomMessageEventData {
                                 MessageType = "m.text",
                                 Body = "Command not found!"
                             });
                         return;
                     }
-                    var ctx = new CommandContext() {
+
+                    var ctx = new CommandContext {
                         Room = room,
                         MessageEvent = @event
                     };
@@ -95,7 +95,7 @@ public class MRUBot : IHostedService {
                     }
                     else {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData() {
+                            new RoomMessageEventData {
                                 MessageType = "m.text",
                                 Body = "You do not have permission to run this command!"
                             });
@@ -108,7 +108,8 @@ public class MRUBot : IHostedService {
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>
     /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
-    public async Task StopAsync(CancellationToken cancellationToken) {
+    public Task StopAsync(CancellationToken cancellationToken) {
         _logger.LogInformation("Shutting down bot!");
+        return Task.CompletedTask;
     }
 }
