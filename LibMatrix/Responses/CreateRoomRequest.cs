@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LibMatrix.Extensions;
 using LibMatrix.Helpers;
+using LibMatrix.Homeservers;
 using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.Responses;
@@ -29,6 +30,9 @@ public class CreateRoomRequest {
     [JsonPropertyName("initial_state")]
     public List<StateEvent> InitialState { get; set; } = null!;
 
+    /// <summary>
+    /// One of: ["public", "private"]
+    /// </summary>
     [JsonPropertyName("visibility")]
     public string Visibility { get; set; } = null!;
 
@@ -37,6 +41,9 @@ public class CreateRoomRequest {
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();
+
+    [JsonPropertyName("invite")]
+    public List<string> Invite { get; set; }
 
     /// <summary>
     ///     For use only when you can't use the CreationContent property
@@ -53,9 +60,10 @@ public class CreateRoomRequest {
                         StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
                             x.GetCustomAttributes<MatrixEventAttribute>()?
                                 .Any(y => y.EventName == event_type) ?? false) ?? typeof(object)
-                        )
+                    )
                 });
             }
+
             return stateEvent;
         }
         set {
@@ -74,5 +82,45 @@ public class CreateRoomRequest {
                 "Room alias name must only contain letters, numbers, underscores, and hyphens.");
 
         return errors;
+    }
+
+    public static CreateRoomRequest CreatePrivate(AuthenticatedHomeserverGeneric hs, string? name = null, string? roomAliasName = null) {
+        var request = new CreateRoomRequest() {
+            Name = name ?? "Private Room",
+            Visibility = "private",
+            CreationContent = new(),
+            PowerLevelContentOverride = new() {
+                EventsDefault = 0,
+                UsersDefault = 0,
+                Kick = 50,
+                Ban = 50,
+                Invite = 25,
+                StateDefault = 10,
+                Redact = 50,
+                NotificationsPl = new() {
+                    Room = 10
+                },
+                Events = new() {
+                    { "m.room.avatar", 50 },
+                    { "m.room.canonical_alias", 50 },
+                    { "m.room.encryption", 100 },
+                    { "m.room.history_visibility", 100 },
+                    { "m.room.name", 50 },
+                    { "m.room.power_levels", 100 },
+                    { "m.room.server_acl", 100 },
+                    { "m.room.tombstone", 100 }
+                },
+                Users = new() {
+                    {
+                        hs.UserId,
+                        101
+                    }
+                }
+            },
+            RoomAliasName = roomAliasName,
+            InitialState = new()
+        };
+
+        return request;
     }
 }

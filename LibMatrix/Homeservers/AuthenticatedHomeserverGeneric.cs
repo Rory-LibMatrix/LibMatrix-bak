@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using LibMatrix.Extensions;
 using LibMatrix.Helpers;
@@ -56,7 +57,10 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
     }
 
     public async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent) {
-        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent);
+        creationEvent.CreationContent["creator"] = UserId;
+        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent, new JsonSerializerOptions {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        });
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
@@ -68,13 +72,14 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
 #region Account Data
 
     public async Task<T> GetAccountData<T>(string key) {
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
-        if (!res.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");
-            throw new InvalidDataException($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");
-        }
-
-        return await res.Content.ReadFromJsonAsync<T>();
+        // var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
+        // if (!res.IsSuccessStatusCode) {
+        //     Console.WriteLine($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");
+        //     throw new InvalidDataException($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");
+        // }
+        //
+        // return await res.Content.ReadFromJsonAsync<T>();
+        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
     }
 
     public async Task SetAccountData(string key, object data) {

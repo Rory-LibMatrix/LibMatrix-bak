@@ -17,12 +17,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj" />
-      <ProjectReference Include="..\LibMatrix\LibMatrix.csproj" />
+      <ProjectReference Include="..\..\..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj" />
+      <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ArcaneLibs" Version="1.0.0-preview3020494760.012ed3f" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-preview.5.23280.8" />
   </ItemGroup>
   <ItemGroup>

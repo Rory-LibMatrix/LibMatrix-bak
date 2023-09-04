@@ -113,6 +113,7 @@ public class SyncHelper {
 
             if (sync.Rooms is { Join.Count: > 0 }) {
                 foreach (var updatedRoom in sync.Rooms.Join) {
+                    if(updatedRoom.Value.Timeline is null) continue;
                     foreach (var stateEventResponse in updatedRoom.Value.Timeline.Events) {
                         stateEventResponse.RoomId = updatedRoom.Key;
                         var tasks = TimelineEventHandlers.Select(x => x(stateEventResponse)).ToList();
@@ -178,7 +179,7 @@ public class SyncResult {
 
         public class JoinedRoomDataStructure {
             [JsonPropertyName("timeline")]
-            public TimelineDataStructure Timeline { get; set; }
+            public TimelineDataStructure? Timeline { get; set; }
 
             [JsonPropertyName("state")]
             public EventList State { get; set; }

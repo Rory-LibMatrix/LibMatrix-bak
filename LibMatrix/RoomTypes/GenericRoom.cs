@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Web;
 using LibMatrix.Extensions;
@@ -83,6 +84,7 @@ public class GenericRoom {
         return res ?? new MessagesResponse();
     }
 
+    // TODO: should we even error handle here?
     public async Task<string> GetNameAsync() {
         try {
             var res = await GetStateAsync<RoomNameEventData>("m.room.name");
@@ -103,6 +105,8 @@ public class GenericRoom {
         });
     }
 
+
+    // TODO: rewrite (members endpoint?)
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
         var res = GetFullStateAsync();
         await foreach (var member in res) {
@@ -111,6 +115,9 @@ public class GenericRoom {
             yield return member;
         }
     }
+
+
+#region Utility shortcuts
 
     public async Task<List<string>> GetAliasesAsync() {
         var res = await GetStateAsync<RoomAliasEventData>("m.room.aliases");
@@ -143,6 +150,13 @@ public class GenericRoom {
         return res.Type;
     }
 
+    public async Task<RoomPowerLevelEventData?> GetPowerLevelAsync() =>
+        await GetStateAsync<RoomPowerLevelEventData>("m.room.power_levels");
+
+#endregion
+
+
+
     public async Task ForgetAsync() =>
         await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
 
@@ -169,7 +183,9 @@ public class GenericRoom {
 
     public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventData content) {
         var res = await _httpClient.PutAsJsonAsync(
-            $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content);
+            $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new  JsonSerializerOptions() {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
         var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();
         return resu;
     }
@@ -207,4 +223,8 @@ public class GenericRoom {
     }
 
     public readonly SpaceRoom AsSpace;
+
+    public async Task<T> GetEvent<T>(string eventId) {
+        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+    }
 }

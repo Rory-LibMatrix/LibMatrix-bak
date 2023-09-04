@@ -17,4 +17,24 @@ public class RoomMessageEventData : IStateEventType {
 
     [JsonPropertyName("format")]
     public string Format { get; set; }
+
+    [JsonPropertyName("m.relates_to")]
+    public MessageRelatesTo? RelatesTo { get; set; }
+
+    /// <summary>
+    /// Media URI for this message, if any
+    /// </summary>
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    public class MessageRelatesTo {
+
+        [JsonPropertyName("m.in_reply_to")]
+        public MessageInReplyTo? InReplyTo { get; set; }
+
+        public class MessageInReplyTo {
+            [JsonPropertyName("event_id")]
+            public string EventId { get; set; }
+        }
+    }
 }

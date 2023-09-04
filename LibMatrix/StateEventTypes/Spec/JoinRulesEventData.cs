@@ -12,6 +12,10 @@ public class JoinRulesEventData : IStateEventType {
     private static string Invite = "invite";
     private static string Knock = "knock";
 
+    /// <summary>
+    /// one of ["public", "invite", "knock", "restricted", "knock_restricted"]
+    /// "private" is reserved without implementation!
+    /// </summary>
     [JsonPropertyName("join_rule")]
     public string JoinRule { get; set; }
 
