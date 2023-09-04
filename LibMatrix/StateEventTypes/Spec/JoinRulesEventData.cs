@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using LibMatrix.Extensions;
+using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
 
 namespace LibMatrix.StateEventTypes.Spec;
@@ -14,5 +16,13 @@ public class JoinRulesEventData : IStateEventType {
     public string JoinRule { get; set; }
 
     [JsonPropertyName("allow")]
-    public List<string> Allow { get; set; }
+    public List<AllowEntry> Allow { get; set; }
+
+    public class AllowEntry {
+        [JsonPropertyName("type")]
+        public string Type { get; set; }
+
+        [JsonPropertyName("room_id")]
+        public string RoomId { get; set; }
+    }
 }

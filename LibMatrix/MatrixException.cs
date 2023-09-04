@@ -1,4 +1,6 @@
+using System;
 using System.Text.Json.Serialization;
+using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 
 namespace LibMatrix;

@@ -1,75 +1,18 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using LibMatrix.Extensions;
+using System;
+using System.Collections.Generic;
+using ArcaneLibs.Extensions;
 using LibMatrix.Filters;
-using LibMatrix.Helpers;
-using LibMatrix.Interfaces;
-using LibMatrix.Responses;
 using LibMatrix.Responses.Admin;
-using LibMatrix.RoomTypes;
 using LibMatrix.Services;
 
-namespace LibMatrix;
+namespace LibMatrix.Homeservers;
 
-public class AuthenticatedHomeServer : IHomeServer {
-    private readonly TieredStorageService _storage;
-    public readonly HomeserverAdminApi Admin;
-    public readonly SyncHelper SyncHelper;
+public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
+    public readonly SynapseAdminApi Admin;
+    public class SynapseAdminApi {
+        private readonly AuthenticatedHomeserverGeneric _authenticatedHomeserver;
 
-    public AuthenticatedHomeServer(TieredStorageService storage, string canonicalHomeServerDomain, string accessToken) {
-        _storage = storage;
-        AccessToken = accessToken.Trim();
-        HomeServerDomain = canonicalHomeServerDomain.Trim();
-        Admin = new HomeserverAdminApi(this);
-        SyncHelper = new SyncHelper(this, storage);
-        _httpClient = new MatrixHttpClient();
-    }
-
-    public WhoAmIResponse WhoAmI { get; set; } = null!;
-    public string UserId => WhoAmI.UserId;
-    public string AccessToken { get; set; }
-
-
-    public Task<GenericRoom> GetRoom(string roomId) => Task.FromResult<GenericRoom>(new(this, roomId));
-
-    public async Task<List<GenericRoom>> GetJoinedRooms() {
-        var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
-
-        var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
-        var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => new GenericRoom(this, room.GetString()!)).ToList();
-
-        Console.WriteLine($"Fetched {rooms.Count} rooms");
-
-        return rooms;
-    }
-
-    public async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
-        var res = await _httpClient.PostAsync($"/_matrix/media/v3/upload?filename={fileName}", new StreamContent(fileStream));
-        if (!res.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
-            throw new InvalidDataException($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
-        }
-
-        var resJson = await res.Content.ReadFromJsonAsync<JsonElement>();
-        return resJson.GetProperty("content_uri").GetString()!;
-    }
-
-    public async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent) {
-        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent);
-        if (!res.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
-            throw new InvalidDataException($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
-        }
-
-        return await GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
-    }
-
-    public class HomeserverAdminApi {
-        private readonly AuthenticatedHomeServer _authenticatedHomeServer;
-
-        public HomeserverAdminApi(AuthenticatedHomeServer authenticatedHomeServer) => _authenticatedHomeServer = authenticatedHomeServer;
+        public SynapseAdminApi(AuthenticatedHomeserverGeneric authenticatedHomeserver) => _authenticatedHomeserver = authenticatedHomeserver;
 
         public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f", string? searchTerm = null, LocalRoomQueryFilter? localFilter = null) {
             AdminRoomListingResult? res = null;
@@ -83,7 +26,7 @@ public class AuthenticatedHomeServer : IHomeServer {
 
                 Console.WriteLine($"--- ADMIN Querying Room List with URL: {url} - Already have {i} items... ---");
 
-                res = await _authenticatedHomeServer._httpClient.GetFromJsonAsync<AdminRoomListingResult>(url);
+                res = await _authenticatedHomeserver._httpClient.GetFromJsonAsync<AdminRoomListingResult>(url);
                 totalRooms ??= res?.TotalRooms;
                 Console.WriteLine(res.ToJson(false));
                 foreach (var room in res.Rooms) {
@@ -160,14 +103,8 @@ public class AuthenticatedHomeServer : IHomeServer {
             } while (i < Math.Min(limit, totalRooms ?? limit));
         }
     }
-}
 
-public class WhoAmIResponse {
-    [JsonPropertyName("user_id")]
-    public string UserId { get; set; } = null!;
-
-    [JsonPropertyName("device_id")]
-    public string? DeviceId { get; set; }
-    [JsonPropertyName("is_guest")]
-    public bool? IsGuest { get; set; }
+    public AuthenticatedHomeserverSynapse(TieredStorageService storage, string canonicalHomeServerDomain, string accessToken) : base(storage, canonicalHomeServerDomain, accessToken) {
+        Admin = new(this);
+    }
 }

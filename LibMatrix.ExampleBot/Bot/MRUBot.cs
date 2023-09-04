@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using ArcaneLibs.Extensions;
 using LibMatrix.ExampleBot.Bot.Interfaces;
 using LibMatrix.Extensions;
+using LibMatrix.Homeservers;
 using LibMatrix.Services;
 using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +33,7 @@ public class MRUBot : IHostedService {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     public async Task StartAsync(CancellationToken cancellationToken) {
         Directory.GetFiles("bot_data/cache").ToList().ForEach(File.Delete);
-        AuthenticatedHomeServer hs;
+        AuthenticatedHomeserverGeneric hs;
         try {
             hs = await _homeserverProviderService.GetAuthenticatedWithToken(_configuration.Homeserver,
                 _configuration.AccessToken);

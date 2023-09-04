@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -26,9 +32,9 @@ public class HomeserverResolverService {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
         var sem = _wellKnownSemaphores.GetOrCreate(homeserver, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
-        if (_wellKnownCache.ContainsKey(homeserver)) {
+        if (_wellKnownCache.TryGetValue(homeserver, out var known)) {
             sem.Release();
-            return _wellKnownCache[homeserver];
+            return known;
         }
 
         string? result = null;

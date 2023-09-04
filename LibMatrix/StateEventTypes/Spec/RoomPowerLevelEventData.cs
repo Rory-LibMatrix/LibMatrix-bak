@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using LibMatrix.Extensions;
+using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
 
 namespace LibMatrix.StateEventTypes.Spec;
@@ -7,43 +11,43 @@ namespace LibMatrix.StateEventTypes.Spec;
 [MatrixEvent(EventName = "m.room.power_levels")]
 public class RoomPowerLevelEventData : IStateEventType {
     [JsonPropertyName("ban")]
-    public int Ban { get; set; } // = 50;
+    public long Ban { get; set; } // = 50;
 
     [JsonPropertyName("events_default")]
-    public int EventsDefault { get; set; } // = 0;
+    public long EventsDefault { get; set; } // = 0;
 
     [JsonPropertyName("events")]
-    public Dictionary<string, int> Events { get; set; } // = null!;
+    public Dictionary<string, long> Events { get; set; } // = null!;
 
     [JsonPropertyName("invite")]
-    public int Invite { get; set; } // = 50;
+    public long Invite { get; set; } // = 50;
 
     [JsonPropertyName("kick")]
-    public int Kick { get; set; } // = 50;
+    public long Kick { get; set; } // = 50;
 
     [JsonPropertyName("notifications")]
     public NotificationsPL NotificationsPl { get; set; } // = null!;
 
     [JsonPropertyName("redact")]
-    public int Redact { get; set; } // = 50;
+    public long Redact { get; set; } // = 50;
 
     [JsonPropertyName("state_default")]
-    public int StateDefault { get; set; } // = 50;
+    public long StateDefault { get; set; } // = 50;
 
     [JsonPropertyName("users")]
-    public Dictionary<string, int> Users { get; set; } // = null!;
+    public Dictionary<string, long> Users { get; set; } // = null!;
 
     [JsonPropertyName("users_default")]
-    public int UsersDefault { get; set; } // = 0;
+    public long UsersDefault { get; set; } // = 0;
 
     [Obsolete("Historical was a key related to MSC2716, a spec change on backfill that was dropped!", true)]
     [JsonIgnore]
     [JsonPropertyName("historical")]
-    public int Historical { get; set; } // = 50;
+    public long Historical { get; set; } // = 50;
 
     public class NotificationsPL {
         [JsonPropertyName("room")]
-        public int Room { get; set; } = 50;
+        public long Room { get; set; } = 50;
     }
 
     public bool IsUserAdmin(string userId) {

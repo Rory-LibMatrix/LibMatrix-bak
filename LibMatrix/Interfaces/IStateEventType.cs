@@ -1,5 +1,3 @@
 namespace LibMatrix.Interfaces;
 
-public interface IStateEventType {
-
-}
+public interface IStateEventType { }

@@ -1,13 +1,17 @@
+using System.Collections.Generic;
+using System.Threading;
+using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
+using LibMatrix.Homeservers;
 
 namespace LibMatrix.RoomTypes;
 
 public class SpaceRoom : GenericRoom {
-    private new readonly AuthenticatedHomeServer _homeServer;
+    private new readonly AuthenticatedHomeserverGeneric _homeserver;
     private readonly GenericRoom _room;
 
-    public SpaceRoom(AuthenticatedHomeServer homeServer, string roomId) : base(homeServer, roomId) {
-        _homeServer = homeServer;
+    public SpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) : base(homeserver, roomId) {
+        _homeserver = homeserver;
     }
 
     private static SemaphoreSlim _semaphore = new(1, 1);
@@ -18,7 +22,7 @@ public class SpaceRoom : GenericRoom {
         await foreach (var stateEvent in state) {
             if (stateEvent.Type != "m.space.child") continue;
             if (stateEvent.RawContent.ToJson() != "{}" || includeRemoved)
-                yield return await _homeServer.GetRoom(stateEvent.StateKey);
+                yield return await _homeserver.GetRoom(stateEvent.StateKey);
         }
         _semaphore.Release();
     }

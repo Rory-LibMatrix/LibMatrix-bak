@@ -5,8 +5,8 @@ namespace LibMatrix.StateEventTypes.Spec;
 
 public class ProfileResponseEventData : IStateEventType {
     [JsonPropertyName("avatar_url")]
-    public string? AvatarUrl { get; set; } = "";
+    public string? AvatarUrl { get; set; }
 
     [JsonPropertyName("displayname")]
-    public string? DisplayName { get; set; } = "";
+    public string? DisplayName { get; set; }
 }

@@ -1,22 +1,28 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Web;
 using LibMatrix.Extensions;
+using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.RoomTypes;
 
 public class GenericRoom {
-    internal readonly AuthenticatedHomeServer _homeServer;
+    internal readonly AuthenticatedHomeserverGeneric Homeserver;
     internal readonly MatrixHttpClient _httpClient;
 
-    public GenericRoom(AuthenticatedHomeServer homeServer, string roomId) {
-        _homeServer = homeServer;
-        _httpClient = homeServer._httpClient;
+    public GenericRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) {
+        Homeserver = homeserver;
+        _httpClient = homeserver._httpClient;
         RoomId = roomId;
         if (GetType() != typeof(SpaceRoom))
-            AsSpace = new SpaceRoom(homeServer, RoomId);
+            AsSpace = new SpaceRoom(homeserver, RoomId);
     }
 
     public string RoomId { get; set; }
@@ -180,6 +186,24 @@ public class GenericRoom {
             )
             .Content.ReadFromJsonAsync<EventIdResponse>();
         return res;
+    }
+
+    public async Task<T> GetRoomAccountData<T>(string key) {
+        var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}");
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");
+        }
+
+        return await res.Content.ReadFromJsonAsync<T>();
+    }
+
+    public async Task SetRoomAccountData(string key, object data) {
+        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}", data);
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to set room account data: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to set room account data: {await res.Content.ReadAsStringAsync()}");
+        }
     }
 
     public readonly SpaceRoom AsSpace;

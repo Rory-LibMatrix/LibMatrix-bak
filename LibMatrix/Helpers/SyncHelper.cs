@@ -1,19 +1,26 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 using LibMatrix.Filters;
+using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.Services;
 
 namespace LibMatrix.Helpers;
 
 public class SyncHelper {
-    private readonly AuthenticatedHomeServer _homeServer;
+    private readonly AuthenticatedHomeserverGeneric _homeserver;
     private readonly TieredStorageService _storageService;
 
-    public SyncHelper(AuthenticatedHomeServer homeServer, TieredStorageService storageService) {
-        _homeServer = homeServer;
+    public SyncHelper(AuthenticatedHomeserverGeneric homeserver, TieredStorageService storageService) {
+        _homeserver = homeserver;
         _storageService = storageService;
     }
 
@@ -33,7 +40,7 @@ public class SyncHelper {
         // else url += "&full_state=true";
         Console.WriteLine("Calling: " + url);
         try {
-            var req = await _homeServer._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
+            var req = await _homeserver._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
 
             // var res = await JsonSerializer.DeserializeAsync<SyncResult>(await req.Content.ReadAsStreamAsync());
 

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using LibMatrix.Extensions;
+using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
 
 namespace LibMatrix.StateEventTypes.Spec;
@@ -14,4 +15,8 @@ public class PresenceStateEventData : IStateEventType {
     public bool CurrentlyActive { get; set; }
     [JsonPropertyName("status_msg")]
     public string StatusMessage { get; set; }
+    [JsonPropertyName("avatar_url")]
+    public string AvatarUrl { get; set; }
+    [JsonPropertyName("displayname")]
+    public string DisplayName { get; set; }
 }

@@ -1,7 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using ArcaneLibs;
 using LibMatrix.ExampleBot.Bot;
 using LibMatrix.ExampleBot.Bot.Interfaces;
+using LibMatrix.ExampleBot.Bot.StartupTasks;
 using LibMatrix.Extensions;
 using LibMatrix.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,8 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
         Console.WriteLine($"Adding command {commandClass.Name}");
         services.AddScoped(typeof(ICommand), commandClass);
     }
+
+    services.AddHostedService<ServerRoomSizeCalulator>();
     services.AddHostedService<MRUBot>();
 }).UseConsoleLifetime().Build();
 

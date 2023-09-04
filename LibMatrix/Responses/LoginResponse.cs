@@ -15,3 +15,24 @@ public class LoginResponse {
     [JsonPropertyName("user_id")]
     public string UserId { get; set; }
 }
+public class LoginRequest {
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "m.login.password";
+
+    [JsonPropertyName("identifier")]
+    public LoginIdentifier Identifier { get; set; } = new();
+
+    [JsonPropertyName("password")]
+    public string Password { get; set; } = "";
+
+    [JsonPropertyName("initial_device_display_name")]
+    public string InitialDeviceDisplayName { get; set; } = "Rory&::LibMatrix";
+
+    public class LoginIdentifier {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = "m.id.user";
+
+        [JsonPropertyName("user")]
+        public string User { get; set; } = "";
+    }
+}
