@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using ArcaneLibs.Extensions;
-using LibMatrix.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
@@ -15,15 +9,7 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Helpers;
 
-public class SyncHelper {
-    private readonly AuthenticatedHomeserverGeneric _homeserver;
-    private readonly TieredStorageService _storageService;
-
-    public SyncHelper(AuthenticatedHomeserverGeneric homeserver, TieredStorageService storageService) {
-        _homeserver = homeserver;
-        _storageService = storageService;
-    }
-
+public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, TieredStorageService storageService) {
     public async Task<SyncResult?> Sync(
         string? since = null,
         int? timeout = 30000,
@@ -31,7 +17,7 @@ public class SyncHelper {
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null) {
         var outFileName = "sync-" +
-                          (await _storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
+                          (await storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
                               x => x.StartsWith("sync")) +
                           ".json";
         var url = $"/_matrix/client/v3/sync?timeout={timeout}&set_presence={setPresence}";
@@ -40,7 +26,7 @@ public class SyncHelper {
         // else url += "&full_state=true";
         Console.WriteLine("Calling: " + url);
         try {
-            var req = await _homeserver._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
+            var req = await homeserver._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
 
             // var res = await JsonSerializer.DeserializeAsync<SyncResult>(await req.Content.ReadAsStreamAsync());
 
@@ -79,10 +65,10 @@ public class SyncHelper {
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null
     ) {
-        await Task.WhenAll((await _storageService.CacheStorageProvider.GetAllKeysAsync())
+        await Task.WhenAll((await storageService.CacheStorageProvider.GetAllKeysAsync())
             .Where(x => x.StartsWith("sync"))
             .ToList()
-            .Select(x => _storageService.CacheStorageProvider.DeleteObjectAsync(x)));
+            .Select(x => storageService.CacheStorageProvider.DeleteObjectAsync(x)));
         var nextBatch = since;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
             var sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter,
@@ -116,7 +102,15 @@ public class SyncHelper {
                     if(updatedRoom.Value.Timeline is null) continue;
                     foreach (var stateEventResponse in updatedRoom.Value.Timeline.Events) {
                         stateEventResponse.RoomId = updatedRoom.Key;
-                        var tasks = TimelineEventHandlers.Select(x => x(stateEventResponse)).ToList();
+                        var tasks = TimelineEventHandlers.Select(x => {
+                            try {
+                                return x(stateEventResponse);
+                            }
+                            catch (Exception e) {
+                                Console.WriteLine(e);
+                                return Task.CompletedTask;
+                            }
+                        }).ToList();
                         await Task.WhenAll(tasks);
                     }
                 }

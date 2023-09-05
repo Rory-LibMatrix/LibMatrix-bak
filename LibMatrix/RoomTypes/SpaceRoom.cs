@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.Threading;
 using ArcaneLibs.Extensions;
-using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
 
 namespace LibMatrix.RoomTypes;

@@ -1,9 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using ArcaneLibs;
 using LibMatrix.Services;
+using LibMatrix.Utilities.Bot;
 using MediaModeratorPoC.Bot;
-using MediaModeratorPoC.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -17,11 +16,9 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
         )
     );
     services.AddSingleton<MediaModBotConfiguration>();
+
     services.AddRoryLibMatrixServices();
-    foreach (var commandClass in new ClassCollector<ICommand>().ResolveFromAllAccessibleAssemblies()) {
-        Console.WriteLine($"Adding command {commandClass.Name}");
-        services.AddScoped(typeof(ICommand), commandClass);
-    }
+    services.AddBot(withCommands: true);
 
     services.AddHostedService<MediaModBot>();
 }).UseConsoleLifetime().Build();

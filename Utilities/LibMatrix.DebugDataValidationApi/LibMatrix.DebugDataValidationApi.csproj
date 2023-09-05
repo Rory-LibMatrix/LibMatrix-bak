@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -13,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\LibMatrix\LibMatrix.csproj" />
+        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj" />
     </ItemGroup>
 
 </Project>

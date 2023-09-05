@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using System.Web;
 using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.StateEventTypes.Spec;
+using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.RoomTypes;
 
@@ -19,6 +15,8 @@ public class GenericRoom {
     internal readonly MatrixHttpClient _httpClient;
 
     public GenericRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) {
+        if (string.IsNullOrWhiteSpace(roomId))
+            throw new ArgumentException("Room ID cannot be null or whitespace", nameof(roomId));
         Homeserver = homeserver;
         _httpClient = homeserver._httpClient;
         RoomId = roomId;
@@ -105,17 +103,23 @@ public class GenericRoom {
         });
     }
 
-
     // TODO: rewrite (members endpoint?)
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
-        var res = GetFullStateAsync();
-        await foreach (var member in res) {
-            if (member?.Type != "m.room.member") continue;
-            if (joinedOnly && (member.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
-            yield return member;
+        // var res = GetFullStateAsync();
+        // await foreach (var member in res) {
+        //     if (member?.Type != "m.room.member") continue;
+        //     if (joinedOnly && (member.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
+        //     yield return member;
+        // }
+        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
+        var result =
+            JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(await res.Content.ReadAsStreamAsync());
+        await foreach (var resp in result) {
+            if (resp?.Type != "m.room.member") continue;
+            if (joinedOnly && (resp.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
+            yield return resp;
         }
     }
-
 
 #region Utility shortcuts
 
@@ -150,12 +154,10 @@ public class GenericRoom {
         return res.Type;
     }
 
-    public async Task<RoomPowerLevelEventData?> GetPowerLevelAsync() =>
+    public async Task<RoomPowerLevelEventData?> GetPowerLevelsAsync() =>
         await GetStateAsync<RoomPowerLevelEventData>("m.room.power_levels");
 
 #endregion
-
-
 
     public async Task ForgetAsync() =>
         await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
@@ -178,12 +180,16 @@ public class GenericRoom {
             new UserIdAndReason { UserId = userId });
 
     public async Task<EventIdResponse> SendStateEventAsync(string eventType, object content) =>
-        await (await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
+        await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
+            .Content.ReadFromJsonAsync<EventIdResponse>();
+
+    public async Task<EventIdResponse> SendStateEventAsync(string eventType, string stateKey, object content) =>
+        await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
     public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventData content) {
         var res = await _httpClient.PutAsJsonAsync(
-            $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new  JsonSerializerOptions() {
+            $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
         var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();
@@ -226,5 +232,11 @@ public class GenericRoom {
 
     public async Task<T> GetEvent<T>(string eventId) {
         return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+    }
+
+    public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
+        var data = new { reason };
+        return (await (await _httpClient.PutAsJsonAsync(
+            $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 }

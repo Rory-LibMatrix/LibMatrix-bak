@@ -19,7 +19,7 @@ public class MRUBot : IHostedService {
 
     public MRUBot(HomeserverProviderService homeserverProviderService, ILogger<MRUBot> logger,
         MRUBotConfiguration configuration, IServiceProvider services) {
-        logger.LogInformation("MRUBot hosted service instantiated!");
+        logger.LogInformation("{} instantiated!", this.GetType().Name);
         _homeserverProviderService = homeserverProviderService;
         _logger = logger;
         _configuration = configuration;
@@ -81,10 +81,7 @@ public class MRUBot : IHostedService {
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData {
-                                MessageType = "m.text",
-                                Body = "Command not found!"
-                            });
+                            new RoomMessageEventData(messageType: "m.text", body: "Command not found!"));
                         return;
                     }
 
@@ -97,10 +94,7 @@ public class MRUBot : IHostedService {
                     }
                     else {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData {
-                                MessageType = "m.text",
-                                Body = "You do not have permission to run this command!"
-                            });
+                            new RoomMessageEventData(messageType: "m.text", body: "You do not have permission to run this command!"));
                     }
                 }
             }

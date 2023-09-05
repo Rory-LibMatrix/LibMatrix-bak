@@ -1,5 +1,3 @@
-using System;
-
 namespace LibMatrix.Helpers;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]

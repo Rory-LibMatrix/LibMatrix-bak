@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using LibMatrix.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.StateEventTypes.Spec;
@@ -85,7 +81,7 @@ public class CreateRoomRequest {
     }
 
     public static CreateRoomRequest CreatePrivate(AuthenticatedHomeserverGeneric hs, string? name = null, string? roomAliasName = null) {
-        var request = new CreateRoomRequest() {
+        var request = new CreateRoomRequest {
             Name = name ?? "Private Room",
             Visibility = "private",
             CreationContent = new(),

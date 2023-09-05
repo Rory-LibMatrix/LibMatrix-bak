@@ -17,9 +17,6 @@ public class HelpCommand(IServiceProvider services) : ICommand {
             sb.AppendLine($"- {command.Name}: {command.Description}");
         }
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData {
-            MessageType = "m.notice",
-            Body = sb.ToString()
-        });
+        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData(messageType: "m.notice", body: sb.ToString()));
     }
 }

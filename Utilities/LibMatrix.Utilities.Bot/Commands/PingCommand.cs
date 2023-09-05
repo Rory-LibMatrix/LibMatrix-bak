@@ -8,8 +8,6 @@ public class PingCommand : ICommand {
     public string Description { get; } = "Pong!";
 
     public async Task Invoke(CommandContext ctx) {
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData {
-            Body = "pong!"
-        });
+        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData(body: "pong!"));
     }
 }

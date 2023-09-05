@@ -17,9 +17,7 @@ public class CmdCommand : ICommand {
         cmd = cmd.Trim();
         cmd += "\"";
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData {
-            Body = $"Command being executed: `{cmd}`"
-        });
+        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventData(body: $"Command being executed: `{cmd}`"));
 
         var output = ArcaneLibs.Util.GetCommandOutputSync(
                 Environment.OSVersion.Platform == PlatformID.Unix ? "/bin/sh" : "cmd.exe",
