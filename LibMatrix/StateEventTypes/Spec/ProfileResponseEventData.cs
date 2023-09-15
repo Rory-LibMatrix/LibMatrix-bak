@@ -3,7 +3,7 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.StateEventTypes.Spec;
 
-public class ProfileResponseEventData : IStateEventType {
+public class ProfileResponseEventContent : EventContent {
     [JsonPropertyName("avatar_url")]
     public string? AvatarUrl { get; set; }
 

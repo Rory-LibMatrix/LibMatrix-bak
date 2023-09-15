@@ -22,7 +22,7 @@ public static class BotCommandInstaller {
         return services;
     }
 
-    public static IServiceCollection AddBot(this IServiceCollection services, bool withCommands = true) {
+    public static IServiceCollection AddBot(this IServiceCollection services, bool withCommands = true, bool isAppservice = false) {
         services.AddSingleton<LibMatrixBotConfiguration>();
 
         services.AddScoped<AuthenticatedHomeserverGeneric>(x => {

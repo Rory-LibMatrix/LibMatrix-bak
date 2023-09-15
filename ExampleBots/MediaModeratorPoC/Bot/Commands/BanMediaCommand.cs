@@ -22,7 +22,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
         if (!isAdmin) {
             // await ctx.Reply("You do not have permission to use this command!");
             await (await ctx.Homeserver.GetRoom(botData.LogRoom!)).SendMessageEventAsync("m.room.message",
-                new RoomMessageEventData(body: $"User {ctx.MessageEvent.Sender} tried to use command {Name} but does not have permission!", messageType: "m.text"));
+                new RoomMessageEventContent(body: $"User {ctx.MessageEvent.Sender} tried to use command {Name} but does not have permission!", messageType: "m.text"));
         }
 
         return isAdmin;
@@ -34,11 +34,11 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
         var logRoom = await ctx.Homeserver.GetRoom(botData.LogRoom ?? botData.ControlRoom);
 
         //check if reply
-        var messageContent = ctx.MessageEvent.TypedContent as RoomMessageEventData;
+        var messageContent = ctx.MessageEvent.TypedContent as RoomMessageEventContent;
         if (messageContent?.RelatesTo is { InReplyTo: not null }) {
             try {
                 await logRoom.SendMessageEventAsync("m.room.message",
-                    new RoomMessageEventData(
+                    new RoomMessageEventContent(
                         body: $"User {MessageFormatter.HtmlFormatMention(ctx.MessageEvent.Sender)} is trying to ban media {messageContent!.RelatesTo!.InReplyTo!.EventId}",
                         messageType: "m.text"));
 
@@ -58,10 +58,8 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                     return;
                 }
 
-
-
                 //hash file
-                var mxcUri = (repliedMessage.TypedContent as RoomMessageEventData).Url!;
+                var mxcUri = (repliedMessage.TypedContent as RoomMessageEventContent).Url!;
                 var resolvedUri = await hsResolver.ResolveMediaUri(mxcUri.Split('/')[2], mxcUri);
                 var hashAlgo = SHA3_256.Create();
                 var uriHash = hashAlgo.ComputeHash(mxcUri.AsBytes().ToArray());
@@ -85,8 +83,8 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                     }
                 }
 
-                MediaPolicyStateEventData policy;
-                await policyRoom.SendStateEventAsync("gay.rory.media_moderator_poc.rule.media", Guid.NewGuid().ToString(), policy = new MediaPolicyStateEventData {
+                MediaPolicyEventContent policy;
+                await policyRoom.SendStateEventAsync("gay.rory.media_moderator_poc.rule.media", Guid.NewGuid().ToString(), policy = new MediaPolicyEventContent {
                     Entity = uriHash,
                     FileHash = fileHash,
                     Reason = string.Join(' ', ctx.Args[1..]),

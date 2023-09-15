@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using ArcaneLibs.Extensions;
 
 namespace LibMatrix.Extensions;
 
@@ -20,13 +21,18 @@ public static class HttpClientExtensions {
 }
 
 public class MatrixHttpClient : HttpClient {
+    internal string? AssertedUserId { get; set; }
+
     public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
         CancellationToken cancellationToken) {
+        if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
+        if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
+
         Console.WriteLine($"Sending request to {request.RequestUri}");
         try {
-            var WebAssemblyEnableStreamingResponseKey =
+            var webAssemblyEnableStreamingResponseKey =
                 new HttpRequestOptionsKey<bool>("WebAssemblyEnableStreamingResponse");
-            request.Options.Set(WebAssemblyEnableStreamingResponseKey, true);
+            request.Options.Set(webAssemblyEnableStreamingResponseKey, true);
         }
         catch (Exception e) {
             Console.WriteLine("Failed to set browser response streaming:");
@@ -50,7 +56,6 @@ public class MatrixHttpClient : HttpClient {
         typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(request, 0);
         return await SendAsync(request, cancellationToken);
-
     }
 
     // GetFromJsonAsync

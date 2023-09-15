@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.create")]
-public class RoomCreateEventData : IStateEventType {
+public class RoomCreateEventContent : EventContent {
     [JsonPropertyName("room_version")]
     public string? RoomVersion { get; set; }
     [JsonPropertyName("creator")]

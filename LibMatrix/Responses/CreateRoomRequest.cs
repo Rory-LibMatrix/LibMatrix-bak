@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
+using LibMatrix.Interfaces;
 using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.Responses;
@@ -33,7 +34,7 @@ public class CreateRoomRequest {
     public string Visibility { get; set; } = null!;
 
     [JsonPropertyName("power_level_content_override")]
-    public RoomPowerLevelEventData PowerLevelContentOverride { get; set; } = null!;
+    public RoomPowerLevelEventContent PowerLevelContentOverride { get; set; } = null!;
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();
@@ -52,7 +53,7 @@ public class CreateRoomRequest {
                 InitialState.Add(stateEvent = new StateEvent {
                     Type = event_type,
                     StateKey = event_key,
-                    TypedContent = Activator.CreateInstance(
+                    TypedContent = (EventContent)Activator.CreateInstance(
                         StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
                             x.GetCustomAttributes<MatrixEventAttribute>()?
                                 .Any(y => y.EventName == event_type) ?? false) ?? typeof(object)

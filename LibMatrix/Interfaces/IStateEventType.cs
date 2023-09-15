@@ -1,3 +1,23 @@
+using System.Text.Json.Serialization;
+
 namespace LibMatrix.Interfaces;
 
-public interface IStateEventType { }
+public abstract class EventContent {
+    [JsonPropertyName("m.relates_to")]
+    public virtual MessageRelatesTo? RelatesTo { get; set; }
+
+    [JsonPropertyName("m.new_content")]
+    public virtual EventContent? NewContent { get; set; }
+
+    public abstract class MessageRelatesTo {
+        [JsonPropertyName("m.in_reply_to")]
+        public EventInReplyTo? InReplyTo { get; set; }
+
+
+
+        public abstract class EventInReplyTo {
+            [JsonPropertyName("event_id")]
+            public string EventId { get; set; }
+        }
+    }
+}

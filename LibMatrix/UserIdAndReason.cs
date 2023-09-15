@@ -2,9 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix;
 
-internal class UserIdAndReason {
+internal class UserIdAndReason(string? userId = null, string? reason = null) {
     [JsonPropertyName("user_id")]
-    public string UserId { get; set; }
+    public string UserId { get; set; } = userId;
+
     [JsonPropertyName("reason")]
-    public string? Reason { get; set; }
+    public string? Reason { get; set; } = reason;
 }

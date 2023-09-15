@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.pinned_events")]
-public class RoomPinnedEventData : IStateEventType {
+public class RoomPinnedEventContent : EventContent {
     [JsonPropertyName("pinned")]
     public string[]? PinnedEvents { get; set; }
 }

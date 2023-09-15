@@ -1,3 +1,4 @@
+using System.Reflection.Metadata;
 using System.Text.Json.Serialization;
 
 namespace LibMatrix.Filters;
@@ -25,42 +26,58 @@ public class SyncFilter {
         [JsonPropertyName("timeline")]
         public StateFilter? Timeline { get; set; }
 
-
-        public class StateFilter : EventFilter {
+        public class StateFilter(bool? containsUrl = null, bool? includeRedundantMembers = null, bool? lazyLoadMembers = null, List<string>? rooms = null,
+            List<string>? notRooms = null, bool? unreadThreadNotifications = null,
+            //base ctor
+            int? limit = null, List<string>? types = null, List<string>? notTypes = null, List<string>? senders = null, List<string>? notSenders = null
+        ) : EventFilter(limit: limit, types: types, notTypes: notTypes, senders: senders, notSenders: notSenders) {
             [JsonPropertyName("contains_url")]
-            public bool? ContainsUrl { get; set; }
+            public bool? ContainsUrl { get; set; } = containsUrl;
 
             [JsonPropertyName("include_redundant_members")]
-            public bool? IncludeRedundantMembers { get; set; }
+            public bool? IncludeRedundantMembers { get; set; } = includeRedundantMembers;
 
             [JsonPropertyName("lazy_load_members")]
-            public bool? LazyLoadMembers { get; set; }
+            public bool? LazyLoadMembers { get; set; } = lazyLoadMembers;
 
             [JsonPropertyName("rooms")]
-            public List<string>? Rooms { get; set; }
+            public List<string>? Rooms { get; set; } = rooms;
 
             [JsonPropertyName("not_rooms")]
-            public List<string>? NotRooms { get; set; }
+            public List<string>? NotRooms { get; set; } = notRooms;
 
             [JsonPropertyName("unread_thread_notifications")]
-            public bool? UnreadThreadNotifications { get; set; }
+            public bool? UnreadThreadNotifications { get; set; } = unreadThreadNotifications;
         }
     }
 
-    public class EventFilter {
+    public class EventFilter(int? limit = null, List<string>? types = null, List<string>? notTypes = null, List<string>? senders = null, List<string>? notSenders = null) {
         [JsonPropertyName("limit")]
-        public int? Limit { get; set; }
+        public int? Limit { get; set; } = limit;
 
         [JsonPropertyName("types")]
-        public List<string>? Types { get; set; }
+        public List<string>? Types { get; set; } = types;
 
         [JsonPropertyName("not_types")]
-        public List<string>? NotTypes { get; set; }
+        public List<string>? NotTypes { get; set; } = notTypes;
 
         [JsonPropertyName("senders")]
-        public List<string>? Senders { get; set; }
+        public List<string>? Senders { get; set; } = senders;
 
         [JsonPropertyName("not_senders")]
-        public List<string>? NotSenders { get; set; }
+        public List<string>? NotSenders { get; set; } = notSenders;
     }
+}
+
+public static class ExampleFilters {
+    public static readonly SyncFilter Limit1Filter = new() {
+        Presence = new(limit: 1),
+        Room = new() {
+            AccountData = new(limit: 1),
+            Ephemeral = new(limit: 1),
+            State = new(limit: 1),
+            Timeline = new(limit: 1),
+        },
+        AccountData = new(limit: 1)
+    };
 }

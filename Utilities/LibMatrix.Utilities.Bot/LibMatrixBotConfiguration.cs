@@ -7,4 +7,5 @@ public class LibMatrixBotConfiguration {
     public string Homeserver { get; set; } = "";
     public string AccessToken { get; set; } = "";
     public string Prefix { get; set; } = "?";
+    public string? LogRoom { get; set; }
 }

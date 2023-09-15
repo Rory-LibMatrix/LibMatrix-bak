@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.avatar")]
-public class RoomAvatarEventData : IStateEventType {
+public class RoomAvatarEventContent : EventContent {
     [JsonPropertyName("url")]
     public string? Url { get; set; }
 

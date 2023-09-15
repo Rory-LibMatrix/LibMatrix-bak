@@ -1,3 +1,4 @@
+using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.StateEventTypes.Spec;
 using MediaModeratorPoC.Bot.Interfaces;
@@ -37,33 +38,46 @@ public class CommandListenerHostedService : IHostedService {
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
         _hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
-            var room = await _hs.GetRoom(@event.RoomId);
-            // _logger.LogInformation(eventResponse.ToJson(indent: false));
-            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
-                if (message is { MessageType: "m.text" }) {
-                    var messageContentWithoutReply = message.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries).SkipWhile(x=>x.StartsWith(">")).Aggregate((x, y) => $"{x}\n{y}");
-                    if (messageContentWithoutReply.StartsWith(_config.Prefix)) {
-                        var command = _commands.FirstOrDefault(x => x.Name == messageContentWithoutReply.Split(' ')[0][_config.Prefix.Length..]);
-                        if (command == null) {
-                            await room.SendMessageEventAsync("m.room.message",
-                                new RoomMessageEventData(messageType: "m.notice", body: "Command not found!"));
-                            return;
-                        }
+            try {
+                var room = await _hs.GetRoom(@event.RoomId);
+                // _logger.LogInformation(eventResponse.ToJson(indent: false));
+                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
+                    if (message is { MessageType: "m.text" }) {
+                        var messageContentWithoutReply =
+                            message.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries).SkipWhile(x => x.StartsWith(">")).Aggregate((x, y) => $"{x}\n{y}");
+                        if (messageContentWithoutReply.StartsWith(_config.Prefix)) {
+                            var command = _commands.FirstOrDefault(x => x.Name == messageContentWithoutReply.Split(' ')[0][_config.Prefix.Length..]);
+                            if (command == null) {
+                                await room.SendMessageEventAsync("m.room.message",
+                                    new RoomMessageEventContent(messageType: "m.notice", body: "Command not found!"));
+                                return;
+                            }
 
-                        var ctx = new CommandContext {
-                            Room = room,
-                            MessageEvent = @event,
-                            Homeserver = _hs
-                        };
-                        if (await command.CanInvoke(ctx)) {
-                            await command.Invoke(ctx);
-                        }
-                        else {
-                            await room.SendMessageEventAsync("m.room.message",
-                                new RoomMessageEventData(messageType: "m.notice", body: "You do not have permission to run this command!"));
+                            var ctx = new CommandContext {
+                                Room = room,
+                                MessageEvent = @event,
+                                Homeserver = _hs
+                            };
+
+                            if (await command.CanInvoke(ctx)) {
+                                try {
+                                    await command.Invoke(ctx);
+                                }
+                                catch (Exception e) {
+                                    await room.SendMessageEventAsync("m.room.message",
+                                        MessageFormatter.FormatException("An error occurred during the execution of this command", e));
+                                }
+                            }
+                            else {
+                                await room.SendMessageEventAsync("m.room.message",
+                                    new RoomMessageEventContent(messageType: "m.notice", body: "You do not have permission to run this command!"));
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception e) {
+                _logger.LogError(e, "Error in command listener!");
             }
         });
         await _hs.SyncHelper.RunSyncLoop(cancellationToken: cancellationToken);

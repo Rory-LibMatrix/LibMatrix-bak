@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.space.parent")]
-public class SpaceParentEventData : IStateEventType {
+public class SpaceParentEventContent : EventContent {
     [JsonPropertyName("via")]
     public string[]? Via { get; set; }
 

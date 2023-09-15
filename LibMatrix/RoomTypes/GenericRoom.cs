@@ -85,7 +85,7 @@ public class GenericRoom {
     // TODO: should we even error handle here?
     public async Task<string> GetNameAsync() {
         try {
-            var res = await GetStateAsync<RoomNameEventData>("m.room.name");
+            var res = await GetStateAsync<RoomNameEventContent>("m.room.name");
             return res?.Name ?? RoomId;
         }
         catch (MatrixException e) {
@@ -108,7 +108,7 @@ public class GenericRoom {
         // var res = GetFullStateAsync();
         // await foreach (var member in res) {
         //     if (member?.Type != "m.room.member") continue;
-        //     if (joinedOnly && (member.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
+        //     if (joinedOnly && (member.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
         //     yield return member;
         // }
         var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
@@ -116,7 +116,7 @@ public class GenericRoom {
             JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(await res.Content.ReadAsStreamAsync());
         await foreach (var resp in result) {
             if (resp?.Type != "m.room.member") continue;
-            if (joinedOnly && (resp.TypedContent as RoomMemberEventData)?.Membership is not "join") continue;
+            if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
             yield return resp;
         }
     }
@@ -124,38 +124,38 @@ public class GenericRoom {
 #region Utility shortcuts
 
     public async Task<List<string>> GetAliasesAsync() {
-        var res = await GetStateAsync<RoomAliasEventData>("m.room.aliases");
+        var res = await GetStateAsync<RoomAliasEventContent>("m.room.aliases");
         return res.Aliases;
     }
 
-    public async Task<CanonicalAliasEventData?> GetCanonicalAliasAsync() =>
-        await GetStateAsync<CanonicalAliasEventData>("m.room.canonical_alias");
+    public async Task<CanonicalAliasEventContent?> GetCanonicalAliasAsync() =>
+        await GetStateAsync<CanonicalAliasEventContent>("m.room.canonical_alias");
 
-    public async Task<RoomTopicEventData?> GetTopicAsync() =>
-        await GetStateAsync<RoomTopicEventData>("m.room.topic");
+    public async Task<RoomTopicEventContent?> GetTopicAsync() =>
+        await GetStateAsync<RoomTopicEventContent>("m.room.topic");
 
-    public async Task<RoomAvatarEventData?> GetAvatarUrlAsync() =>
-        await GetStateAsync<RoomAvatarEventData>("m.room.avatar");
+    public async Task<RoomAvatarEventContent?> GetAvatarUrlAsync() =>
+        await GetStateAsync<RoomAvatarEventContent>("m.room.avatar");
 
-    public async Task<JoinRulesEventData> GetJoinRuleAsync() =>
-        await GetStateAsync<JoinRulesEventData>("m.room.join_rules");
+    public async Task<JoinRulesEventContent> GetJoinRuleAsync() =>
+        await GetStateAsync<JoinRulesEventContent>("m.room.join_rules");
 
-    public async Task<HistoryVisibilityEventData?> GetHistoryVisibilityAsync() =>
-        await GetStateAsync<HistoryVisibilityEventData>("m.room.history_visibility");
+    public async Task<HistoryVisibilityEventContent?> GetHistoryVisibilityAsync() =>
+        await GetStateAsync<HistoryVisibilityEventContent>("m.room.history_visibility");
 
-    public async Task<GuestAccessEventData?> GetGuestAccessAsync() =>
-        await GetStateAsync<GuestAccessEventData>("m.room.guest_access");
+    public async Task<GuestAccessEventContent?> GetGuestAccessAsync() =>
+        await GetStateAsync<GuestAccessEventContent>("m.room.guest_access");
 
-    public async Task<RoomCreateEventData> GetCreateEventAsync() =>
-        await GetStateAsync<RoomCreateEventData>("m.room.create");
+    public async Task<RoomCreateEventContent> GetCreateEventAsync() =>
+        await GetStateAsync<RoomCreateEventContent>("m.room.create");
 
     public async Task<string?> GetRoomType() {
-        var res = await GetStateAsync<RoomCreateEventData>("m.room.create");
+        var res = await GetStateAsync<RoomCreateEventContent>("m.room.create");
         return res.Type;
     }
 
-    public async Task<RoomPowerLevelEventData?> GetPowerLevelsAsync() =>
-        await GetStateAsync<RoomPowerLevelEventData>("m.room.power_levels");
+    public async Task<RoomPowerLevelEventContent?> GetPowerLevelsAsync() =>
+        await GetStateAsync<RoomPowerLevelEventContent>("m.room.power_levels");
 
 #endregion
 
@@ -187,7 +187,7 @@ public class GenericRoom {
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventData content) {
+    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventContent content) {
         var res = await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -238,5 +238,9 @@ public class GenericRoom {
         var data = new { reason };
         return (await (await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
+    }
+
+    public async Task InviteUser(string userId, string? reason = null) {
+        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
 }

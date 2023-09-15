@@ -8,3 +8,5 @@ matrix-sync.json
 /patches/
 MatrixRoomUtils.Bot/bot_data/
 appsettings.Local*.json
+appservice.yaml
+appservice.json

@@ -12,7 +12,7 @@ public class SpaceRoom : GenericRoom {
     }
 
     private static SemaphoreSlim _semaphore = new(1, 1);
-    public async IAsyncEnumerable<GenericRoom> GetRoomsAsync(bool includeRemoved = false) {
+    public async IAsyncEnumerable<GenericRoom> GetChildrenAsync(bool includeRemoved = false) {
         await _semaphore.WaitAsync();
         var rooms = new List<GenericRoom>();
         var state = GetFullStateAsync();

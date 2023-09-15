@@ -20,11 +20,8 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaModeratorPoC.Bot;
 
-public class MediaModBot : IHostedService {
-    private readonly AuthenticatedHomeserverGeneric _hs;
-    private readonly ILogger<MediaModBot> _logger;
-    private readonly MediaModBotConfiguration _configuration;
-    private readonly HomeserverResolverService _hsResolver;
+public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot> logger, MediaModBotConfiguration configuration,
+    HomeserverResolverService hsResolver) : IHostedService {
     private readonly IEnumerable<ICommand> _commands;
 
     private Task _listenerTask;
@@ -33,20 +30,11 @@ public class MediaModBot : IHostedService {
     private GenericRoom _logRoom;
     private GenericRoom _controlRoom;
 
-    public MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot> logger,
-        MediaModBotConfiguration configuration, HomeserverResolverService hsResolver) {
-        logger.LogInformation("{} instantiated!", this.GetType().Name);
-        _hs = hs;
-        _logger = logger;
-        _configuration = configuration;
-        _hsResolver = hsResolver;
-    }
-
     /// <summary>Triggered when the application host is ready to start the service.</summary>
     /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
     public async Task StartAsync(CancellationToken cancellationToken) {
         _listenerTask = Run(cancellationToken);
-        _logger.LogInformation("Bot started!");
+        logger.LogInformation("Bot started!");
     }
 
     private async Task Run(CancellationToken cancellationToken) {
@@ -55,29 +43,29 @@ public class MediaModBot : IHostedService {
         BotData botData;
 
         try {
-            botData = await _hs.GetAccountData<BotData>("gay.rory.media_moderator_poc_data");
+            botData = await hs.GetAccountData<BotData>("gay.rory.media_moderator_poc_data");
         }
         catch (Exception e) {
             if (e is not MatrixException { ErrorCode: "M_NOT_FOUND" }) {
-                _logger.LogError("{}", e.ToString());
+                logger.LogError("{}", e.ToString());
                 throw;
             }
 
             botData = new BotData();
-            var creationContent = CreateRoomRequest.CreatePrivate(_hs, name: "Media Moderator PoC - Control room", roomAliasName: "media-moderator-poc-control-room");
-            creationContent.Invite = _configuration.Admins;
+            var creationContent = CreateRoomRequest.CreatePrivate(hs, name: "Media Moderator PoC - Control room", roomAliasName: "media-moderator-poc-control-room");
+            creationContent.Invite = configuration.Admins;
             creationContent.CreationContent["type"] = "gay.rory.media_moderator_poc.control_room";
 
-            botData.ControlRoom = (await _hs.CreateRoom(creationContent)).RoomId;
+            botData.ControlRoom = (await hs.CreateRoom(creationContent)).RoomId;
 
             //set access rules to allow joining via control room
             creationContent.InitialState.Add(new StateEvent {
                 Type = "m.room.join_rules",
                 StateKey = "",
-                TypedContent = new JoinRulesEventData {
+                TypedContent = new JoinRulesEventContent {
                     JoinRule = "knock_restricted",
                     Allow = new() {
-                        new JoinRulesEventData.AllowEntry {
+                        new JoinRulesEventContent.AllowEntry {
                             Type = "m.room_membership",
                             RoomId = botData.ControlRoom
                         }
@@ -88,19 +76,19 @@ public class MediaModBot : IHostedService {
             creationContent.Name = "Media Moderator PoC - Log room";
             creationContent.RoomAliasName = "media-moderator-poc-log-room";
             creationContent.CreationContent["type"] = "gay.rory.media_moderator_poc.log_room";
-            botData.LogRoom = (await _hs.CreateRoom(creationContent)).RoomId;
+            botData.LogRoom = (await hs.CreateRoom(creationContent)).RoomId;
 
             creationContent.Name = "Media Moderator PoC - Policy room";
             creationContent.RoomAliasName = "media-moderator-poc-policy-room";
             creationContent.CreationContent["type"] = "gay.rory.media_moderator_poc.policy_room";
-            botData.PolicyRoom = (await _hs.CreateRoom(creationContent)).RoomId;
+            botData.PolicyRoom = (await hs.CreateRoom(creationContent)).RoomId;
 
-            await _hs.SetAccountData("gay.rory.media_moderator_poc_data", botData);
+            await hs.SetAccountData("gay.rory.media_moderator_poc_data", botData);
         }
 
-        _policyRoom = await _hs.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
-        _logRoom = await _hs.GetRoom(botData.LogRoom ?? botData.ControlRoom);
-        _controlRoom = await _hs.GetRoom(botData.ControlRoom);
+        _policyRoom = await hs.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
+        _logRoom = await hs.GetRoom(botData.LogRoom ?? botData.ControlRoom);
+        _controlRoom = await hs.GetRoom(botData.ControlRoom);
 
         List<string> admins = new();
 
@@ -109,7 +97,7 @@ public class MediaModBot : IHostedService {
             while (!cancellationToken.IsCancellationRequested) {
                 var controlRoomMembers = _controlRoom.GetMembersAsync();
                 await foreach (var member in controlRoomMembers) {
-                    if ((member.TypedContent as RoomMemberEventData).Membership == "join") admins.Add(member.UserId);
+                    if ((member.TypedContent as RoomMemberEventContent).Membership == "join") admins.Add(member.UserId);
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
@@ -117,39 +105,39 @@ public class MediaModBot : IHostedService {
         }, cancellationToken);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-        _hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
+        hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
-                    x.Type == "m.room.member" && x.StateKey == _hs.WhoAmI.UserId);
-            _logger.LogInformation(
-                $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventData).Reason}");
+                    x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
+            logger.LogInformation(
+                $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender.EndsWith(":conduit.rory.gay")) {
                 try {
-                    var senderProfile = await _hs.GetProfile(inviteEvent.Sender);
-                    await (await _hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    var senderProfile = await hs.GetProfile(inviteEvent.Sender);
+                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
-                    _logger.LogError("{}", e.ToString());
-                    await (await _hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    logger.LogError("{}", e.ToString());
+                    await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
 
-        _hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
-            var room = await _hs.GetRoom(@event.RoomId);
+        hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
+            var room = await hs.GetRoom(@event.RoomId);
             try {
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: true, ignoreNull: true));
 
-                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
+                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
                     if (message is { MessageType: "m.image" }) {
                         //check media
                         var matchedPolicy = await CheckMedia(@event);
                         if (matchedPolicy is null) return;
-                        var matchedpolicyData = matchedPolicy.TypedContent as MediaPolicyStateEventData;
+                        var matchedpolicyData = matchedPolicy.TypedContent as MediaPolicyEventContent;
                         var recommendation = matchedpolicyData.Recommendation;
                         await _logRoom.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData(
+                            new RoomMessageEventContent(
                                 body:
                                 $"User {MessageFormatter.HtmlFormatMention(@event.Sender)} posted an image in {MessageFormatter.HtmlFormatMention(room.RoomId)} that matched rule {matchedPolicy.StateKey}, applying action {matchedpolicyData.Recommendation}, as described in rule: {matchedPolicy.RawContent!.ToJson(ignoreNull: true)}",
                                 messageType: "m.text") {
@@ -160,17 +148,18 @@ public class MediaModBot : IHostedService {
                         switch (recommendation) {
                             case "warn_admins": {
                                 await _controlRoom.SendMessageEventAsync("m.room.message",
-                                    new RoomMessageEventData(body: $"{string.Join(' ', admins)}\nUser {MessageFormatter.HtmlFormatMention(@event.Sender)} posted a banned image {message.Url}",
+                                    new RoomMessageEventContent(
+                                        body: $"{string.Join(' ', admins)}\nUser {MessageFormatter.HtmlFormatMention(@event.Sender)} posted a banned image {message.Url}",
                                         messageType: "m.text") {
                                         Format = "org.matrix.custom.html",
-                                        FormattedBody = $"{string.Join(' ', admins.Select(u=>MessageFormatter.HtmlFormatMention(u)))}\n" +
+                                        FormattedBody = $"{string.Join(' ', admins.Select(u => MessageFormatter.HtmlFormatMention(u)))}\n" +
                                                         $"<font color=\"#FF0000\">User {MessageFormatter.HtmlFormatMention(@event.Sender)} posted a banned image <a href=\"{message.Url}\">{message.Url}</a></font>"
                                     });
                                 break;
                             }
                             case "warn": {
                                 await room.SendMessageEventAsync("m.room.message",
-                                    new RoomMessageEventData(
+                                    new RoomMessageEventContent(
                                         body: $"Please be careful when posting this image: {matchedpolicyData.Reason}",
                                         messageType: "m.text") {
                                         Format = "org.matrix.custom.html",
@@ -196,7 +185,7 @@ public class MediaModBot : IHostedService {
                                 //  </span>
                                 // </blockquote>
                                 await room.SendMessageEventAsync("m.room.message",
-                                    new RoomMessageEventData(
+                                    new RoomMessageEventContent(
                                         body:
                                         $"Please be careful when posting this image: {matchedpolicyData.Reason}, I have spoilered it for you:",
                                         messageType: "m.text") {
@@ -206,7 +195,7 @@ public class MediaModBot : IHostedService {
                                     });
                                 var imageUrl = message.Url;
                                 await room.SendMessageEventAsync("m.room.message",
-                                    new RoomMessageEventData(body: $"CN: {imageUrl}",
+                                    new RoomMessageEventContent(body: $"CN: {imageUrl}",
                                         messageType: "m.text") {
                                         Format = "org.matrix.custom.html",
                                         FormattedBody = $"""
@@ -254,7 +243,7 @@ public class MediaModBot : IHostedService {
                 }
             }
             catch (Exception e) {
-                _logger.LogError("{}", e.ToString());
+                logger.LogError("{}", e.ToString());
                 await _controlRoom.SendMessageEventAsync("m.room.message",
                     MessageFormatter.FormatException($"Unable to ban user in {MessageFormatter.HtmlFormatMention(room.RoomId)}", e));
                 await _logRoom.SendMessageEventAsync("m.room.message",
@@ -269,7 +258,7 @@ public class MediaModBot : IHostedService {
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>
     /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
     public async Task StopAsync(CancellationToken cancellationToken) {
-        _logger.LogInformation("Shutting down bot!");
+        logger.LogInformation("Shutting down bot!");
     }
 
     private async Task<StateEventResponse?> CheckMedia(StateEventResponse @event) {
@@ -277,67 +266,66 @@ public class MediaModBot : IHostedService {
         var hashAlgo = SHA3_256.Create();
 
         var mxcUri = @event.RawContent["url"].GetValue<string>();
-        var resolvedUri = await _hsResolver.ResolveMediaUri(mxcUri.Split('/')[2], mxcUri);
+        var resolvedUri = await hsResolver.ResolveMediaUri(mxcUri.Split('/')[2], mxcUri);
         var uriHash = hashAlgo.ComputeHash(mxcUri.AsBytes().ToArray());
         byte[]? fileHash = null;
 
         try {
-            fileHash = await hashAlgo.ComputeHashAsync(await _hs._httpClient.GetStreamAsync(resolvedUri));
+            fileHash = await hashAlgo.ComputeHashAsync(await hs._httpClient.GetStreamAsync(resolvedUri));
         }
         catch (Exception ex) {
             await _logRoom.SendMessageEventAsync("m.room.message",
-                MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]} ({resolvedUri}), retrying via {_hs.HomeServerDomain}...",
+                MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]} ({resolvedUri}), retrying via {hs.HomeServerDomain}...",
                     ex));
             try {
-                resolvedUri = await _hsResolver.ResolveMediaUri(_hs.HomeServerDomain, mxcUri);
-                fileHash = await hashAlgo.ComputeHashAsync(await _hs._httpClient.GetStreamAsync(resolvedUri));
+                resolvedUri = await hsResolver.ResolveMediaUri(hs.HomeServerDomain, mxcUri);
+                fileHash = await hashAlgo.ComputeHashAsync(await hs._httpClient.GetStreamAsync(resolvedUri));
             }
             catch (Exception ex2) {
                 await _logRoom.SendMessageEventAsync("m.room.message",
-                    MessageFormatter.FormatException($"Error calculating file hash via {_hs.HomeServerDomain} ({resolvedUri})!", ex2));
+                    MessageFormatter.FormatException($"Error calculating file hash via {hs.HomeServerDomain} ({resolvedUri})!", ex2));
             }
         }
 
-        _logger.LogInformation("Checking media {url} with hash {hash}", resolvedUri, fileHash);
+        logger.LogInformation("Checking media {url} with hash {hash}", resolvedUri, fileHash);
 
         await foreach (var state in stateList) {
             if (state.Type != "gay.rory.media_moderator_poc.rule.media" && state.Type != "gay.rory.media_moderator_poc.rule.server") continue;
             if (!state.RawContent.ContainsKey("entity")) {
-                _logger.LogWarning("Rule {rule} has no entity, this event was probably redacted!", state.StateKey);
+                logger.LogWarning("Rule {rule} has no entity, this event was probably redacted!", state.StateKey);
                 continue;
             }
-            _logger.LogInformation("Checking rule {rule}: {data}", state.StateKey, state.TypedContent.ToJson(ignoreNull: true, indent: false));
-            var rule = state.TypedContent as MediaPolicyStateEventData;
+
+            logger.LogInformation("Checking rule {rule}: {data}", state.StateKey, state.TypedContent.ToJson(ignoreNull: true, indent: false));
+            var rule = state.TypedContent as MediaPolicyEventContent;
             if (state.Type == "gay.rory.media_moderator_poc.rule.server" && rule.ServerEntity is not null) {
                 rule.ServerEntity = rule.ServerEntity.Replace("\\*", ".*").Replace("\\?", ".");
                 var regex = new Regex($"mxc://({rule.ServerEntity})/.*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                if (regex.IsMatch(@event.RawContent["url"].GetValue<string>())) {
-                    _logger.LogInformation("{url} matched rule {rule}", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
+                if (regex.IsMatch(@event.RawContent["url"]!.GetValue<string>())) {
+                    logger.LogInformation("{url} matched rule {rule}", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
                     return state;
                 }
             }
 
             if (rule.Entity is not null && uriHash.SequenceEqual(rule.Entity)) {
-                _logger.LogInformation("{url} matched rule {rule} by uri hash", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
+                logger.LogInformation("{url} matched rule {rule} by uri hash", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
                 return state;
             }
 
-            _logger.LogInformation("uri hash {uriHash} did not match rule's {ruleUriHash}",  Convert.ToBase64String(uriHash), Convert.ToBase64String(rule.Entity));
+            logger.LogInformation("uri hash {uriHash} did not match rule's {ruleUriHash}", Convert.ToBase64String(uriHash), Convert.ToBase64String(rule.Entity));
 
             if (rule.FileHash is not null && fileHash is not null && rule.FileHash.SequenceEqual(fileHash)) {
-                _logger.LogInformation("{url} matched rule {rule} by file hash", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
+                logger.LogInformation("{url} matched rule {rule} by file hash", @event.RawContent["url"], rule.ToJson(ignoreNull: true));
                 return state;
             }
 
-            _logger.LogInformation("file hash {fileHash} did not match rule's {ruleFileHash}", Convert.ToBase64String(fileHash), Convert.ToBase64String(rule.FileHash));
-
+            logger.LogInformation("file hash {fileHash} did not match rule's {ruleFileHash}", Convert.ToBase64String(fileHash), Convert.ToBase64String(rule.FileHash));
 
             //check pixels every 10% of the way through the image using ImageSharp
             // var image = Image.Load(await _hs._httpClient.GetStreamAsync(resolvedUri));
         }
 
-
-        _logger.LogInformation("{url} did not match any rules", @event.RawContent["url"]);
+        logger.LogInformation("{url} did not match any rules", @event.RawContent["url"]);
 
         return null;
     }

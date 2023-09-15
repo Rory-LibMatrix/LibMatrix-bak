@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.encryption")]
-public class RoomEncryptionEventData : IStateEventType {
+public class RoomEncryptionEventContent : EventContent {
     [JsonPropertyName("algorithm")]
     public string? Algorithm { get; set; }
     [JsonPropertyName("rotation_period_ms")]

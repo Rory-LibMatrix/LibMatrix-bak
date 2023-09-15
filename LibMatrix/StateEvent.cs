@@ -6,28 +6,41 @@ using ArcaneLibs;
 using ArcaneLibs.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
+using LibMatrix.StateEventTypes;
 
 namespace LibMatrix;
 
 public class StateEvent {
-    public static List<Type> KnownStateEventTypes =
-        new ClassCollector<IStateEventType>().ResolveFromAllAccessibleAssemblies();
+    public static readonly List<Type> KnownStateEventTypes =
+        new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies();
+
+    public static readonly Dictionary<string, Type> KnownStateEventTypesByName = KnownStateEventTypes.Aggregate(
+        new Dictionary<string, Type>(),
+        (dict, type) => {
+            var attrs = type.GetCustomAttributes<MatrixEventAttribute>();
+            foreach (var attr in attrs) {
+                dict[attr.EventName] = type;
+            }
+
+            return dict;
+        });
 
     public static Type GetStateEventType(string type) {
         if (type == "m.receipt") {
             return typeof(Dictionary<string, JsonObject>);
         }
 
-        var eventType = KnownStateEventTypes.FirstOrDefault(x =>
-            x.GetCustomAttributes<MatrixEventAttribute>()?.Any(y => y.EventName == type) ?? false);
+        // var eventType = KnownStateEventTypes.FirstOrDefault(x =>
+        // x.GetCustomAttributes<MatrixEventAttribute>()?.Any(y => y.EventName == type) ?? false);
+        var eventType = KnownStateEventTypesByName.GetValueOrDefault(type);
 
-        return eventType ?? typeof(object);
+        return eventType ?? typeof(UnknownEventContent);
     }
 
-    public object TypedContent {
+    public EventContent TypedContent {
         get {
             try {
-                return RawContent.Deserialize(GetType)!;
+                return (EventContent) RawContent.Deserialize(GetType)!;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -42,19 +55,8 @@ public class StateEvent {
     [JsonPropertyName("state_key")]
     public string StateKey { get; set; } = "";
 
-    private string _type;
-
     [JsonPropertyName("type")]
-    public string Type {
-        get => _type;
-        set {
-            _type = value;
-            // if (RawContent is not null && this is StateEventResponse stateEventResponse) {
-            //     if (File.Exists($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json")) return;
-            //     var x = GetType.Name;
-            // }
-        }
-    }
+    public string Type { get; set; }
 
     [JsonPropertyName("replaces_state")]
     public string? ReplacesState { get; set; }
@@ -79,7 +81,7 @@ public class StateEvent {
             var type = GetStateEventType(Type);
 
             //special handling for some types
-            // if (type == typeof(RoomEmotesEventData)) {
+            // if (type == typeof(RoomEmotesEventContent)) {
             //     RawContent["emote"] = RawContent["emote"]?.AsObject() ?? new JsonObject();
             // }
             //

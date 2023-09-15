@@ -25,7 +25,7 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
         services.AddScoped(typeof(ICommand), commandClass);
     }
 
-    services.AddHostedService<ServerRoomSizeCalulator>();
+    // services.AddHostedService<ServerRoomSizeCalulator>();
     services.AddHostedService<MRUBot>();
 }).UseConsoleLifetime().Build();
 

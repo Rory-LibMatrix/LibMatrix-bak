@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.power_levels")]
-public class RoomPowerLevelEventData : IStateEventType {
+public class RoomPowerLevelEventContent : EventContent {
     [JsonPropertyName("ban")]
     public long Ban { get; set; } // = 50;
 

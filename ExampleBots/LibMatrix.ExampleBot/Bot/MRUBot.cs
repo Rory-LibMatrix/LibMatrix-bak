@@ -58,7 +58,7 @@ public class MRUBot : IHostedService {
                 args.Value.InviteState.Events.FirstOrDefault(x =>
                     x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
             _logger.LogInformation(
-                $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventData).Reason}");
+                $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club") {
                 try {
                     var senderProfile = await hs.GetProfile(inviteEvent.Sender);
@@ -76,12 +76,12 @@ public class MRUBot : IHostedService {
 
             var room = await hs.GetRoom(@event.RoomId);
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
-            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
+            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData(messageType: "m.text", body: "Command not found!"));
+                            new RoomMessageEventContent(messageType: "m.text", body: "Command not found!"));
                         return;
                     }
 
@@ -94,7 +94,7 @@ public class MRUBot : IHostedService {
                     }
                     else {
                         await room.SendMessageEventAsync("m.room.message",
-                            new RoomMessageEventData(messageType: "m.text", body: "You do not have permission to run this command!"));
+                            new RoomMessageEventContent(messageType: "m.text", body: "You do not have permission to run this command!"));
                     }
                 }
             }

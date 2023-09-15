@@ -6,7 +6,7 @@ namespace MediaModeratorPoC.Bot.StateEventTypes;
 
 [MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.homeserver")]
 [MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.media")]
-public class MediaPolicyStateEventData : IStateEventType {
+public class MediaPolicyEventContent : EventContent {
     /// <summary>
     ///     This is an MXC URI, hashed with SHA3-256.
     /// </summary>
