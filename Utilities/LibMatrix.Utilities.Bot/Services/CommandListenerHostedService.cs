@@ -1,7 +1,7 @@
+using LibMatrix.EventTypes.Spec;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
-using LibMatrix.StateEventTypes.Spec;
-using MediaModeratorPoC.Bot.Interfaces;
+using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -39,7 +39,7 @@ public class CommandListenerHostedService : IHostedService {
         _logger.LogInformation("Starting command listener!");
         _hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
             try {
-                var room = await _hs.GetRoom(@event.RoomId);
+                var room = _hs.GetRoom(@event.RoomId);
                 // _logger.LogInformation(eventResponse.ToJson(indent: false));
                 if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
                     if (message is { MessageType: "m.text" }) {
@@ -48,7 +48,7 @@ public class CommandListenerHostedService : IHostedService {
                         if (messageContentWithoutReply.StartsWith(_config.Prefix)) {
                             var command = _commands.FirstOrDefault(x => x.Name == messageContentWithoutReply.Split(' ')[0][_config.Prefix.Length..]);
                             if (command == null) {
-                                await room.SendMessageEventAsync("m.room.message",
+                                await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(messageType: "m.notice", body: "Command not found!"));
                                 return;
                             }
@@ -64,12 +64,12 @@ public class CommandListenerHostedService : IHostedService {
                                     await command.Invoke(ctx);
                                 }
                                 catch (Exception e) {
-                                    await room.SendMessageEventAsync("m.room.message",
+                                    await room.SendMessageEventAsync(
                                         MessageFormatter.FormatException("An error occurred during the execution of this command", e));
                                 }
                             }
                             else {
-                                await room.SendMessageEventAsync("m.room.message",
+                                await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(messageType: "m.notice", body: "You do not have permission to run this command!"));
                             }
                         }

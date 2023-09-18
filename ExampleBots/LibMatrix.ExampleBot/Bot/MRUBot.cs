@@ -1,10 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes.Spec;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.ExampleBot.Bot.Interfaces;
 using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,7 +44,7 @@ public class MRUBot : IHostedService {
             throw;
         }
 
-        await (await hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
+        await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
 
         // foreach (var room in await hs.GetJoinedRooms()) {
         //     if(room.RoomId is "!OGEhHVWSdvArJzumhm:matrix.org") continue;
@@ -61,12 +62,12 @@ public class MRUBot : IHostedService {
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club") {
                 try {
-                    var senderProfile = await hs.GetProfile(inviteEvent.Sender);
-                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
+                    await (hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     _logger.LogError("{}", e.ToString());
-                    await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    await (hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
@@ -74,13 +75,13 @@ public class MRUBot : IHostedService {
             _logger.LogInformation(
                 "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: false, ignoreNull: true));
 
-            var room = await hs.GetRoom(@event.RoomId);
+            var room = hs.GetRoom(@event.RoomId);
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
             if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
-                        await room.SendMessageEventAsync("m.room.message",
+                        await room.SendMessageEventAsync(
                             new RoomMessageEventContent(messageType: "m.text", body: "Command not found!"));
                         return;
                     }
@@ -93,7 +94,7 @@ public class MRUBot : IHostedService {
                         await command.Invoke(ctx);
                     }
                     else {
-                        await room.SendMessageEventAsync("m.room.message",
+                        await room.SendMessageEventAsync(
                             new RoomMessageEventContent(messageType: "m.text", body: "You do not have permission to run this command!"));
                     }
                 }

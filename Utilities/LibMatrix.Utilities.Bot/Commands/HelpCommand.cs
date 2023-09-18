@@ -1,9 +1,9 @@
 using System.Text;
-using LibMatrix.StateEventTypes.Spec;
-using MediaModeratorPoC.Bot.Interfaces;
+using LibMatrix.EventTypes.Spec;
+using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MediaModeratorPoC.Bot.Commands;
+namespace LibMatrix.Utilities.Bot.Commands;
 
 public class HelpCommand(IServiceProvider services) : ICommand {
     public string Name { get; } = "help";
@@ -17,6 +17,6 @@ public class HelpCommand(IServiceProvider services) : ICommand {
             sb.AppendLine($"- {command.Name}: {command.Description}");
         }
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent(messageType: "m.notice", body: sb.ToString()));
+        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent(messageType: "m.notice", body: sb.ToString()));
     }
 }

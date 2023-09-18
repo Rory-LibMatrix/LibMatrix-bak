@@ -12,25 +12,26 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
-    public AuthenticatedHomeserverGeneric(TieredStorageService storage, string canonicalHomeServerDomain, string accessToken) : base(canonicalHomeServerDomain) {
-        Storage = storage;
+    public AuthenticatedHomeserverGeneric(string canonicalHomeServerDomain, string accessToken) : base(canonicalHomeServerDomain) {
         AccessToken = accessToken.Trim();
-        SyncHelper = new SyncHelper(this, storage);
+        SyncHelper = new SyncHelper(this);
     }
 
-    public virtual TieredStorageService Storage { get; set; }
     public virtual SyncHelper SyncHelper { get; init; }
     public virtual WhoAmIResponse WhoAmI { get; set; } = null!;
     public virtual string UserId => WhoAmI.UserId;
     public virtual string AccessToken { get; set; }
 
-    public virtual Task<GenericRoom> GetRoom(string roomId) => Task.FromResult<GenericRoom>(new(this, roomId));
+    public virtual GenericRoom GetRoom(string roomId) {
+        if(roomId is null || !roomId.StartsWith("!")) throw new ArgumentException("Room ID must start with !", nameof(roomId));
+        return new GenericRoom(this, roomId);
+    }
 
     public virtual async Task<List<GenericRoom>> GetJoinedRooms() {
         var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
 
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
-        var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => new GenericRoom(this, room.GetString()!)).ToList();
+        var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => GetRoom(room.GetString()!)).ToList();
 
         Console.WriteLine($"Fetched {rooms.Count} rooms");
 
@@ -58,13 +59,21 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
             throw new InvalidDataException($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
         }
 
-        var room = await GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
+        var room = GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
 
         foreach (var user in creationEvent.Invite) {
             await room.InviteUser(user);
         }
 
         return room;
+    }
+
+    public virtual async Task Logout() {
+        var res = await _httpClient.PostAsync("/_matrix/client/v3/logout", null);
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to logout: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to logout: {await res.Content.ReadAsStringAsync()}");
+        }
     }
 
 #region Utility Functions

@@ -1,6 +1,6 @@
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes.Spec;
 using LibMatrix.ExampleBot.Bot.Interfaces;
-using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.ExampleBot.Bot.Commands;
 
@@ -18,7 +18,7 @@ public class CmdCommand : ICommand {
         cmd = cmd.Trim();
         cmd += "\"";
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent(body: $"Command being executed: `{cmd}`"));
+        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent(body: $"Command being executed: `{cmd}`"));
 
         var output = ArcaneLibs.Util.GetCommandOutputAsync(
             Environment.OSVersion.Platform == PlatformID.Unix ? "/bin/sh" : "cmd.exe",
@@ -27,7 +27,7 @@ public class CmdCommand : ICommand {
         // .Split("\n").ToList();
 
         var msg = "";
-        EventIdResponse? msgId = await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent {
+        EventIdResponse? msgId = await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent {
             FormattedBody = $"Waiting for command output...",
             Body = msg.RemoveAnsi(),
             Format = "m.notice"
@@ -38,14 +38,14 @@ public class CmdCommand : ICommand {
             Console.WriteLine($"{@out.Length:0000} {@out}");
             msg += @out + "\n";
             if (lastSendTask.IsCompleted)
-                lastSendTask = ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent {
+                lastSendTask = ctx.Room.SendMessageEventAsync(new RoomMessageEventContent {
                     FormattedBody = $"<pre class=\"language-csharp\">\n{msg}\n</pre>",
                     Body = msg.RemoveAnsi(),
                     Format = "org.matrix.custom.html"
                 });
             if (msg.Length > 31000) {
                 await lastSendTask;
-                msgId = await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent {
+                msgId = await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent {
                     FormattedBody = $"Waiting for command output...",
                     Body = msg.RemoveAnsi(),
                     Format = "m.notice"

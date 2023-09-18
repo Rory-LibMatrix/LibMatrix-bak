@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.Services;
 
-public class HomeserverResolverService(ILogger<HomeserverResolverService>? logger) {
+public class HomeserverResolverService(ILogger<HomeserverResolverService>? logger = null) {
     private readonly MatrixHttpClient _httpClient = new();
 
     private static readonly Dictionary<string, string> _wellKnownCache = new();

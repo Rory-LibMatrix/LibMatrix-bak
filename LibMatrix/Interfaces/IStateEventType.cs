@@ -4,10 +4,10 @@ namespace LibMatrix.Interfaces;
 
 public abstract class EventContent {
     [JsonPropertyName("m.relates_to")]
-    public virtual MessageRelatesTo? RelatesTo { get; set; }
+    public MessageRelatesTo? RelatesTo { get; set; }
 
     [JsonPropertyName("m.new_content")]
-    public virtual EventContent? NewContent { get; set; }
+    public EventContent? NewContent { get; set; }
 
     public abstract class MessageRelatesTo {
         [JsonPropertyName("m.in_reply_to")]

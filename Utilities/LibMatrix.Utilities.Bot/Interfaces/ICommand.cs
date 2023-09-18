@@ -1,4 +1,4 @@
-namespace MediaModeratorPoC.Bot.Interfaces; 
+namespace LibMatrix.Utilities.Bot.Interfaces; 
 
 public interface ICommand {
     public string Name { get; }

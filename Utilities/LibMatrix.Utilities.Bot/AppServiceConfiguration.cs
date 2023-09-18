@@ -1,4 +1,4 @@
-namespace PluralContactBotPoC;
+namespace LibMatrix.Utilities.Bot;
 
 public class AppServiceConfiguration {
     public string Id { get; set; } = null!;

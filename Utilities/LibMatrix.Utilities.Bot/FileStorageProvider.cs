@@ -3,7 +3,7 @@ using ArcaneLibs.Extensions;
 using LibMatrix.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
-namespace MediaModeratorPoC.Bot;
+namespace LibMatrix.Utilities.Bot;
 
 public class FileStorageProvider : IStorageProvider {
     private readonly ILogger<FileStorageProvider> _logger;

@@ -1,8 +1,8 @@
 using LibMatrix;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Helpers;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
-using MediaModeratorPoC.Bot.Interfaces;
+using LibMatrix.Utilities.Bot.Interfaces;
 using PluralContactBotPoC.Bot.AccountData;
 using PluralContactBotPoC.Bot.StateEventTypes;
 
@@ -18,7 +18,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
 
     public async Task Invoke(CommandContext ctx) {
         if (ctx.Args.Length != 1) {
-            await ctx.Reply("m.notice", MessageFormatter.FormatError("Only one argument is allowed: system name!"));
+            await ctx.Reply(MessageFormatter.FormatError("Only one argument is allowed: system name!"));
             return;
         }
 
@@ -26,7 +26,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
         try {
             try {
                 await ctx.Homeserver.GetAccountData<BotData>("gay.rory.plural_contact_bot.system_data");
-                await ctx.Reply("m.notice", MessageFormatter.FormatError($"System {sysName} already exists!"));
+                await ctx.Reply(MessageFormatter.FormatError($"System {sysName} already exists!"));
             }
             catch (MatrixException e) {
                 if (e is { ErrorCode: "M_NOT_FOUND" }) {
@@ -51,7 +51,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
             }
         }
         catch (Exception e) {
-            await ctx.Reply("m.notice", MessageFormatter.FormatException("Something went wrong!", e));
+            await ctx.Reply(MessageFormatter.FormatException("Something went wrong!", e));
         }
     }
 }

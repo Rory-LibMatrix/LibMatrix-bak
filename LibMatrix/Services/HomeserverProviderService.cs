@@ -39,10 +39,10 @@ public class HomeserverProviderService {
 
         AuthenticatedHomeserverGeneric hs;
         if (true) {
-            hs = new AuthenticatedHomeserverMxApiExtended(_tieredStorageService, homeserver, accessToken);
+            hs = new AuthenticatedHomeserverMxApiExtended(homeserver, accessToken);
         }
         else {
-            hs = new AuthenticatedHomeserverGeneric(_tieredStorageService, homeserver, accessToken);
+            hs = new AuthenticatedHomeserverGeneric(homeserver, accessToken);
         }
 
         hs.FullHomeServerDomain = domain;

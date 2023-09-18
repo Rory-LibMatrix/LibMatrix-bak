@@ -1,12 +1,13 @@
 using System.Text;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes.Spec;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
 using LibMatrix.Utilities.Bot;
-using MediaModeratorPoC.Bot.Interfaces;
+using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PluralContactBotPoC.Bot.AccountData;
@@ -35,7 +36,7 @@ public class PluralContactBot(AuthenticatedHomeserverGeneric hs, ILogger<PluralC
 
         BotData botData;
 
-        _logRoom = await hs.GetRoom(botConfiguration.LogRoom);
+        _logRoom = hs.GetRoom(botConfiguration.LogRoom);
 
         hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
@@ -46,9 +47,9 @@ public class PluralContactBot(AuthenticatedHomeserverGeneric hs, ILogger<PluralC
             try {
                 var accountData = await hs.GetAccountData<SystemData>($"gay.rory.plural_contact_bot.system_data#{inviteEvent.StateKey}");
                 if (accountData.Members.Contains(inviteEvent.Sender)) {
-                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: "I was invited by a system member!");
+                    await (hs.GetRoom(args.Key)).JoinAsync(reason: "I was invited by a system member!");
 
-                    await _logRoom.SendMessageEventAsync("m.room.message",
+                    await _logRoom.SendMessageEventAsync(
                         MessageFormatter.FormatSuccess(
                             $"I was invited by a system member ({MessageFormatter.HtmlFormatMention(inviteEvent.Sender)}) to {MessageFormatter.HtmlFormatMention(args.Key)}"));
 
@@ -56,25 +57,25 @@ public class PluralContactBot(AuthenticatedHomeserverGeneric hs, ILogger<PluralC
                 }
             }
             catch (Exception e) {
-                await _logRoom.SendMessageEventAsync("m.room.message",
+                await _logRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException(
                         $"Exception handling event {inviteEvent.EventId} by {inviteEvent.Sender} in {MessageFormatter.HtmlFormatMention(inviteEvent.RoomId)}", e));
             }
 
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender.EndsWith(":conduit.rory.gay")) {
                 try {
-                    var senderProfile = await hs.GetProfile(inviteEvent.Sender);
-                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
+                    await (hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     logger.LogError("{}", e.ToString());
-                    await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    await (hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
 
         hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
-            var room = await hs.GetRoom(@event.RoomId);
+            var room = hs.GetRoom(@event.RoomId);
             try {
                 logger.LogInformation(
                     "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: true, ignoreNull: true));
@@ -83,7 +84,7 @@ public class PluralContactBot(AuthenticatedHomeserverGeneric hs, ILogger<PluralC
             }
             catch (Exception e) {
                 logger.LogError("{}", e.ToString());
-                await _logRoom.SendMessageEventAsync("m.room.message",
+                await _logRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException($"Exception handling event {@event.EventId} by {@event.Sender} in {MessageFormatter.HtmlFormatMention(room.RoomId)}", e));
                 await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(e.ToString()));
                 await _logRoom.SendFileAsync("m.file", "error.log.cs", stream);

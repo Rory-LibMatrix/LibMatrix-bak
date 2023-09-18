@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using ArcaneLibs.Extensions;
 
@@ -28,7 +30,8 @@ public class MatrixHttpClient : HttpClient {
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
 
-        Console.WriteLine($"Sending request to {request.RequestUri}");
+        // Console.WriteLine($"Sending request to {request.RequestUri}");
+
         try {
             var webAssemblyEnableStreamingResponseKey =
                 new HttpRequestOptionsKey<bool>("WebAssemblyEnableStreamingResponse");
@@ -75,5 +78,12 @@ public class MatrixHttpClient : HttpClient {
         var response = await SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStreamAsync(cancellationToken);
+    }
+
+    public new async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
+        var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType()), Encoding.UTF8, "application/json");
+        return await SendAsync(request, cancellationToken);
     }
 }

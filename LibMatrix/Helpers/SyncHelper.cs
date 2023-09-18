@@ -9,17 +9,17 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Helpers;
 
-public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, TieredStorageService storageService) {
+public class SyncHelper(AuthenticatedHomeserverGeneric homeserver) {
     public async Task<SyncResult?> Sync(
         string? since = null,
         int? timeout = 30000,
         string? setPresence = "online",
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null) {
-        var outFileName = "sync-" +
-                          (await storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
-                              x => x.StartsWith("sync")) +
-                          ".json";
+        // var outFileName = "sync-" +
+        //                   (await storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
+        //                       x => x.StartsWith("sync")) +
+        //                   ".json";
         var url = $"/_matrix/client/v3/sync?timeout={timeout}&set_presence={setPresence}";
         if (!string.IsNullOrWhiteSpace(since)) url += $"&since={since}";
         if (filter is not null) url += $"&filter={filter.ToJson(ignoreNull: true, indent: false)}";
@@ -65,10 +65,10 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, TieredStorage
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null
     ) {
-        await Task.WhenAll((await storageService.CacheStorageProvider.GetAllKeysAsync())
-            .Where(x => x.StartsWith("sync"))
-            .ToList()
-            .Select(x => storageService.CacheStorageProvider.DeleteObjectAsync(x)));
+        // await Task.WhenAll((await storageService.CacheStorageProvider.GetAllKeysAsync())
+        //     .Where(x => x.StartsWith("sync"))
+        //     .ToList()
+        //     .Select(x => storageService.CacheStorageProvider.DeleteObjectAsync(x)));
         var nextBatch = since;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
             var sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter,

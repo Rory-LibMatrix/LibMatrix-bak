@@ -1,0 +1,52 @@
+using LibMatrix.Services;
+using LibMatrix.Tests.Fixtures;
+using Xunit.Abstractions;
+using Xunit.Microsoft.DependencyInjection.Abstracts;
+
+namespace LibMatrix.Tests.Tests;
+
+public class AuthTests : TestBed<TestFixture> {
+    private readonly TestFixture _fixture;
+    private readonly HomeserverResolverService _resolver;
+    private readonly Config _config;
+    private readonly HomeserverProviderService _provider;
+
+    public AuthTests(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
+        _fixture = fixture;
+        _resolver = _fixture.GetService<HomeserverResolverService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverResolverService)}");
+        _config = _fixture.GetService<Config>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(Config)}");
+        _provider = _fixture.GetService<HomeserverProviderService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverProviderService)}");
+    }
+
+    [Fact]
+    public async Task LoginWithPassword() {
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestHomeserver), $"{nameof(_config.TestHomeserver)} must be set in appsettings!");
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestUsername), $"{nameof(_config.TestUsername)} must be set in appsettings!");
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestPassword), $"{nameof(_config.TestPassword)} must be set in appsettings!");
+
+        // var server = await _resolver.ResolveHomeserverFromWellKnown(_config.TestHomeserver!);
+        var login = await _provider.Login(_config.TestHomeserver!, _config.TestUsername!, _config.TestPassword!);
+        Assert.NotNull(login);
+        var hs = await _provider.GetAuthenticatedWithToken(_config.TestHomeserver!, login.AccessToken);
+        Assert.NotNull(hs);
+        await hs.Logout();
+    }
+
+    [Fact]
+    public async Task LoginWithToken() {
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestHomeserver), $"{nameof(_config.TestHomeserver)} must be set in appsettings!");
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestUsername), $"{nameof(_config.TestUsername)} must be set in appsettings!");
+        Assert.False(string.IsNullOrWhiteSpace(_config.TestPassword), $"{nameof(_config.TestPassword)} must be set in appsettings!");
+
+        // var server = await _resolver.ResolveHomeserverFromWellKnown(_config.TestHomeserver!);
+        var login = await _provider.Login(_config.TestHomeserver!, _config.TestUsername!, _config.TestPassword!);
+        Assert.NotNull(login);
+
+        var hs = await _provider.GetAuthenticatedWithToken(_config.TestHomeserver!, login.AccessToken);
+        Assert.NotNull(hs);
+        Assert.NotNull(hs.WhoAmI);
+        Assert.NotNull(hs.UserId);
+        Assert.NotNull(hs.AccessToken);
+        await hs.Logout();
+    }
+}

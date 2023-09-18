@@ -2,10 +2,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
+using LibMatrix.EventTypes.Spec;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
+using LibMatrix.Interfaces;
 using LibMatrix.Responses;
-using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.RoomTypes;
@@ -65,12 +67,12 @@ public class GenericRoom {
 #endif
         }
         catch (MatrixException e) {
-            if (e is not { ErrorCode: "M_NOT_FOUND" }) {
+            // if (e is not { ErrorCodode: "M_NOT_FOUND" }) {
                 throw;
-            }
+            // }
 
-            Console.WriteLine(e);
-            return default;
+            // Console.WriteLine(e);
+            // return default;
         }
     }
 
@@ -93,7 +95,7 @@ public class GenericRoom {
         }
     }
 
-    public async Task JoinAsync(string[]? homeservers = null, string? reason = null) {
+    public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null) {
         var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
         Console.WriteLine($"Calling {join_url} with {homeservers?.Length ?? 0} via's...");
         if (homeservers == null || homeservers.Length == 0) homeservers = new[] { RoomId.Split(':')[1] };
@@ -101,6 +103,7 @@ public class GenericRoom {
         var res = await _httpClient.PostAsJsonAsync(fullJoinUrl, new {
             reason
         });
+        return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
     // TODO: rewrite (members endpoint?)
@@ -111,10 +114,10 @@ public class GenericRoom {
         //     if (joinedOnly && (member.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
         //     yield return member;
         // }
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
-        var result =
-            JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(await res.Content.ReadAsStreamAsync());
-        await foreach (var resp in result) {
+        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members?limit=2");
+        var resText = await res.Content.ReadAsStringAsync();
+        var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync());
+        foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
             if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
             yield return resp;
@@ -122,6 +125,9 @@ public class GenericRoom {
     }
 
 #region Utility shortcuts
+
+    public async Task<EventIdResponse> SendMessageEventAsync(RoomMessageEventContent content) =>
+        await SendTimelineEventAsync("m.room.message", content);
 
     public async Task<List<string>> GetAliasesAsync() {
         var res = await GetStateAsync<RoomAliasEventContent>("m.room.aliases");
@@ -187,7 +193,7 @@ public class GenericRoom {
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventContent content) {
+    public async Task<EventIdResponse> SendTimelineEventAsync(string eventType, EventContent content) {
         var res = await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -243,4 +249,9 @@ public class GenericRoom {
     public async Task InviteUser(string userId, string? reason = null) {
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
+}
+
+public class RoomIdResponse {
+    [JsonPropertyName("room_id")]
+    public string RoomId { get; set; } = null!;
 }

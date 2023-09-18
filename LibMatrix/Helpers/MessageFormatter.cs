@@ -1,5 +1,5 @@
 using ArcaneLibs.Extensions;
-using LibMatrix.StateEventTypes.Spec;
+using LibMatrix.EventTypes.Spec;
 
 namespace LibMatrix.Helpers;
 

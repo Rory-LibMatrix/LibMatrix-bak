@@ -45,3 +45,8 @@ public class StateEventResponse : StateEvent {
         public JsonObject? PrevContent { get; set; }
     }
 }
+
+public class ChunkedStateEventResponse {
+    [JsonPropertyName("chunk")]
+    public List<StateEventResponse>? Chunk { get; set; }
+}

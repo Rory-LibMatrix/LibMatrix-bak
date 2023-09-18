@@ -102,7 +102,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
         }
     }
 
-    public AuthenticatedHomeserverSynapse(TieredStorageService storage, string canonicalHomeServerDomain, string accessToken) : base(storage, canonicalHomeServerDomain, accessToken) {
+    public AuthenticatedHomeserverSynapse(string canonicalHomeServerDomain, string accessToken) : base(canonicalHomeServerDomain, accessToken) {
         Admin = new(this);
     }
 }

@@ -10,3 +10,4 @@ MatrixRoomUtils.Bot/bot_data/
 appsettings.Local*.json
 appservice.yaml
 appservice.json
+Tests/LibMatrix.Tests/appsettings.json

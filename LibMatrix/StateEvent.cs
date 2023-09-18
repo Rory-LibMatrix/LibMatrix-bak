@@ -4,15 +4,14 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ArcaneLibs;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes;
 using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
-using LibMatrix.StateEventTypes;
 
 namespace LibMatrix;
 
 public class StateEvent {
-    public static readonly List<Type> KnownStateEventTypes =
-        new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies();
+    public static List<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies();
 
     public static readonly Dictionary<string, Type> KnownStateEventTypesByName = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),

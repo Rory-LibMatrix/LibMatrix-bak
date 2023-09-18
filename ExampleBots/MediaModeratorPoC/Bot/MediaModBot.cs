@@ -6,14 +6,15 @@ using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using ArcaneLibs.Extensions;
 using LibMatrix;
+using LibMatrix.EventTypes.Spec;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
+using LibMatrix.Utilities.Bot.Interfaces;
 using MediaModeratorPoC.Bot.AccountData;
-using MediaModeratorPoC.Bot.Interfaces;
 using MediaModeratorPoC.Bot.StateEventTypes;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -86,9 +87,9 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             await hs.SetAccountData("gay.rory.media_moderator_poc_data", botData);
         }
 
-        _policyRoom = await hs.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
-        _logRoom = await hs.GetRoom(botData.LogRoom ?? botData.ControlRoom);
-        _controlRoom = await hs.GetRoom(botData.ControlRoom);
+        _policyRoom = hs.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
+        _logRoom = hs.GetRoom(botData.LogRoom ?? botData.ControlRoom);
+        _controlRoom = hs.GetRoom(botData.ControlRoom);
 
         List<string> admins = new();
 
@@ -113,18 +114,18 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender.EndsWith(":conduit.rory.gay")) {
                 try {
-                    var senderProfile = await hs.GetProfile(inviteEvent.Sender);
-                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
+                    await (hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     logger.LogError("{}", e.ToString());
-                    await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    await (hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
 
         hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
-            var room = await hs.GetRoom(@event.RoomId);
+            var room = hs.GetRoom(@event.RoomId);
             try {
                 logger.LogInformation(
                     "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: true, ignoreNull: true));
@@ -136,7 +137,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                         if (matchedPolicy is null) return;
                         var matchedpolicyData = matchedPolicy.TypedContent as MediaPolicyEventContent;
                         var recommendation = matchedpolicyData.Recommendation;
-                        await _logRoom.SendMessageEventAsync("m.room.message",
+                        await _logRoom.SendMessageEventAsync(
                             new RoomMessageEventContent(
                                 body:
                                 $"User {MessageFormatter.HtmlFormatMention(@event.Sender)} posted an image in {MessageFormatter.HtmlFormatMention(room.RoomId)} that matched rule {matchedPolicy.StateKey}, applying action {matchedpolicyData.Recommendation}, as described in rule: {matchedPolicy.RawContent!.ToJson(ignoreNull: true)}",
@@ -147,7 +148,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                             });
                         switch (recommendation) {
                             case "warn_admins": {
-                                await _controlRoom.SendMessageEventAsync("m.room.message",
+                                await _controlRoom.SendMessageEventAsync(
                                     new RoomMessageEventContent(
                                         body: $"{string.Join(' ', admins)}\nUser {MessageFormatter.HtmlFormatMention(@event.Sender)} posted a banned image {message.Url}",
                                         messageType: "m.text") {
@@ -158,7 +159,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                                 break;
                             }
                             case "warn": {
-                                await room.SendMessageEventAsync("m.room.message",
+                                await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(
                                         body: $"Please be careful when posting this image: {matchedpolicyData.Reason}",
                                         messageType: "m.text") {
@@ -184,7 +185,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                                 //      <img src=\"mxc://rory.gay/sLkdxUhipiQaFwRkXcPSRwdg\" height=\"69\"></a>
                                 //  </span>
                                 // </blockquote>
-                                await room.SendMessageEventAsync("m.room.message",
+                                await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(
                                         body:
                                         $"Please be careful when posting this image: {matchedpolicyData.Reason}, I have spoilered it for you:",
@@ -194,7 +195,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                                             $"<font color=\"#FFFF00\">Please be careful when posting this image: {matchedpolicyData.Reason}, I have spoilered it for you:</a></font>"
                                     });
                                 var imageUrl = message.Url;
-                                await room.SendMessageEventAsync("m.room.message",
+                                await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(body: $"CN: {imageUrl}",
                                         messageType: "m.text") {
                                         Format = "org.matrix.custom.html",
@@ -244,9 +245,9 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             }
             catch (Exception e) {
                 logger.LogError("{}", e.ToString());
-                await _controlRoom.SendMessageEventAsync("m.room.message",
+                await _controlRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException($"Unable to ban user in {MessageFormatter.HtmlFormatMention(room.RoomId)}", e));
-                await _logRoom.SendMessageEventAsync("m.room.message",
+                await _logRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException($"Unable to ban user in {MessageFormatter.HtmlFormatMention(room.RoomId)}", e));
                 await using var stream = new MemoryStream(e.ToString().AsBytes().ToArray());
                 await _controlRoom.SendFileAsync("m.file", "error.log.cs", stream);
@@ -274,7 +275,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             fileHash = await hashAlgo.ComputeHashAsync(await hs._httpClient.GetStreamAsync(resolvedUri));
         }
         catch (Exception ex) {
-            await _logRoom.SendMessageEventAsync("m.room.message",
+            await _logRoom.SendMessageEventAsync(
                 MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]} ({resolvedUri}), retrying via {hs.HomeServerDomain}...",
                     ex));
             try {
@@ -282,7 +283,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                 fileHash = await hashAlgo.ComputeHashAsync(await hs._httpClient.GetStreamAsync(resolvedUri));
             }
             catch (Exception ex2) {
-                await _logRoom.SendMessageEventAsync("m.room.message",
+                await _logRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException($"Error calculating file hash via {hs.HomeServerDomain} ({resolvedUri})!", ex2));
             }
         }

@@ -1,6 +1,6 @@
+using LibMatrix.EventTypes.Spec;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
-using LibMatrix.StateEventTypes.Spec;
 
 namespace LibMatrix.ExampleBot.Bot.Interfaces;
 

@@ -1,6 +1,6 @@
 using System.Text;
+using LibMatrix.EventTypes.Spec;
 using LibMatrix.ExampleBot.Bot.Interfaces;
-using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LibMatrix.ExampleBot.Bot.Commands;
@@ -17,6 +17,6 @@ public class HelpCommand(IServiceProvider services) : ICommand {
             sb.AppendLine($"- {command.Name}: {command.Description}");
         }
 
-        await ctx.Room.SendMessageEventAsync("m.room.message", new RoomMessageEventContent(body: sb.ToString()));
+        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent(body: sb.ToString()));
     }
 }

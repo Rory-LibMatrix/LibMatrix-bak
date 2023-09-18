@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot;
-using MediaModeratorPoC.Bot;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PluralContactBotPoC;

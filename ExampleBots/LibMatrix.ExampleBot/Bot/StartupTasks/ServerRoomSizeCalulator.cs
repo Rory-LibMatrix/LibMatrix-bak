@@ -3,7 +3,6 @@ using ArcaneLibs.Extensions;
 using LibMatrix.ExampleBot.Bot.Interfaces;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,7 @@ public class ServerRoomSizeCalulator : IHostedService {
             throw;
         }
 
-        await (await hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
+        await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
 
         Dictionary<string, int> totalRoomSize = new();
         foreach (var room in await hs.GetJoinedRooms()) {
