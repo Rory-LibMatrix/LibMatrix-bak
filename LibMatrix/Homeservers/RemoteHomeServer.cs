@@ -1,19 +1,22 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Extensions;
 using LibMatrix.Responses;
+using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;
 
-public class RemoteHomeServer(string canonicalHomeServerDomain) {
-    // _httpClient.Timeout = TimeSpan.FromSeconds(5);
+public class RemoteHomeServer(string baseUrl) {
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
-    public string HomeServerDomain { get; } = canonicalHomeServerDomain.Trim();
-    public string FullHomeServerDomain { get; set; }
-    public MatrixHttpClient _httpClient { get; set; } = new();
+    public string BaseUrl { get; } = baseUrl.Trim();
+    public MatrixHttpClient _httpClient { get; set; } = new() {
+        BaseAddress = new Uri(new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl).Result ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+        Timeout = TimeSpan.FromSeconds(120)
+    };
 
     public async Task<ProfileResponseEventContent> GetProfileAsync(string mxid) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));
@@ -46,6 +49,42 @@ public class RemoteHomeServer(string canonicalHomeServerDomain) {
         if (!resp.IsSuccessStatusCode) Console.WriteLine("ResolveAlias: " + data.ToJson());
         return data;
     }
+
+#region Authentication
+
+    public async Task<LoginResponse> LoginAsync(string username, string password, string? deviceName = null) {
+        var resp = await _httpClient.PostAsJsonAsync("/_matrix/client/r0/login", new {
+            type = "m.login.password",
+            identifier = new {
+                type = "m.id.user",
+                user = username
+            },
+            password = password,
+            initial_device_display_name = deviceName
+        });
+        var data = await resp.Content.ReadFromJsonAsync<LoginResponse>();
+        if (!resp.IsSuccessStatusCode) Console.WriteLine("Login: " + data.ToJson());
+        return data;
+    }
+
+    public async Task<LoginResponse> RegisterAsync(string username, string password, string? deviceName = null) {
+        var resp = await _httpClient.PostAsJsonAsync("/_matrix/client/r0/register", new {
+            kind = "user",
+            auth = new {
+                type = "m.login.dummy"
+            },
+            username,
+            password,
+            initial_device_display_name = deviceName ?? "LibMatrix"
+        }, new JsonSerializerOptions() {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        });
+        var data = await resp.Content.ReadFromJsonAsync<LoginResponse>();
+        if (!resp.IsSuccessStatusCode) Console.WriteLine("Register: " + data.ToJson());
+        return data;
+    }
+
+#endregion
 }
 
 public class AliasResult {

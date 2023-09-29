@@ -1,4 +1,5 @@
 using LibMatrix.Services;
+using LibMatrix.Tests.DataTests;
 using LibMatrix.Tests.Fixtures;
 using Xunit.Abstractions;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
@@ -45,6 +46,24 @@ public class AuthTests : TestBed<TestFixture> {
         var hs = await _provider.GetAuthenticatedWithToken(_config.TestHomeserver!, login.AccessToken);
         Assert.NotNull(hs);
         Assert.NotNull(hs.WhoAmI);
+        hs.WhoAmI.VerifyRequiredFields();
+        Assert.NotNull(hs.UserId);
+        Assert.NotNull(hs.AccessToken);
+        await hs.Logout();
+    }
+
+    [Fact]
+    public async Task RegisterAsync() {
+        var rhs = await _provider.GetRemoteHomeserver("matrixunittests.rory.gay");
+        var reg = await rhs.RegisterAsync(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), "Unit tests!");
+        Assert.NotNull(reg);
+        Assert.NotNull(reg.AccessToken);
+        Assert.NotNull(reg.DeviceId);
+        Assert.NotNull(reg.UserId);
+        var hs = await reg.GetAuthenticatedHomeserver();
+        Assert.NotNull(hs);
+        Assert.NotNull(hs.WhoAmI);
+        hs.WhoAmI.VerifyRequiredFields();
         Assert.NotNull(hs.UserId);
         Assert.NotNull(hs.AccessToken);
         await hs.Logout();

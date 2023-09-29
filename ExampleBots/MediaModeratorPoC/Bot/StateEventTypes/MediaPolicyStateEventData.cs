@@ -4,7 +4,8 @@ using LibMatrix.Interfaces;
 
 namespace MediaModeratorPoC.Bot.StateEventTypes;
 
-[MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.homeserver")]
+[
+    MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.homeserver")]
 [MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.media")]
 public class MediaPolicyEventContent : EventContent {
     /// <summary>

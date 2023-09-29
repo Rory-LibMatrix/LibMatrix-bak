@@ -109,17 +109,17 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
         hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
-                    x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
+                    x.Type == "m.room.member" && x.StateKey == hs.UserId);
             logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender.EndsWith(":conduit.rory.gay")) {
                 try {
                     var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
-                    await (hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    await hs.GetRoom(args.Key).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     logger.LogError("{}", e.ToString());
-                    await (hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    await hs.GetRoom(args.Key).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
         });
@@ -161,16 +161,16 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                             case "warn": {
                                 await room.SendMessageEventAsync(
                                     new RoomMessageEventContent(
-                                        body: $"Please be careful when posting this image: {matchedpolicyData.Reason}",
+                                        body: $"Please be careful when posting this image: {matchedpolicyData.Reason ?? "No reason specified"}",
                                         messageType: "m.text") {
                                         Format = "org.matrix.custom.html",
                                         FormattedBody =
-                                            $"<font color=\"#FFFF00\">Please be careful when posting this image: {matchedpolicyData.Reason}</a></font>"
+                                            $"<font color=\"#FFFF00\">Please be careful when posting this image: {matchedpolicyData.Reason ?? "No reason specified"}</a></font>"
                                     });
                                 break;
                             }
                             case "redact": {
-                                await room.RedactEventAsync(@event.EventId, matchedpolicyData.Reason);
+                                await room.RedactEventAsync(@event.EventId, matchedpolicyData.Reason ?? "No reason specified");
                                 break;
                             }
                             case "spoiler": {
@@ -220,9 +220,15 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                                 await room.RedactEventAsync(@event.EventId, matchedpolicyData.Reason);
                                 //change powerlevel to -1
                                 var currentPls = await room.GetPowerLevelsAsync();
+                                if(currentPls is null) {
+                                    logger.LogWarning("Unable to get power levels for {room}", room.RoomId);
+                                    await _logRoom.SendMessageEventAsync(
+                                        MessageFormatter.FormatError($"Unable to get power levels for {MessageFormatter.HtmlFormatMention(room.RoomId)}"));
+                                    return;
+                                }
+                                currentPls.Users ??= new();
                                 currentPls.Users[@event.Sender] = -1;
                                 await room.SendStateEventAsync("m.room.power_levels", currentPls);
-
                                 break;
                             }
                             case "kick": {

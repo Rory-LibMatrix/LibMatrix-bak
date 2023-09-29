@@ -102,7 +102,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
         }
     }
 
-    public AuthenticatedHomeserverSynapse(string canonicalHomeServerDomain, string accessToken) : base(canonicalHomeServerDomain, accessToken) {
+    public AuthenticatedHomeserverSynapse(string baseUrl, string accessToken) : base(baseUrl, accessToken) {
         Admin = new(this);
     }
 }

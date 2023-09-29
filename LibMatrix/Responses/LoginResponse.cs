@@ -1,19 +1,30 @@
 using System.Text.Json.Serialization;
+using LibMatrix.Homeservers;
+using LibMatrix.Services;
 
 namespace LibMatrix.Responses;
 
 public class LoginResponse {
     [JsonPropertyName("access_token")]
-    public string AccessToken { get; set; }
+    public string AccessToken { get; set; } = null!;
 
     [JsonPropertyName("device_id")]
-    public string DeviceId { get; set; }
+    public string DeviceId { get; set; } = null!;
+
+    private string? _homeserver;
 
     [JsonPropertyName("home_server")]
-    public string Homeserver { get; set; }
+    public string Homeserver {
+        get => _homeserver ?? UserId.Split(':', 2).Last();
+        protected init => _homeserver = value;
+    }
 
     [JsonPropertyName("user_id")]
-    public string UserId { get; set; }
+    public string UserId { get; set; } = null!;
+
+    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedHomeserver(string? proxy = null) {
+        return new AuthenticatedHomeserverGeneric(proxy ?? await new HomeserverResolverService().ResolveHomeserverFromWellKnown(Homeserver), AccessToken);
+    }
 }
 public class LoginRequest {
     [JsonPropertyName("type")]

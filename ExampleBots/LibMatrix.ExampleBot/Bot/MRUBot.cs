@@ -57,7 +57,7 @@ public class MRUBot : IHostedService {
         hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
-                    x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
+                    x.Type == "m.room.member" && x.StateKey == hs.UserId);
             _logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
             if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club") {

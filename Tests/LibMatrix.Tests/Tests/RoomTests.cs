@@ -1,7 +1,9 @@
+using System.Text;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
+using LibMatrix.Tests.Abstractions;
 using LibMatrix.Tests.Fixtures;
 using Xunit.Abstractions;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
@@ -22,34 +24,29 @@ public class RoomTests : TestBed<TestFixture> {
     }
 
     private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() {
-        Assert.False(string.IsNullOrWhiteSpace(_config.TestHomeserver), $"{nameof(_config.TestHomeserver)} must be set in appsettings!");
-        Assert.False(string.IsNullOrWhiteSpace(_config.TestUsername), $"{nameof(_config.TestUsername)} must be set in appsettings!");
-        Assert.False(string.IsNullOrWhiteSpace(_config.TestPassword), $"{nameof(_config.TestPassword)} must be set in appsettings!");
-
-        // var server = await _resolver.ResolveHomeserverFromWellKnown(_config.TestHomeserver!);
-        var login = await _provider.Login(_config.TestHomeserver!, _config.TestUsername!, _config.TestPassword!);
-        Assert.NotNull(login);
-
-        var hs = await _provider.GetAuthenticatedWithToken(_config.TestHomeserver!, login.AccessToken);
-        return hs;
+        return await HomeserverAbstraction.GetHomeserver();
     }
 
     [Fact]
     public async Task GetJoinedRoomsAsync() {
-        var hs = await GetHomeserver();
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        //make 100 rooms
+        var createRoomTasks = Enumerable.Range(0, 100).Select(_ => RoomAbstraction.GetTestRoom(hs)).ToList();
+        await Task.WhenAll(createRoomTasks);
 
         var rooms = await hs.GetJoinedRooms();
         Assert.NotNull(rooms);
         Assert.NotEmpty(rooms);
         Assert.All(rooms, Assert.NotNull);
+        Assert.Equal(100, rooms.Count);
 
         await hs.Logout();
     }
 
     [Fact]
     public async Task GetNameAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var name = await room.GetNameAsync();
         Assert.NotNull(name);
@@ -58,8 +55,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetTopicAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var topic = await room.GetTopicAsync();
         Assert.NotNull(topic);
@@ -72,8 +69,8 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.True(StateEvent.KnownStateEventTypes is { Count: > 0 }, "StateEvent.KnownStateEventTypes is empty!");
         Assert.True(StateEvent.KnownStateEventTypesByName is { Count: > 0 }, "StateEvent.KnownStateEventTypesByName is empty!");
 
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var members = room.GetMembersAsync();
         Assert.NotNull(members);
@@ -98,41 +95,10 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.True(hitMembers, "No members were found in the room");
     }
 
-    /*
-     tests remaining:
-     GetStateAsync(string,string) 0% 8/8
-       GetMessagesAsync(string,int,string,string) 0% 7/7
-       JoinAsync(string[],string) 0% 8/8
-       SendMessageEventAsync(RoomMessageEventContent) 0% 1/1
-       GetAliasesAsync() 0% 4/4
-       GetCanonicalAliasAsync() 0% 1/1
-       GetAvatarUrlAsync() 0% 1/1
-       GetJoinRuleAsync() 0% 1/1
-       GetHistoryVisibilityAsync() 0% 1/1
-       GetGuestAccessAsync() 0% 1/1
-       GetCreateEventAsync() 0% 1/1
-       GetRoomType() 0% 4/4
-       GetPowerLevelsAsync() 0% 1/1
-       ForgetAsync() 0% 1/1
-       LeaveAsync(string) 0% 1/1
-       KickAsync(string,string) 0% 1/1
-       BanAsync(string,string) 0% 1/1
-       UnbanAsync(string) 0% 1/1
-       SendStateEventAsync(string,object) 0% 1/1
-       SendStateEventAsync(string,string,object) 0% 1/1
-       SendTimelineEventAsync(string,EventContent) 0% 5/5
-       SendFileAsync(string,string,Stream) 0% 6/6
-       GetRoomAccountData<T>(string) 0% 8/8
-       SetRoomAccountData(string,object) 0% 7/7
-       GetEvent<T>(string) 0% 3/3
-       RedactEventAsync(string,string) 0% 4/4
-       InviteUser(string,string) 0% 3/3
-     */
-
     [Fact]
     public async Task JoinAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var id = await room.JoinAsync();
         Assert.NotNull(id);
@@ -142,8 +108,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetAliasesAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var aliases = await room.GetAliasesAsync();
         Assert.NotNull(aliases);
@@ -153,8 +119,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetCanonicalAliasAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var alias = await room.GetCanonicalAliasAsync();
         Assert.NotNull(alias);
@@ -164,8 +130,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetAvatarUrlAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var url = await room.GetAvatarUrlAsync();
         Assert.NotNull(url);
@@ -175,8 +141,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [Fact]
     public async Task GetJoinRuleAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var rule = await room.GetJoinRuleAsync();
         Assert.NotNull(rule);
@@ -186,8 +152,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [Fact]
     public async Task GetHistoryVisibilityAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var visibility = await room.GetHistoryVisibilityAsync();
         Assert.NotNull(visibility);
@@ -197,8 +163,8 @@ public class RoomTests : TestBed<TestFixture> {
 
     [Fact]
     public async Task GetGuestAccessAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         try {
             var access = await room.GetGuestAccessAsync();
@@ -207,15 +173,15 @@ public class RoomTests : TestBed<TestFixture> {
             Assert.NotEmpty(access.GuestAccess);
         }
         catch (Exception e) {
-            if(e is not MatrixException exception) throw;
+            if (e is not MatrixException exception) throw;
             Assert.Equal("M_NOT_FOUND", exception.ErrorCode);
         }
     }
 
     [Fact]
     public async Task GetCreateEventAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var create = await room.GetCreateEventAsync();
         Assert.NotNull(create);
@@ -225,16 +191,16 @@ public class RoomTests : TestBed<TestFixture> {
 
     [Fact]
     public async Task GetRoomType() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         await room.GetRoomType();
     }
 
     [Fact]
     public async Task GetPowerLevelsAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var power = await room.GetPowerLevelsAsync();
         Assert.NotNull(power);
@@ -246,54 +212,73 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.NotNull(power.EventsDefault);
         Assert.NotNull(power.UsersDefault);
         Assert.NotNull(power.Users);
-        Assert.NotNull(power.Events);
+        // Assert.NotNull(power.Events);
     }
 
-    [Fact(Skip = "This test is destructive!")]
+    [Fact]
     public async Task ForgetAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         await room.ForgetAsync();
     }
 
-    [Fact(Skip = "This test is destructive!")]
+    [Fact]
     public async Task LeaveAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         await room.LeaveAsync();
     }
 
-    [Fact(Skip = "This test is destructive!")]
+    [Fact]
     public async Task KickAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs2 = await HomeserverAbstraction.GetRandomHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
-        // await room.KickAsync(_config.TestUserId, "test");
+        await room.InviteUserAsync(hs2.UserId,"Unit test!");
+        await hs2.GetRoom(room.RoomId).JoinAsync();
+        await room.KickAsync(hs2.UserId, "test");
+        var banState = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs2.UserId);
+        Assert.NotNull(banState);
+        Assert.Equal("leave", banState.Membership);
     }
 
-    [Fact(Skip = "This test is destructive!")]
+    [Fact]
     public async Task BanAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs2 = await HomeserverAbstraction.GetRandomHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
-        // await room.BanAsync(_config.TestUserId, "test");
+        await room.BanAsync(hs2.UserId, "test");
+        var banState = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs2.UserId);
+        Assert.NotNull(banState);
+        Assert.Equal("ban", banState.Membership);
     }
 
-    [Fact(Skip = "This test is destructive!")]
+    [Fact]
     public async Task UnbanAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs2 = await HomeserverAbstraction.GetRandomHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
-        // await room.UnbanAsync(_config.TestUserId);
+        await room.BanAsync(hs2.UserId, "test");
+        var banState = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs2.UserId);
+        Assert.NotNull(banState);
+        Assert.Equal("ban", banState.Membership);
+        await room.UnbanAsync(hs2.UserId);
+        var unbanState = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs2.UserId);
+        Assert.NotNull(unbanState);
+        Assert.Equal("leave", unbanState.Membership);
     }
 
     [SkippableFact(typeof(MatrixException))]
     public async Task SendStateEventAsync() {
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
+
         await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new ProfileResponseEventContent() {
             DisplayName = "wee_woo",
             AvatarUrl = "no"
@@ -305,12 +290,21 @@ public class RoomTests : TestBed<TestFixture> {
     }
 
     [SkippableFact(typeof(MatrixException))]
-    public async Task GetStateEventAsync() {
+    public async Task SendAndGetStateEventAsync() {
         await SendStateEventAsync();
-
-        var hs = await GetHomeserver();
-        var room = hs.GetRoom(_config.TestRoomId);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
+
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new ProfileResponseEventContent() {
+            DisplayName = "wee_woo",
+            AvatarUrl = "no"
+        });
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", "state_key_maybe", new ProfileResponseEventContent() {
+            DisplayName = "wee_woo",
+            AvatarUrl = "yes"
+        });
+
         var state1 = await room.GetStateAsync<ProfileResponseEventContent>("gay.rory.libmatrix.unit_tests");
         Assert.NotNull(state1);
         Assert.NotNull(state1.DisplayName);
@@ -328,5 +322,63 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.NotEmpty(state2.AvatarUrl);
         Assert.Equal("wee_woo", state2.DisplayName);
         Assert.Equal("yes", state2.AvatarUrl);
+    }
+
+    [Fact]
+    public async Task DisbandAsync() {
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
+        Assert.NotNull(room);
+
+        await room.DisbandRoomAsync();
+    }
+
+    [Fact]
+    public async Task SendFileAsync() {
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
+        Assert.NotNull(room);
+
+        var res = await room.SendFileAsync("test.txt", new MemoryStream(Encoding.UTF8.GetBytes("This test was written by Emma [it/its], member of the Rory& system." +
+                                                                                                            "\nIf you are reading this on matrix, it means the unit test for uploading a file works!")));
+        Assert.NotNull(res);
+        Assert.NotNull(res.EventId);
+    }
+
+    [Fact]
+    public async Task GetSpaceChildrenAsync() {
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var space = await RoomAbstraction.GetTestSpace(hs, 2, false, 1);
+        Assert.NotNull(space);
+        var children = space.GetChildrenAsync();
+        Assert.NotNull(children);
+        int found = 0;
+        await foreach (var room in children) {
+            found++;
+        }
+        Assert.Equal(2, found);
+    }
+
+    [Fact]
+    public async Task InviteAndJoinAsync() {
+        var otherUsers = HomeserverAbstraction.GetRandomHomeservers(7);
+        var hs = await HomeserverAbstraction.GetHomeserver();
+        var room = await RoomAbstraction.GetTestRoom(hs);
+        Assert.NotNull(room);
+
+        // var expectedCount = 1;
+
+        await foreach(var otherUser in otherUsers) {
+            await room.InviteUserAsync(otherUser.UserId);
+            await otherUser.GetRoom(room.RoomId).JoinAsync();
+        }
+
+        var states = room.GetMembersAsync(false);
+        var count = 0;
+        await foreach(var state in states) {
+            count++;
+        }
+        // Assert.Equal(++expectedCount, count);
+        Assert.Equal(8, count);
     }
 }

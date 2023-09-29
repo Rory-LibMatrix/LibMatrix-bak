@@ -16,10 +16,6 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver) {
         string? setPresence = "online",
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null) {
-        // var outFileName = "sync-" +
-        //                   (await storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
-        //                       x => x.StartsWith("sync")) +
-        //                   ".json";
         var url = $"/_matrix/client/v3/sync?timeout={timeout}&set_presence={setPresence}";
         if (!string.IsNullOrWhiteSpace(since)) url += $"&since={since}";
         if (filter is not null) url += $"&filter={filter.ToJson(ignoreNull: true, indent: false)}";
@@ -28,19 +24,17 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver) {
         try {
             var req = await homeserver._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
 
-            // var res = await JsonSerializer.DeserializeAsync<SyncResult>(await req.Content.ReadAsStreamAsync());
-
 #if DEBUG && false
-            var jsonObj = await req.Content.ReadFromJsonAsync<JsonElement>();
             try {
-                await _homeServer._httpClient.PostAsJsonAsync(
-                    "http://localhost:5116/validate/" + typeof(SyncResult).AssemblyQualifiedName, jsonObj);
+                await homeserver._httpClient.PostAsync(
+                    "http://localhost:5116/validate/" + typeof(SyncResult).AssemblyQualifiedName,
+                    new StreamContent(await req.Content.ReadAsStreamAsync()));
             }
+
             catch (Exception e) {
                 Console.WriteLine("[!!] Checking sync response failed: " + e);
             }
-
-            var res = jsonObj.Deserialize<SyncResult>();
+            var res = await req.Content.ReadFromJsonAsync<SyncResult>();
             return res;
 #else
             return await req.Content.ReadFromJsonAsync<SyncResult>();

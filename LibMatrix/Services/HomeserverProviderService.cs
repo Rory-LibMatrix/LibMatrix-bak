@@ -9,29 +9,29 @@ using Microsoft.Extensions.Logging;
 namespace LibMatrix.Services;
 
 public class HomeserverProviderService {
-    private readonly TieredStorageService _tieredStorageService;
     private readonly ILogger<HomeserverProviderService> _logger;
     private readonly HomeserverResolverService _homeserverResolverService;
 
-    public HomeserverProviderService(TieredStorageService tieredStorageService,
-        ILogger<HomeserverProviderService> logger, HomeserverResolverService homeserverResolverService) {
-        _tieredStorageService = tieredStorageService;
+    public HomeserverProviderService(ILogger<HomeserverProviderService> logger, HomeserverResolverService homeserverResolverService) {
         _logger = logger;
         _homeserverResolverService = homeserverResolverService;
-        logger.LogDebug("New HomeserverProviderService created with TieredStorageService<{}>!",
-            string.Join(", ", tieredStorageService.GetType().GetProperties().Select(x => x.Name)));
     }
 
     private static Dictionary<string, SemaphoreSlim> _authenticatedHomeserverSemaphore = new();
     private static Dictionary<string, AuthenticatedHomeserverGeneric> _authenticatedHomeServerCache = new();
 
+    private static Dictionary<string, SemaphoreSlim> _remoteHomeserverSemaphore = new();
+    private static Dictionary<string, RemoteHomeServer> _remoteHomeServerCache = new();
+
     public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken,
         string? proxy = null) {
         var sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver + accessToken, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
-        if (_authenticatedHomeServerCache.ContainsKey(homeserver + accessToken)) {
-            sem.Release();
-            return _authenticatedHomeServerCache[homeserver + accessToken];
+        lock (_authenticatedHomeServerCache) {
+            if (_authenticatedHomeServerCache.ContainsKey(homeserver + accessToken)) {
+                sem.Release();
+                return _authenticatedHomeServerCache[homeserver + accessToken];
+            }
         }
 
         var domain = proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
@@ -45,12 +45,11 @@ public class HomeserverProviderService {
             hs = new AuthenticatedHomeserverGeneric(homeserver, accessToken);
         }
 
-        hs.FullHomeServerDomain = domain;
         hs._httpClient = hc;
         hs._httpClient.Timeout = TimeSpan.FromMinutes(15);
         hs._httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        hs.WhoAmI = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
+        // (() => hs.WhoAmI) = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
 
         lock(_authenticatedHomeServerCache)
             _authenticatedHomeServerCache[homeserver + accessToken] = hs;
@@ -60,11 +59,10 @@ public class HomeserverProviderService {
     }
 
     public async Task<RemoteHomeServer> GetRemoteHomeserver(string homeserver, string? proxy = null) {
-        var hs = new RemoteHomeServer(homeserver);
-        hs.FullHomeServerDomain = proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
-        hs._httpClient.Dispose();
-        hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
-        hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
+        var hs = new RemoteHomeServer(proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver));
+        // hs._httpClient.Dispose();
+        // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
+        // hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
         return hs;
     }
 

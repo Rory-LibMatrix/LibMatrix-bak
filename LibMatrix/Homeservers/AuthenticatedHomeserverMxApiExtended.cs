@@ -4,5 +4,4 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;
 
-public class AuthenticatedHomeserverMxApiExtended(string canonicalHomeServerDomain, string accessToken) : AuthenticatedHomeserverGeneric(canonicalHomeServerDomain,
-    accessToken);
+public class AuthenticatedHomeserverMxApiExtended(string baseUrl, string accessToken) : AuthenticatedHomeserverGeneric(baseUrl, accessToken);

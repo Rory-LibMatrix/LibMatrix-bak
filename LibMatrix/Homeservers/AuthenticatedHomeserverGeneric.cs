@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -12,18 +13,30 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
-    public AuthenticatedHomeserverGeneric(string canonicalHomeServerDomain, string accessToken) : base(canonicalHomeServerDomain) {
+    public AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : base(baseUrl) {
         AccessToken = accessToken.Trim();
         SyncHelper = new SyncHelper(this);
+
+        _httpClient.Timeout = TimeSpan.FromMinutes(15);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     public virtual SyncHelper SyncHelper { get; init; }
-    public virtual WhoAmIResponse WhoAmI { get; set; } = null!;
-    public virtual string UserId => WhoAmI.UserId;
+    private WhoAmIResponse? _whoAmI;
+
+    public WhoAmIResponse? WhoAmI => _whoAmI ??= _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami").Result;
+    public string UserId => WhoAmI.UserId;
+
+    // public virtual async Task<WhoAmIResponse> WhoAmI() {
+    // if (_whoAmI is not null) return _whoAmI;
+    // _whoAmI = await _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+    // return _whoAmI;
+    // }
+
     public virtual string AccessToken { get; set; }
 
     public virtual GenericRoom GetRoom(string roomId) {
-        if(roomId is null || !roomId.StartsWith("!")) throw new ArgumentException("Room ID must start with !", nameof(roomId));
+        if (roomId is null || !roomId.StartsWith("!")) throw new ArgumentException("Room ID must start with !", nameof(roomId));
         return new GenericRoom(this, roomId);
     }
 
@@ -50,7 +63,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
     }
 
     public virtual async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent) {
-        creationEvent.CreationContent["creator"] = UserId;
+        creationEvent.CreationContent["creator"] = WhoAmI.UserId;
         var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent, new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         });
@@ -61,9 +74,10 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
 
         var room = GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
 
-        foreach (var user in creationEvent.Invite) {
-            await room.InviteUser(user);
-        }
+        if (creationEvent.Invite is not null)
+            foreach (var user in creationEvent.Invite) {
+                await room.InviteUserAsync(user);
+            }
 
         return room;
     }
@@ -77,6 +91,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
     }
 
 #region Utility Functions
+
     public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type) {
         var rooms = await GetJoinedRooms();
         var tasks = rooms.Select(async room => {
@@ -92,6 +107,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
             if (result is not null) yield return result;
         }
     }
+
 #endregion
 
 #region Account Data
@@ -104,11 +120,11 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
         // }
         //
         // return await res.Content.ReadFromJsonAsync<T>();
-        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
+        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
     }
 
     public virtual async Task SetAccountData(string key, object data) {
-        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}", data);
+        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to set account data: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to set account data: {await res.Content.ReadAsStringAsync()}");
@@ -116,4 +132,6 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
     }
 
 #endregion
+
+
 }

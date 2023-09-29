@@ -28,14 +28,6 @@ public class GenericRoom {
 
     public string RoomId { get; set; }
 
-    [Obsolete("", true)]
-    public async Task<JsonElement?> GetStateAsync(string type, string stateKey = "") {
-        var url = $"/_matrix/client/v3/rooms/{RoomId}/state";
-        if (!string.IsNullOrEmpty(type)) url += $"/{type}";
-        if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
-        return await _httpClient.GetFromJsonAsync<JsonElement>(url);
-    }
-
     public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
         var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/state");
         var result =
@@ -68,7 +60,7 @@ public class GenericRoom {
         }
         catch (MatrixException e) {
             // if (e is not { ErrorCodode: "M_NOT_FOUND" }) {
-                throw;
+            throw;
             // }
 
             // Console.WriteLine(e);
@@ -202,21 +194,18 @@ public class GenericRoom {
         return resu;
     }
 
-    public async Task<EventIdResponse> SendFileAsync(string eventType, string fileName, Stream fileStream) {
-        var content = new MultipartFormDataContent();
-        content.Add(new StreamContent(fileStream), "file", fileName);
-        var res = await
-            (
-                await _httpClient.PutAsync(
-                    $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(),
-                    content
-                )
-            )
-            .Content.ReadFromJsonAsync<EventIdResponse>();
-        return res;
+    public async Task<EventIdResponse> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file") {
+        var url = await Homeserver.UploadFile(fileName, fileStream);
+        var content = new RoomMessageEventContent() {
+            MessageType = messageType,
+            Url = url,
+            Body = fileName,
+            FileName = fileName,
+        };
+        return await SendTimelineEventAsync("m.room.message", content);
     }
 
-    public async Task<T> GetRoomAccountData<T>(string key) {
+    public async Task<T> GetRoomAccountDataAsync<T>(string key) {
         var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}");
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");
@@ -226,7 +215,7 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<T>();
     }
 
-    public async Task SetRoomAccountData(string key, object data) {
+    public async Task SetRoomAccountDataAsync(string key, object data) {
         var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to set room account data: {await res.Content.ReadAsStringAsync()}");
@@ -236,7 +225,7 @@ public class GenericRoom {
 
     public readonly SpaceRoom AsSpace;
 
-    public async Task<T> GetEvent<T>(string eventId) {
+    public async Task<T> GetEventAsync<T>(string eventId) {
         return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
     }
 
@@ -246,9 +235,38 @@ public class GenericRoom {
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
-    public async Task InviteUser(string userId, string? reason = null) {
+    public async Task InviteUserAsync(string userId, string? reason = null) {
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
+
+#region Disband room
+
+    public async Task DisbandRoomAsync() {
+        var states = GetFullStateAsync();
+        List<string> stateTypeIgnore = new() {
+            "m.room.create",
+            "m.room.power_levels",
+            "m.room.join_rules",
+            "m.room.history_visibility",
+            "m.room.guest_access",
+            "m.room.member",
+        };
+        await foreach (var state in states) {
+            if (state is null || state.RawContent is not { Count: > 0 }) continue;
+            if (state.Type == "m.room.member" && state.StateKey != Homeserver.UserId)
+                try {
+                    await BanAsync(state.StateKey, "Disbanding room");
+                }
+                catch (MatrixException e) {
+                    if (e.ErrorCode != "M_FORBIDDEN") throw;
+                }
+
+            if (stateTypeIgnore.Contains(state.Type)) continue;
+            await SendStateEventAsync(state.Type, state.StateKey, new());
+        }
+    }
+
+#endregion
 }
 
 public class RoomIdResponse {

@@ -41,7 +41,7 @@ public class PluralContactBot(AuthenticatedHomeserverGeneric hs, ILogger<PluralC
         hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
-                    x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
+                    x.Type == "m.room.member" && x.StateKey == hs.UserId);
             logger.LogInformation("Got invite to {} by {} with reason: {}", args.Key, inviteEvent.Sender, (inviteEvent.TypedContent as RoomMemberEventContent).Reason);
 
             try {

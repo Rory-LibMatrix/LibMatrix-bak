@@ -40,7 +40,7 @@ public class CreateRoomRequest {
     public JsonObject CreationContent { get; set; } = new();
 
     [JsonPropertyName("invite")]
-    public List<string> Invite { get; set; }
+    public List<string>? Invite { get; set; }
 
     /// <summary>
     ///     For use only when you can't use the CreationContent property

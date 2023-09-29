@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using ArcaneLibs;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes;
@@ -48,7 +49,7 @@ public class StateEvent {
 
             return null;
         }
-        set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value));
+        set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
     }
 
     [JsonPropertyName("state_key")]
@@ -120,3 +121,32 @@ public class StateEvent {
     [JsonIgnore]
     public string cdtype => TypedContent.GetType().Name;
 }
+
+/*
+public class StateEventContentPolymorphicTypeInfoResolver : DefaultJsonTypeInfoResolver
+{
+    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+    {
+        JsonTypeInfo jsonTypeInfo = base.GetTypeInfo(type, options);
+
+        Type baseType = typeof(EventContent);
+        if (jsonTypeInfo.Type == baseType) {
+            jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions {
+                TypeDiscriminatorPropertyName = "type",
+                IgnoreUnrecognizedTypeDiscriminators = true,
+                UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType,
+
+                DerivedTypes = StateEvent.KnownStateEventTypesByName.Select(x => new JsonDerivedType(x.Value, x.Key)).ToList()
+
+                // DerivedTypes = new ClassCollector<EventContent>()
+                // .ResolveFromAllAccessibleAssemblies()
+                // .SelectMany(t => t.GetCustomAttributes<MatrixEventAttribute>()
+                // .Select(a => new JsonDerivedType(t, attr.EventName));
+
+            };
+        }
+
+        return jsonTypeInfo;
+    }
+}
+*/

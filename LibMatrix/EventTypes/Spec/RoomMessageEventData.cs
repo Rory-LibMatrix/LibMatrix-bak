@@ -28,4 +28,6 @@ public class RoomMessageEventContent : EventContent {
     /// </summary>
     [JsonPropertyName("url")]
     public string? Url { get; set; }
+
+    public string? FileName { get; set; }
 }
