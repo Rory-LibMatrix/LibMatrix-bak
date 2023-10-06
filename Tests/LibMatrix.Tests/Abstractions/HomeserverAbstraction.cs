@@ -6,7 +6,7 @@ namespace LibMatrix.Tests.Abstractions;
 
 public static class HomeserverAbstraction {
     public static async Task<AuthenticatedHomeserverGeneric> GetHomeserver() {
-        var rhs = new RemoteHomeServer("https://matrixunittests.rory.gay");
+        var rhs = await RemoteHomeServer.Create("https://matrixunittests.rory.gay");
         // string username = Guid.NewGuid().ToString();
         // string password = Guid.NewGuid().ToString();
         string username = "@f1a2d2d6-1924-421b-91d0-893b347b2a49:matrixunittests.rory.gay";
@@ -25,15 +25,15 @@ public static class HomeserverAbstraction {
 
         var hs = await reg.GetAuthenticatedHomeserver("https://matrixunittests.rory.gay");
 
-        var rooms = await hs.GetJoinedRooms();
+        //var rooms = await hs.GetJoinedRooms();
 
-        var disbandRoomTasks = rooms.Select(async room => {
-            // await room.DisbandRoomAsync();
-            await room.LeaveAsync();
-            await room.ForgetAsync();
-            return room;
-        }).ToList();
-        await Task.WhenAll(disbandRoomTasks);
+        // var disbandRoomTasks = rooms.Select(async room => {
+        //     // await room.DisbandRoomAsync();
+        //     await room.LeaveAsync();
+        //     await room.ForgetAsync();
+        //     return room;
+        // }).ToList();
+        // await Task.WhenAll(disbandRoomTasks);
 
         // foreach (var room in rooms) {
         //     // await room.DisbandRoomAsync();
@@ -45,28 +45,28 @@ public static class HomeserverAbstraction {
     }
 
     public static async Task<AuthenticatedHomeserverGeneric> GetRandomHomeserver() {
-        var rhs = new RemoteHomeServer("https://matrixunittests.rory.gay");
+        var rhs = await RemoteHomeServer.Create("https://matrixunittests.rory.gay");
         LoginResponse reg = await rhs.RegisterAsync(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), "Unit tests!");
         var hs = await reg.GetAuthenticatedHomeserver("https://matrixunittests.rory.gay");
 
-        var rooms = await hs.GetJoinedRooms();
-
-        var disbandRoomTasks = rooms.Select(async room => {
-            // await room.DisbandRoomAsync();
-            await room.LeaveAsync();
-            await room.ForgetAsync();
-            return room;
-        }).ToList();
-        await Task.WhenAll(disbandRoomTasks);
+        // var rooms = await hs.GetJoinedRooms();
+        //
+        // var disbandRoomTasks = rooms.Select(async room => {
+        //     // await room.DisbandRoomAsync();
+        //     await room.LeaveAsync();
+        //     await room.ForgetAsync();
+        //     return room;
+        // }).ToList();
+        // await Task.WhenAll(disbandRoomTasks);
 
         return hs;
     }
 
     public static async IAsyncEnumerable<AuthenticatedHomeserverGeneric> GetRandomHomeservers(int count = 1) {
-        var createSpaceTasks = Enumerable
+        var createRandomUserTasks = Enumerable
             .Range(0, count)
             .Select(_ => GetRandomHomeserver()).ToAsyncEnumerable();
-        await foreach (var hs in createSpaceTasks) {
+        await foreach (var hs in createRandomUserTasks) {
             yield return hs;
         }
     }

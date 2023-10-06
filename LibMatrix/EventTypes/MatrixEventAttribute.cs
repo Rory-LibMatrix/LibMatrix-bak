@@ -1,4 +1,4 @@
-namespace LibMatrix.Helpers;
+namespace LibMatrix.EventTypes;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public class MatrixEventAttribute : Attribute {

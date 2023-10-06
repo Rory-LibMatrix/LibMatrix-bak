@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.history_visibility")]
-public class HistoryVisibilityEventContent : EventContent {
+public class RoomHistoryVisibilityEventContent : EventContent {
     [JsonPropertyName("history_visibility")]
     public string HistoryVisibility { get; set; }
 }

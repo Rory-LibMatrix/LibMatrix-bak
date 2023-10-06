@@ -12,6 +12,9 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
     private static readonly Dictionary<string, SemaphoreSlim> _wellKnownSemaphores = new();
 
     public async Task<string> ResolveHomeserverFromWellKnown(string homeserver) {
+        if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
+        if(_wellKnownCache.TryGetValue(homeserver, out var known)) return known;
+        logger?.LogInformation("Resolving homeserver: {}", homeserver);
         var res = await _resolveHomeserverFromWellKnown(homeserver);
         if (!res.StartsWith("http")) res = "https://" + res;
         if (res.EndsWith(":443")) res = res[..^4];
@@ -21,6 +24,7 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
     private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
         var sem = _wellKnownSemaphores.GetOrCreate(homeserver, _ => new SemaphoreSlim(1, 1));
+        if(_wellKnownCache.TryGetValue(homeserver, out var wellKnown)) return wellKnown;
         await sem.WaitAsync();
         if (_wellKnownCache.TryGetValue(homeserver, out var known)) {
             sem.Release();

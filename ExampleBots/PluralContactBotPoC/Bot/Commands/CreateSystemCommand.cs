@@ -25,7 +25,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
         var sysName = ctx.Args[0];
         try {
             try {
-                await ctx.Homeserver.GetAccountData<BotData>("gay.rory.plural_contact_bot.system_data");
+                await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.plural_contact_bot.system_data");
                 await ctx.Reply(MessageFormatter.FormatError($"System {sysName} already exists!"));
             }
             catch (MatrixException e) {

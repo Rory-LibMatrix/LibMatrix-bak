@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace MediaModeratorPoC.Bot;
+namespace MediaModeratorPoC;
 
 public class MediaModBotConfiguration {
     public MediaModBotConfiguration(IConfiguration config) => config.GetRequiredSection("MediaMod").Bind(this);

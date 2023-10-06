@@ -1,27 +1,18 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using LibMatrix.Helpers;
-using LibMatrix.Interfaces;
+using LibMatrix;
 
-namespace MediaModeratorPoC.Bot.StateEventTypes;
+namespace MediaModeratorPoC.StateEventTypes;
 
-[
-    MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.homeserver")]
-[MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.media")]
-public class MediaPolicyEventContent : EventContent {
+public abstract class BasePolicy : StateEvent {
     /// <summary>
-    ///     This is an MXC URI, hashed with SHA3-256.
+    ///     Entity this policy applies to
     /// </summary>
     [JsonPropertyName("entity")]
-    public byte[] Entity { get; set; }
+    public string Entity { get; set; }
 
     /// <summary>
-    /// Server this ban applies to, can use * and ? as globs.
-    /// </summary>
-    [JsonPropertyName("server_entity")]
-    public string? ServerEntity { get; set; }
-
-    /// <summary>
-    ///     Reason this user is banned
+    ///     Reason this policy exists
     /// </summary>
     [JsonPropertyName("reason")]
     public string? Reason { get; set; }
@@ -30,6 +21,7 @@ public class MediaPolicyEventContent : EventContent {
     ///     Suggested action to take, one of `ban`, `kick`, `mute`, `redact`, `spoiler`, `warn` or `warn_admins`
     /// </summary>
     [JsonPropertyName("recommendation")]
+    [AllowedValues("ban", "kick", "mute", "redact", "spoiler", "warn", "warn_admins")]
     public string Recommendation { get; set; } = "warn";
 
     /// <summary>
@@ -47,7 +39,4 @@ public class MediaPolicyEventContent : EventContent {
         get => Expiry == null ? null : DateTimeOffset.FromUnixTimeMilliseconds(Expiry.Value).DateTime;
         set => Expiry = value is null ? null : ((DateTimeOffset)value).ToUnixTimeMilliseconds();
     }
-
-    [JsonPropertyName("file_hash")]
-    public byte[]? FileHash { get; set; }
 }

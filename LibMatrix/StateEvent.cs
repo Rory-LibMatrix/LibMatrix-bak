@@ -39,8 +39,11 @@ public class StateEvent {
 
     public EventContent TypedContent {
         get {
+            if(Type == "m.receipt") {
+                return null!;
+            }
             try {
-                return (EventContent) RawContent.Deserialize(GetType)!;
+                return (EventContent)RawContent.Deserialize(GetType)!;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -122,6 +125,61 @@ public class StateEvent {
     public string cdtype => TypedContent.GetType().Name;
 }
 
+public class StateEventResponse : StateEvent {
+    [JsonPropertyName("origin_server_ts")]
+    public ulong OriginServerTs { get; set; }
+
+    [JsonPropertyName("room_id")]
+    public string RoomId { get; set; }
+
+    [JsonPropertyName("sender")]
+    public string Sender { get; set; }
+
+    [JsonPropertyName("unsigned")]
+    public UnsignedData? Unsigned { get; set; }
+
+    [JsonPropertyName("event_id")]
+    public string EventId { get; set; }
+
+    [JsonPropertyName("user_id")]
+    public string UserId { get; set; }
+
+    [JsonPropertyName("replaces_state")]
+    public new string ReplacesState { get; set; }
+
+    public class UnsignedData {
+        [JsonPropertyName("age")]
+        public ulong? Age { get; set; }
+
+        [JsonPropertyName("redacted_because")]
+        public object? RedactedBecause { get; set; }
+
+        [JsonPropertyName("transaction_id")]
+        public string? TransactionId { get; set; }
+
+        [JsonPropertyName("replaces_state")]
+        public string? ReplacesState { get; set; }
+
+        [JsonPropertyName("prev_sender")]
+        public string? PrevSender { get; set; }
+
+        [JsonPropertyName("prev_content")]
+        public JsonObject? PrevContent { get; set; }
+    }
+}
+
+public class EventList {
+    [JsonPropertyName("events")]
+    public List<StateEventResponse>? Events { get; set; } = new();
+}
+
+public class ChunkedStateEventResponse {
+    [JsonPropertyName("chunk")]
+    public List<StateEventResponse>? Chunk { get; set; } = new();
+}
+
+#region Unused code
+
 /*
 public class StateEventContentPolymorphicTypeInfoResolver : DefaultJsonTypeInfoResolver
 {
@@ -150,3 +208,5 @@ public class StateEventContentPolymorphicTypeInfoResolver : DefaultJsonTypeInfoR
     }
 }
 */
+
+#endregion

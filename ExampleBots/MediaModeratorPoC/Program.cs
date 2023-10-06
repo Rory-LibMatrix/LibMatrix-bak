@@ -2,7 +2,7 @@
 
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot;
-using MediaModeratorPoC.Bot;
+using MediaModeratorPoC;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

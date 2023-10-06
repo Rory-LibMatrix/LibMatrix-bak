@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using LibMatrix.EventTypes;
 using LibMatrix.Helpers;
 using LibMatrix.Interfaces;
 

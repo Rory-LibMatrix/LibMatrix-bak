@@ -118,16 +118,16 @@ public class GenericRoom {
 
 #region Utility shortcuts
 
-    public async Task<EventIdResponse> SendMessageEventAsync(RoomMessageEventContent content) =>
+    public async Task<EventIdResponse?> SendMessageEventAsync(RoomMessageEventContent content) =>
         await SendTimelineEventAsync("m.room.message", content);
 
-    public async Task<List<string>> GetAliasesAsync() {
+    public async Task<List<string>?> GetAliasesAsync() {
         var res = await GetStateAsync<RoomAliasEventContent>("m.room.aliases");
         return res.Aliases;
     }
 
-    public async Task<CanonicalAliasEventContent?> GetCanonicalAliasAsync() =>
-        await GetStateAsync<CanonicalAliasEventContent>("m.room.canonical_alias");
+    public async Task<RoomCanonicalAliasEventContent?> GetCanonicalAliasAsync() =>
+        await GetStateAsync<RoomCanonicalAliasEventContent>("m.room.canonical_alias");
 
     public async Task<RoomTopicEventContent?> GetTopicAsync() =>
         await GetStateAsync<RoomTopicEventContent>("m.room.topic");
@@ -135,16 +135,16 @@ public class GenericRoom {
     public async Task<RoomAvatarEventContent?> GetAvatarUrlAsync() =>
         await GetStateAsync<RoomAvatarEventContent>("m.room.avatar");
 
-    public async Task<JoinRulesEventContent> GetJoinRuleAsync() =>
-        await GetStateAsync<JoinRulesEventContent>("m.room.join_rules");
+    public async Task<RoomJoinRulesEventContent?> GetJoinRuleAsync() =>
+        await GetStateAsync<RoomJoinRulesEventContent>("m.room.join_rules");
 
-    public async Task<HistoryVisibilityEventContent?> GetHistoryVisibilityAsync() =>
-        await GetStateAsync<HistoryVisibilityEventContent>("m.room.history_visibility");
+    public async Task<RoomHistoryVisibilityEventContent?> GetHistoryVisibilityAsync() =>
+        await GetStateAsync<RoomHistoryVisibilityEventContent?>("m.room.history_visibility");
 
-    public async Task<GuestAccessEventContent?> GetGuestAccessAsync() =>
-        await GetStateAsync<GuestAccessEventContent>("m.room.guest_access");
+    public async Task<RoomGuestAccessEventContent?> GetGuestAccessAsync() =>
+        await GetStateAsync<RoomGuestAccessEventContent>("m.room.guest_access");
 
-    public async Task<RoomCreateEventContent> GetCreateEventAsync() =>
+    public async Task<RoomCreateEventContent?> GetCreateEventAsync() =>
         await GetStateAsync<RoomCreateEventContent>("m.room.create");
 
     public async Task<string?> GetRoomType() {
@@ -177,24 +177,23 @@ public class GenericRoom {
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
             new UserIdAndReason { UserId = userId });
 
-    public async Task<EventIdResponse> SendStateEventAsync(string eventType, object content) =>
+    public async Task<EventIdResponse?> SendStateEventAsync(string eventType, object content) =>
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendStateEventAsync(string eventType, string stateKey, object content) =>
+    public async Task<EventIdResponse?> SendStateEventAsync(string eventType, string stateKey, object content) =>
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendTimelineEventAsync(string eventType, EventContent content) {
+    public async Task<EventIdResponse?> SendTimelineEventAsync(string eventType, EventContent content) {
         var res = await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
-        var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();
-        return resu;
+        return await res.Content.ReadFromJsonAsync<EventIdResponse>();
     }
 
-    public async Task<EventIdResponse> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file") {
+    public async Task<EventIdResponse?> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file") {
         var url = await Homeserver.UploadFile(fileName, fileStream);
         var content = new RoomMessageEventContent() {
             MessageType = messageType,
@@ -205,7 +204,7 @@ public class GenericRoom {
         return await SendTimelineEventAsync("m.room.message", content);
     }
 
-    public async Task<T> GetRoomAccountDataAsync<T>(string key) {
+    public async Task<T?> GetRoomAccountDataAsync<T>(string key) {
         var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}");
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");

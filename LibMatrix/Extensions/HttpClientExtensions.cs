@@ -68,7 +68,16 @@ public class MatrixHttpClient : HttpClient {
         var response = await SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken);
+#if DEBUG && false // This is only used for testing, so it's disabled by default
+        try {
+            await PostAsync("http://localhost:5116/validate/" + typeof(T).AssemblyQualifiedName, new StreamContent(responseStream), cancellationToken);
+        }
+        catch (Exception e) {
+            Console.WriteLine("[!!] Checking sync response failed: " + e);
+        }
+#endif
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken) ??
+               throw new InvalidOperationException("Failed to deserialize response");
     }
 
     // GetStreamAsync
@@ -80,7 +89,8 @@ public class MatrixHttpClient : HttpClient {
         return await response.Content.ReadAsStreamAsync(cancellationToken);
     }
 
-    public new async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
+    public new async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
+        CancellationToken cancellationToken = default) {
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType()), Encoding.UTF8, "application/json");

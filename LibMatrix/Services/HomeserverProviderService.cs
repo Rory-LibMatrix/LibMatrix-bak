@@ -35,19 +35,14 @@ public class HomeserverProviderService {
         }
 
         var domain = proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
-        var hc = new MatrixHttpClient { BaseAddress = new Uri(domain) };
 
         AuthenticatedHomeserverGeneric hs;
         if (true) {
-            hs = new AuthenticatedHomeserverMxApiExtended(homeserver, accessToken);
+            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken);
         }
         else {
-            hs = new AuthenticatedHomeserverGeneric(homeserver, accessToken);
+            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken);
         }
-
-        hs._httpClient = hc;
-        hs._httpClient.Timeout = TimeSpan.FromMinutes(15);
-        hs._httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         // (() => hs.WhoAmI) = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
 
@@ -59,7 +54,7 @@ public class HomeserverProviderService {
     }
 
     public async Task<RemoteHomeServer> GetRemoteHomeserver(string homeserver, string? proxy = null) {
-        var hs = new RemoteHomeServer(proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver));
+        var hs = await RemoteHomeServer.Create(proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver));
         // hs._httpClient.Dispose();
         // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
         // hs._httpClient.Timeout = TimeSpan.FromSeconds(120);

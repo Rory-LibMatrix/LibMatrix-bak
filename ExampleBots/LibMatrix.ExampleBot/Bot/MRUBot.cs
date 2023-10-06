@@ -4,6 +4,7 @@ using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.ExampleBot.Bot.Interfaces;
 using LibMatrix.Extensions;
+using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +45,8 @@ public class MRUBot : IHostedService {
             throw;
         }
 
+        var syncHelper = new SyncHelper(hs);
+
         await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
 
         // foreach (var room in await hs.GetJoinedRooms()) {
@@ -54,7 +57,7 @@ public class MRUBot : IHostedService {
         //     _logger.LogInformation($"Got room state for {room.RoomId}!");
         // }
 
-        hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
+        syncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
                     x.Type == "m.room.member" && x.StateKey == hs.UserId);
@@ -71,7 +74,7 @@ public class MRUBot : IHostedService {
                 }
             }
         });
-        hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
+        syncHelper.TimelineEventHandlers.Add(async @event => {
             _logger.LogInformation(
                 "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: false, ignoreNull: true));
 
@@ -100,7 +103,7 @@ public class MRUBot : IHostedService {
                 }
             }
         });
-        await hs.SyncHelper.RunSyncLoop(cancellationToken: cancellationToken);
+        await syncHelper.RunSyncLoopAsync(cancellationToken: cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>

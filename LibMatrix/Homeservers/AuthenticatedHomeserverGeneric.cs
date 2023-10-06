@@ -12,19 +12,35 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;
 
-public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
-    public AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : base(baseUrl) {
-        AccessToken = accessToken.Trim();
-        SyncHelper = new SyncHelper(this);
-
-        _httpClient.Timeout = TimeSpan.FromMinutes(15);
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : RemoteHomeServer(baseUrl) {
+    public static async Task<T> Create<T>(string baseUrl, string accessToken) where T : AuthenticatedHomeserverGeneric {
+        var instance = Activator.CreateInstance(typeof(T), baseUrl, accessToken) as T
+                       ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
+        instance._httpClient = new() {
+            BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
+                                  ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            Timeout = TimeSpan.FromMinutes(15),
+            DefaultRequestHeaders = {
+                Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
+            }
+        };
+        instance.WhoAmI = await instance._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+        return instance;
     }
 
-    public virtual SyncHelper SyncHelper { get; init; }
-    private WhoAmIResponse? _whoAmI;
+    // Activator.CreateInstance(baseUrl, accessToken) {
+        //     _httpClient = new() {
+        //         BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
+        //                               ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+        //         Timeout = TimeSpan.FromMinutes(15),
+        //         DefaultRequestHeaders = {
+        //             Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
+        //         }
+        //     }
+        // };
 
-    public WhoAmIResponse? WhoAmI => _whoAmI ??= _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami").Result;
+
+    public WhoAmIResponse? WhoAmI { get; set; }
     public string UserId => WhoAmI.UserId;
 
     // public virtual async Task<WhoAmIResponse> WhoAmI() {
@@ -33,9 +49,9 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
     // return _whoAmI;
     // }
 
-    public virtual string AccessToken { get; set; }
+    public string AccessToken { get; set; } = accessToken;
 
-    public virtual GenericRoom GetRoom(string roomId) {
+    public GenericRoom GetRoom(string roomId) {
         if (roomId is null || !roomId.StartsWith("!")) throw new ArgumentException("Room ID must start with !", nameof(roomId));
         return new GenericRoom(this, roomId);
     }
@@ -112,7 +128,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeServer {
 
 #region Account Data
 
-    public virtual async Task<T> GetAccountData<T>(string key) {
+    public virtual async Task<T> GetAccountDataAsync<T>(string key) {
         // var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
         // if (!res.IsSuccessStatusCode) {
         //     Console.WriteLine($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");

@@ -9,7 +9,7 @@ public abstract class EventContent {
     [JsonPropertyName("m.new_content")]
     public EventContent? NewContent { get; set; }
 
-    public abstract class MessageRelatesTo {
+    public class MessageRelatesTo {
         [JsonPropertyName("m.in_reply_to")]
         public EventInReplyTo? InReplyTo { get; set; }
 
@@ -18,6 +18,9 @@ public abstract class EventContent {
         public abstract class EventInReplyTo {
             [JsonPropertyName("event_id")]
             public string EventId { get; set; }
+
+            [JsonPropertyName("rel_type")]
+            public string RelType { get; set; }
         }
     }
 }

@@ -1,8 +1,4 @@
-using System.Buffers.Text;
-using System.Data;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using ArcaneLibs.Extensions;
 using LibMatrix;
@@ -14,12 +10,12 @@ using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
-using MediaModeratorPoC.Bot.AccountData;
-using MediaModeratorPoC.Bot.StateEventTypes;
+using MediaModeratorPoC.AccountData;
+using MediaModeratorPoC.StateEventTypes;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MediaModeratorPoC.Bot;
+namespace MediaModeratorPoC;
 
 public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot> logger, MediaModBotConfiguration configuration,
     HomeserverResolverService hsResolver) : IHostedService {
@@ -30,6 +26,8 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
     private GenericRoom _policyRoom;
     private GenericRoom _logRoom;
     private GenericRoom _controlRoom;
+
+
 
     /// <summary>Triggered when the application host is ready to start the service.</summary>
     /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
@@ -44,7 +42,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
         BotData botData;
 
         try {
-            botData = await hs.GetAccountData<BotData>("gay.rory.media_moderator_poc_data");
+            botData = await hs.GetAccountDataAsync<BotData>("gay.rory.modbot_data");
         }
         catch (Exception e) {
             if (e is not MatrixException { ErrorCode: "M_NOT_FOUND" }) {
@@ -63,10 +61,10 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             creationContent.InitialState.Add(new StateEvent {
                 Type = "m.room.join_rules",
                 StateKey = "",
-                TypedContent = new JoinRulesEventContent {
+                TypedContent = new RoomJoinRulesEventContent {
                     JoinRule = "knock_restricted",
                     Allow = new() {
-                        new JoinRulesEventContent.AllowEntry {
+                        new RoomJoinRulesEventContent.AllowEntry {
                             Type = "m.room_membership",
                             RoomId = botData.ControlRoom
                         }
@@ -84,12 +82,13 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             creationContent.CreationContent["type"] = "gay.rory.media_moderator_poc.policy_room";
             botData.PolicyRoom = (await hs.CreateRoom(creationContent)).RoomId;
 
-            await hs.SetAccountData("gay.rory.media_moderator_poc_data", botData);
+            await hs.SetAccountData("gay.rory.modbot_data", botData);
         }
 
         _policyRoom = hs.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
         _logRoom = hs.GetRoom(botData.LogRoom ?? botData.ControlRoom);
         _controlRoom = hs.GetRoom(botData.ControlRoom);
+        var syncHelper = new SyncHelper(hs);
 
         List<string> admins = new();
 
@@ -98,7 +97,9 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             while (!cancellationToken.IsCancellationRequested) {
                 var controlRoomMembers = _controlRoom.GetMembersAsync();
                 await foreach (var member in controlRoomMembers) {
-                    if ((member.TypedContent as RoomMemberEventContent).Membership == "join") admins.Add(member.UserId);
+                    if ((member.TypedContent as RoomMemberEventContent)?
+
+                        .Membership == "join") admins.Add(member.UserId);
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
@@ -106,13 +107,12 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
         }, cancellationToken);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-        hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
+        syncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
                     x.Type == "m.room.member" && x.StateKey == hs.UserId);
-            logger.LogInformation(
-                $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
-            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender.EndsWith(":conduit.rory.gay")) {
+            logger.LogInformation("Got invite to {RoomId} by {Sender} with reason: {Reason}", args.Key, inviteEvent!.Sender, (inviteEvent.TypedContent as RoomMemberEventContent)!.Reason);
+            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent!.Sender.EndsWith(":conduit.rory.gay")) {
                 try {
                     var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
                     await hs.GetRoom(args.Key).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
@@ -124,7 +124,7 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
             }
         });
 
-        hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
+        syncHelper.TimelineEventHandlers.Add(async @event => {
             var room = hs.GetRoom(@event.RoomId);
             try {
                 logger.LogInformation(
@@ -256,8 +256,8 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
                 await _logRoom.SendMessageEventAsync(
                     MessageFormatter.FormatException($"Unable to ban user in {MessageFormatter.HtmlFormatMention(room.RoomId)}", e));
                 await using var stream = new MemoryStream(e.ToString().AsBytes().ToArray());
-                await _controlRoom.SendFileAsync("m.file", "error.log.cs", stream);
-                await _logRoom.SendFileAsync("m.file", "error.log.cs", stream);
+                await _controlRoom.SendFileAsync("error.log.cs", stream);
+                await _logRoom.SendFileAsync("error.log.cs", stream);
             }
         });
     }
@@ -282,15 +282,15 @@ public class MediaModBot(AuthenticatedHomeserverGeneric hs, ILogger<MediaModBot>
         }
         catch (Exception ex) {
             await _logRoom.SendMessageEventAsync(
-                MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]} ({resolvedUri}), retrying via {hs.HomeServerDomain}...",
+                MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]} ({resolvedUri}), retrying via {hs.BaseUrl}...",
                     ex));
             try {
-                resolvedUri = await hsResolver.ResolveMediaUri(hs.HomeServerDomain, mxcUri);
+                resolvedUri = await hsResolver.ResolveMediaUri(hs.BaseUrl, mxcUri);
                 fileHash = await hashAlgo.ComputeHashAsync(await hs._httpClient.GetStreamAsync(resolvedUri));
             }
             catch (Exception ex2) {
                 await _logRoom.SendMessageEventAsync(
-                    MessageFormatter.FormatException($"Error calculating file hash via {hs.HomeServerDomain} ({resolvedUri})!", ex2));
+                    MessageFormatter.FormatException($"Error calculating file hash via {hs.BaseUrl} ({resolvedUri})!", ex2));
             }
         }
 

@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.guest_access")]
-public class GuestAccessEventContent : EventContent {
+public class RoomGuestAccessEventContent : EventContent {
     [JsonPropertyName("guest_access")]
     public string GuestAccess { get; set; }
 

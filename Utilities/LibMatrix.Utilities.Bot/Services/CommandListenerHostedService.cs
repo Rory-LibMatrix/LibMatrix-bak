@@ -37,7 +37,8 @@ public class CommandListenerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
-        _hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
+        var syncHelper = new SyncHelper(_hs);
+        syncHelper.TimelineEventHandlers.Add(async @event => {
             try {
                 var room = _hs.GetRoom(@event.RoomId);
                 // _logger.LogInformation(eventResponse.ToJson(indent: false));
@@ -80,7 +81,7 @@ public class CommandListenerHostedService : IHostedService {
                 _logger.LogError(e, "Error in command listener!");
             }
         });
-        await _hs.SyncHelper.RunSyncLoop(cancellationToken: cancellationToken);
+        await new SyncHelper(_hs).RunSyncLoopAsync(cancellationToken: cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>

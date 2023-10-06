@@ -13,7 +13,7 @@ public class RoomMemberEventContent : EventContent {
     public string Membership { get; set; } = null!;
 
     [JsonPropertyName("displayname")]
-    public string? Displayname { get; set; }
+    public string? DisplayName { get; set; }
 
     [JsonPropertyName("is_direct")]
     public bool? IsDirect { get; set; }

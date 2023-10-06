@@ -13,8 +13,7 @@ public static class MessageFormatter {
 
     public static RoomMessageEventContent FormatException(string error, Exception e) {
         return new RoomMessageEventContent(body: $"{error}: {e.Message}", messageType: "m.text") {
-            FormattedBody = $"<font color=\"#FF0000\">{error}: <pre>{e.Message}</pre>" +
-                            $"</font>",
+            FormattedBody = $"<font color=\"#FF0000\">{error}: <pre>{e.Message}</pre></font>",
             Format = "org.matrix.custom.html"
         };
     }
@@ -36,4 +35,10 @@ public static class MessageFormatter {
     public static string HtmlFormatMention(string id, string? displayName = null) {
         return $"<a href=\"https://matrix.to/#/{id}\">{displayName ?? id}</a>";
     }
+
+#region Extension functions
+
+    public static RoomMessageEventContent ToMatrixMessage(this Exception e, string error) => FormatException(error, e);
+
+#endregion
 }

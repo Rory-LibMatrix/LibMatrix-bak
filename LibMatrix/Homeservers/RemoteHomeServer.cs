@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,13 +11,18 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class RemoteHomeServer(string baseUrl) {
+    public static async Task<RemoteHomeServer> Create(string baseUrl) =>
+        new(baseUrl) {
+            _httpClient = new() {
+                BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
+                                      ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+                Timeout = TimeSpan.FromSeconds(120)
+            }
+        };
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
-    public string BaseUrl { get; } = baseUrl.Trim();
-    public MatrixHttpClient _httpClient { get; set; } = new() {
-        BaseAddress = new Uri(new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl).Result ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-        Timeout = TimeSpan.FromSeconds(120)
-    };
+    public string BaseUrl { get; } = baseUrl;
+    public MatrixHttpClient _httpClient { get; set; }
 
     public async Task<ProfileResponseEventContent> GetProfileAsync(string mxid) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));

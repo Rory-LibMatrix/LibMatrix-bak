@@ -1,14 +1,14 @@
 using System.Security.Cryptography;
 using ArcaneLibs.Extensions;
+using LibMatrix;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.Helpers;
-using LibMatrix.Responses;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
-using MediaModeratorPoC.Bot.AccountData;
-using MediaModeratorPoC.Bot.StateEventTypes;
+using MediaModeratorPoC.AccountData;
+using MediaModeratorPoC.StateEventTypes;
 
-namespace MediaModeratorPoC.Bot.Commands;
+namespace MediaModeratorPoC.Commands;
 
 public class BanMediaCommand(IServiceProvider services, HomeserverProviderService hsProvider, HomeserverResolverService hsResolver) : ICommand {
     public string Name { get; } = "banmedia";
@@ -16,7 +16,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
 
     public async Task<bool> CanInvoke(CommandContext ctx) {
         //check if user is admin in control room
-        var botData = await ctx.Homeserver.GetAccountData<BotData>("gay.rory.media_moderator_poc_data");
+        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.modbot_data");
         var controlRoom = ctx.Homeserver.GetRoom(botData.ControlRoom);
         var isAdmin = (await controlRoom.GetPowerLevelsAsync())!.UserHasPermission(ctx.MessageEvent.Sender, "m.room.ban");
         if (!isAdmin) {
@@ -29,7 +29,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
     }
 
     public async Task Invoke(CommandContext ctx) {
-        var botData = await ctx.Homeserver.GetAccountData<BotData>("gay.rory.media_moderator_poc_data");
+        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.modbot_data");
         var policyRoom = ctx.Homeserver.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
         var logRoom = ctx.Homeserver.GetRoom(botData.LogRoom ?? botData.ControlRoom);
 
@@ -54,7 +54,9 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                 var recommendation = ctx.Args[0];
 
                 if (recommendation is not ("ban" or "kick" or "mute" or "redact" or "spoiler" or "warn" or "warn_admins")) {
-                    await ctx.Room.SendMessageEventAsync(MessageFormatter.FormatError($"Invalid recommendation type {recommendation}, must be `warn_admins`, `warn`, `spoiler`, `redact`, `mute`, `kick` or `ban`!"));
+                    await ctx.Room.SendMessageEventAsync(
+                        MessageFormatter.FormatError(
+                            $"Invalid recommendation type {recommendation}, must be `warn_admins`, `warn`, `spoiler`, `redact`, `mute`, `kick` or `ban`!"));
                     return;
                 }
 
@@ -70,16 +72,16 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                 }
                 catch (Exception ex) {
                     await logRoom.SendMessageEventAsync(
-                        MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]}, retrying via {ctx.Homeserver.HomeServerDomain}...",
+                        MessageFormatter.FormatException($"Error calculating file hash for {mxcUri} via {mxcUri.Split('/')[2]}, retrying via {ctx.Homeserver.BaseUrl}...",
                             ex));
                     try {
-                        resolvedUri = await hsResolver.ResolveMediaUri(ctx.Homeserver.HomeServerDomain, mxcUri);
+                        resolvedUri = await hsResolver.ResolveMediaUri(ctx.Homeserver.BaseUrl, mxcUri);
                         fileHash = await hashAlgo.ComputeHashAsync(await ctx.Homeserver._httpClient.GetStreamAsync(resolvedUri));
                     }
                     catch (Exception ex2) {
                         await ctx.Room.SendMessageEventAsync(MessageFormatter.FormatException("Error calculating file hash", ex2));
                         await logRoom.SendMessageEventAsync(
-                            MessageFormatter.FormatException($"Error calculating file hash via {ctx.Homeserver.HomeServerDomain}!", ex2));
+                            MessageFormatter.FormatException($"Error calculating file hash via {ctx.Homeserver.BaseUrl}!", ex2));
                     }
                 }
 
@@ -98,7 +100,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                 await logRoom.SendMessageEventAsync(MessageFormatter.FormatException("Error creating policy", e));
                 await ctx.Room.SendMessageEventAsync(MessageFormatter.FormatException("Error creating policy", e));
                 await using var stream = new MemoryStream(e.ToString().AsBytes().ToArray());
-                await logRoom.SendFileAsync("m.file", "error.log.cs", stream);
+                await logRoom.SendFileAsync("error.log.cs", stream);
             }
         }
         else {

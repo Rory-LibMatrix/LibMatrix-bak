@@ -8,11 +8,43 @@ namespace LibMatrix.Tests.Abstractions;
 
 public static class RoomAbstraction {
     public static async Task<GenericRoom> GetTestRoom(AuthenticatedHomeserverGeneric hs) {
-        var testRoom = await hs.CreateRoom(new CreateRoomRequest() {
+        var crq = new CreateRoomRequest() {
             Name = "LibMatrix Test Room",
             // Visibility = CreateRoomVisibility.Public,
             RoomAliasName = Guid.NewGuid().ToString()
+        };
+        crq.InitialState ??= new();
+        crq.InitialState.Add(new StateEvent() {
+            Type = "m.room.topic",
+            StateKey = "",
+            TypedContent = new RoomTopicEventContent() {
+                Topic = "LibMatrix Test Room " + DateTime.Now.ToString("O")
+            }
         });
+        crq.InitialState.Add(new StateEvent() {
+            Type = "m.room.name",
+            StateKey = "",
+            TypedContent = new RoomNameEventContent() {
+                Name = "LibMatrix Test Room " + DateTime.Now.ToString("O")
+            }
+        });
+        crq.InitialState.Add(new StateEvent() {
+            Type = "m.room.avatar",
+            StateKey = "",
+            TypedContent = new RoomAvatarEventContent() {
+                Url = "mxc://conduit.rory.gay/r9KiT0f9eQbv8pv4RxwBZFuzhfKjGWHx"
+            }
+        });
+        crq.InitialState.Add(new StateEvent() {
+            Type = "m.room.aliases",
+            StateKey = "",
+            TypedContent = new RoomAliasEventContent() {
+                Aliases = Enumerable
+                    .Range(0, 100)
+                    .Select(_ => $"#{Guid.NewGuid()}:matrixunittests.rory.gay").ToList()
+            }
+        });
+        var testRoom = await hs.CreateRoom(crq);
 
         await testRoom.SendStateEventAsync("gay.rory.libmatrix.unit_test_room", new());
 
