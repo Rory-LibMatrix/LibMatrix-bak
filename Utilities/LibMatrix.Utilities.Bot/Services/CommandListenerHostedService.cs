@@ -81,7 +81,7 @@ public class CommandListenerHostedService : IHostedService {
                 _logger.LogError(e, "Error in command listener!");
             }
         });
-        await new SyncHelper(_hs).RunSyncLoopAsync(cancellationToken: cancellationToken);
+        await new SyncHelper(_hs){Timeout = 2500}.RunSyncLoopAsync(cancellationToken: cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>

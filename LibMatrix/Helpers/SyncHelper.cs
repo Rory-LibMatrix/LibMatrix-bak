@@ -1,11 +1,8 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Json;
 using ArcaneLibs.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
-using LibMatrix.Services;
 using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.Helpers;

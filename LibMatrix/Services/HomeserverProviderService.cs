@@ -1,7 +1,5 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ArcaneLibs.Extensions;
-using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using Microsoft.Extensions.Logging;

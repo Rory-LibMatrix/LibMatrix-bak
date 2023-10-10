@@ -1,13 +1,9 @@
 using ArcaneLibs;
-using ArcaneLibs.Extensions;
-using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
 using LibMatrix.Utilities.Bot.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.Utilities.Bot;
 

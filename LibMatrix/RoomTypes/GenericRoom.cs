@@ -7,8 +7,6 @@ using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Extensions;
 using LibMatrix.Homeservers;
 using LibMatrix.Interfaces;
-using LibMatrix.Responses;
-using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.RoomTypes;
 

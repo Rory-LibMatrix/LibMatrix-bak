@@ -4,8 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
-using LibMatrix.Extensions;
-using LibMatrix.Helpers;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;

@@ -1,6 +1,5 @@
 using ArcaneLibs.Extensions;
 using LibMatrix.Homeservers;
-using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.RoomTypes;
 
