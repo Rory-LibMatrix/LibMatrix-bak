@@ -37,7 +37,7 @@ public class CommandListenerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
-        var syncHelper = new SyncHelper(_hs);
+        var syncHelper = new SyncHelper(_hs, _logger);
         syncHelper.TimelineEventHandlers.Add(async @event => {
             try {
                 var room = _hs.GetRoom(@event.RoomId);
@@ -81,14 +81,17 @@ public class CommandListenerHostedService : IHostedService {
                 _logger.LogError(e, "Error in command listener!");
             }
         });
-        await new SyncHelper(_hs){Timeout = 2500}.RunSyncLoopAsync(cancellationToken: cancellationToken);
+        await syncHelper.RunSyncLoopAsync(cancellationToken: cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>
     /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
-    public Task StopAsync(CancellationToken cancellationToken) {
+    public async Task StopAsync(CancellationToken cancellationToken) {
         _logger.LogInformation("Shutting down command listener!");
-        _listenerTask.Wait(cancellationToken);
-        return Task.CompletedTask;
+        if (_listenerTask is null) {
+            _logger.LogError("Could not shut down command listener task because it was null!");
+            return;
+        }
+        await _listenerTask.WaitAsync(cancellationToken);
     }
 }

@@ -264,6 +264,11 @@ public class GenericRoom {
     }
 
 #endregion
+
+    public async Task InviteUsersAsync(IEnumerable<string> users) {
+        var tasks = users.Select(x=>InviteUserAsync(x)).ToList();
+        await Task.WhenAll(tasks);
+    }
 }
 
 public class RoomIdResponse {

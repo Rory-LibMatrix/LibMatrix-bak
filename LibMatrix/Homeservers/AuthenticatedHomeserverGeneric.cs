@@ -39,7 +39,8 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
 
 
     public WhoAmIResponse? WhoAmI { get; set; }
-    public string UserId => WhoAmI.UserId;
+    public string? UserId => WhoAmI?.UserId;
+    public string? UserLocalpart => UserId?.Split(":")[0][1..];
 
     // public virtual async Task<WhoAmIResponse> WhoAmI() {
     // if (_whoAmI is not null) return _whoAmI;

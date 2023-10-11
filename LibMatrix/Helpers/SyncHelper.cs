@@ -14,7 +14,6 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public SyncFilter? Filter { get; set; }
     public bool FullState { get; set; } = false;
 
-
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
@@ -37,7 +36,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     }
 
     public async IAsyncEnumerable<SyncResponse> EnumerateSyncAsync(CancellationToken? cancellationToken = null) {
-        while(!cancellationToken?.IsCancellationRequested ?? true) {
+        while (!cancellationToken?.IsCancellationRequested ?? true) {
             var sync = await SyncAsync(cancellationToken);
             if (sync is null) continue;
             Since = sync.NextBatch ?? Since;
@@ -47,14 +46,25 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
 
     public async Task RunSyncLoopAsync(bool skipInitialSyncEvents = true, CancellationToken? cancellationToken = null) {
         var sw = Stopwatch.StartNew();
+        bool isInitialSync = true;
+        int emptyInitialSyncCount = 0;
+        var oldTimeout = Timeout;
+        Timeout = 0;
         await foreach (var sync in EnumerateSyncAsync(cancellationToken)) {
             logger?.LogInformation("Got sync response: {} bytes, {} elapsed", sync?.ToJson(ignoreNull: true, indent: false).Length ?? -1, sw.Elapsed);
-            await RunSyncLoopCallbacksAsync(sync, Since is null && skipInitialSyncEvents);
+            if (sync?.ToJson(ignoreNull: true, indent: false).Length < 250) {
+                emptyInitialSyncCount++;
+                if (emptyInitialSyncCount > 5) {
+                    isInitialSync = false;
+                    Timeout = oldTimeout;
+                }
+            }
+
+            await RunSyncLoopCallbacksAsync(sync, isInitialSync && skipInitialSyncEvents);
         }
     }
 
     private async Task RunSyncLoopCallbacksAsync(SyncResponse syncResponse, bool isInitialSync) {
-
         var tasks = SyncReceivedHandlers.Select(x => x(syncResponse)).ToList();
         await Task.WhenAll(tasks);
 

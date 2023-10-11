@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 
 namespace LibMatrix.Extensions;
@@ -93,7 +94,8 @@ public class MatrixHttpClient : HttpClient {
         CancellationToken cancellationToken = default) {
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType()), Encoding.UTF8, "application/json");
+        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options ?? new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }),
+            Encoding.UTF8, "application/json");
         return await SendAsync(request, cancellationToken);
     }
 }
