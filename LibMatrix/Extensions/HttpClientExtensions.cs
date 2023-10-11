@@ -98,4 +98,13 @@ public class MatrixHttpClient : HttpClient {
             Encoding.UTF8, "application/json");
         return await SendAsync(request, cancellationToken);
     }
+
+    public async Task<HttpResponseMessage> PostAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options ?? new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }),
+            Encoding.UTF8, "application/json");
+        return await SendAsync(request, cancellationToken);
+    }
 }

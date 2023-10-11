@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
@@ -27,20 +28,20 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
     // Activator.CreateInstance(baseUrl, accessToken) {
-        //     _httpClient = new() {
-        //         BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
-        //                               ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-        //         Timeout = TimeSpan.FromMinutes(15),
-        //         DefaultRequestHeaders = {
-        //             Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
-        //         }
-        //     }
-        // };
-
+    //     _httpClient = new() {
+    //         BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
+    //                               ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+    //         Timeout = TimeSpan.FromMinutes(15),
+    //         DefaultRequestHeaders = {
+    //             Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
+    //         }
+    //     }
+    // };
 
     public WhoAmIResponse? WhoAmI { get; set; }
     public string? UserId => WhoAmI?.UserId;
     public string? UserLocalpart => UserId?.Split(":")[0][1..];
+    public string? ServerName => UserId?.Split(":", 2)[1];
 
     // public virtual async Task<WhoAmIResponse> WhoAmI() {
     // if (_whoAmI is not null) return _whoAmI;
@@ -77,7 +78,24 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         return resJson.GetProperty("content_uri").GetString()!;
     }
 
-    public virtual async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent) {
+    public virtual async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent, bool returnExistingIfAliasExists = false, bool joinIfAliasExists = false,
+        bool inviteIfAliasExists = false) {
+        if (returnExistingIfAliasExists) {
+            var aliasRes = await ResolveRoomAliasAsync($"#{creationEvent.RoomAliasName}:{ServerName}");
+            if (aliasRes is not null) {
+                var existingRoom = GetRoom(aliasRes.RoomId);
+                if (joinIfAliasExists) {
+                    await existingRoom.JoinAsync();
+                }
+
+                if (inviteIfAliasExists) {
+                    await existingRoom.InviteUsersAsync(creationEvent.Invite ?? new());
+                }
+
+                return existingRoom;
+            }
+        }
+
         creationEvent.CreationContent["creator"] = WhoAmI.UserId;
         var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent, new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -90,9 +108,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         var room = GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
 
         if (creationEvent.Invite is not null)
-            foreach (var user in creationEvent.Invite) {
-                await room.InviteUserAsync(user);
-            }
+            await room.InviteUsersAsync(creationEvent.Invite ?? new());
 
         return room;
     }
@@ -147,6 +163,4 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
 #endregion
-
-
 }

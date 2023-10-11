@@ -232,7 +232,9 @@ public class GenericRoom {
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
-    public async Task InviteUserAsync(string userId, string? reason = null) {
+    public async Task InviteUserAsync(string userId, string? reason = null, bool skipExisting = true) {
+        if (skipExisting && await GetStateAsync<RoomMemberEventContent>("m.room.member", userId) is not null)
+            return;
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
 
@@ -265,8 +267,8 @@ public class GenericRoom {
 
 #endregion
 
-    public async Task InviteUsersAsync(IEnumerable<string> users) {
-        var tasks = users.Select(x=>InviteUserAsync(x)).ToList();
+    public async Task InviteUsersAsync(IEnumerable<string> users, string? reason = null, bool skipExisting = true) {
+        var tasks = users.Select(x => InviteUserAsync(x, reason, skipExisting)).ToList();
         await Task.WhenAll(tasks);
     }
 }
