@@ -82,7 +82,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         bool inviteIfAliasExists = false) {
         if (returnExistingIfAliasExists) {
             var aliasRes = await ResolveRoomAliasAsync($"#{creationEvent.RoomAliasName}:{ServerName}");
-            if (aliasRes is not null) {
+            if (aliasRes?.RoomId != null) {
                 var existingRoom = GetRoom(aliasRes.RoomId);
                 if (joinIfAliasExists) {
                     await existingRoom.JoinAsync();
