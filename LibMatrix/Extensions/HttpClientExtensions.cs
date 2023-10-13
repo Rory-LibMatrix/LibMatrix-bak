@@ -48,6 +48,11 @@ public class MatrixHttpClient : HttpClient {
 
         //error handling
         var content = await a.Content.ReadAsStringAsync(cancellationToken);
+        if (content.Length == 0)
+            throw new MatrixException() {
+                ErrorCode = "M_UNKNOWN",
+                Error = "Unknown error, server returned no content"
+            };
         if (!content.StartsWith('{')) throw new InvalidDataException("Encountered invalid data:\n" + content);
         //we have a matrix error
         var ex = JsonSerializer.Deserialize<MatrixException>(content);

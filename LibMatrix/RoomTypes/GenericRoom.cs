@@ -66,6 +66,16 @@ public class GenericRoom {
         }
     }
 
+    public async Task<T?> GetStateOrNullAsync<T>(string type, string stateKey = "") {
+        try {
+            return await GetStateAsync<T>(type, stateKey);
+        }
+        catch (MatrixException e) {
+            if (e.ErrorCode == "M_NOT_FOUND") return default;
+            throw;
+        }
+    }
+
     public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b",
         string filter = "") {
         var url = $"/_matrix/client/v3/rooms/{RoomId}/messages?from={from}&limit={limit}&dir={dir}";
