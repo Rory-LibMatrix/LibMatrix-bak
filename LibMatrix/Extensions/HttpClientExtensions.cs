@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
@@ -25,6 +26,15 @@ public static class HttpClientExtensions {
 
 public class MatrixHttpClient : HttpClient {
     internal string? AssertedUserId { get; set; }
+
+    private JsonSerializerOptions GetJsonSerializerOptions(JsonSerializerOptions? options = null) {
+        options ??= new JsonSerializerOptions();
+        options.Converters.Add(new JsonFloatStringConverter());
+        options.Converters.Add(new JsonDoubleStringConverter());
+        options.Converters.Add(new JsonDecimalStringConverter());
+        options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        return options;
+    }
 
     public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
         CancellationToken cancellationToken) {
@@ -68,7 +78,8 @@ public class MatrixHttpClient : HttpClient {
     }
 
     // GetFromJsonAsync
-    public async Task<T> GetFromJsonAsync<T>(string requestUri, CancellationToken cancellationToken = default) {
+    public async Task<T> GetFromJsonAsync<T>(string requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
+        options = GetJsonSerializerOptions(options);
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         var response = await SendAsync(request, cancellationToken);
@@ -82,7 +93,7 @@ public class MatrixHttpClient : HttpClient {
             Console.WriteLine("[!!] Checking sync response failed: " + e);
         }
 #endif
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken) ??
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, options, cancellationToken: cancellationToken) ??
                throw new InvalidOperationException("Failed to deserialize response");
     }
 
@@ -97,19 +108,58 @@ public class MatrixHttpClient : HttpClient {
 
     public new async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
         CancellationToken cancellationToken = default) {
+        options = GetJsonSerializerOptions(options);
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options ?? new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }),
+        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options),
             Encoding.UTF8, "application/json");
         return await SendAsync(request, cancellationToken);
     }
 
     public async Task<HttpResponseMessage> PostAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
         CancellationToken cancellationToken = default) {
+        options ??= new();
+        options.Converters.Add(new JsonFloatStringConverter());
+        options.Converters.Add(new JsonDoubleStringConverter());
+        options.Converters.Add(new JsonDecimalStringConverter());
+        options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options ?? new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }),
+        request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options),
             Encoding.UTF8, "application/json");
         return await SendAsync(request, cancellationToken);
     }
+
+    public async IAsyncEnumerable<T?> GetAsyncEnumerableFromJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, JsonSerializerOptions? options = null) {
+        options = GetJsonSerializerOptions(options);
+        var res = await GetAsync(requestUri);
+        var result = JsonSerializer.DeserializeAsyncEnumerable<T>(await res.Content.ReadAsStreamAsync(), options);
+        await foreach (var resp in result) {
+            yield return resp;
+        }
+    }
+}
+
+public class JsonFloatStringConverter : JsonConverter<float> {
+    public override float Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => float.Parse(reader.GetString()!);
+
+    public override void Write(Utf8JsonWriter writer, float value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
+}
+
+public class JsonDoubleStringConverter : JsonConverter<double> {
+    public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => double.Parse(reader.GetString()!);
+
+    public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
+}
+
+public class JsonDecimalStringConverter : JsonConverter<decimal> {
+    public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => decimal.Parse(reader.GetString()!);
+
+    public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
 }

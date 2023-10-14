@@ -3,13 +3,15 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.power_levels")]
+[MatrixEvent(EventName = EventId)]
 public class RoomPowerLevelEventContent : EventContent {
+    public const string EventId = "m.room.power_levels";
+
     [JsonPropertyName("ban")]
     public long? Ban { get; set; } = 50;
 
     [JsonPropertyName("events_default")]
-    public long EventsDefault { get; set; } = 0;
+    public long? EventsDefault { get; set; } = 0;
 
     [JsonPropertyName("events")]
     public Dictionary<string, long>? Events { get; set; } // = null!;
@@ -46,10 +48,32 @@ public class RoomPowerLevelEventContent : EventContent {
     }
 
     public bool IsUserAdmin(string userId) {
+        if(userId is null) throw new ArgumentNullException(nameof(userId));
         return Users.TryGetValue(userId, out var level) && level >= Events.Max(x => x.Value);
     }
 
     public bool UserHasPermission(string userId, string eventType) {
-        return Users.TryGetValue(userId, out var level) && level >= Events.GetValueOrDefault(eventType, EventsDefault);
+        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        return Users.TryGetValue(userId, out var level) && level >= Events.GetValueOrDefault(eventType, EventsDefault ?? 0);
+    }
+
+    public long GetUserPowerLevel(string userId) {
+        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        return Users.TryGetValue(userId, out var level) ? level : UsersDefault ?? UsersDefault ?? 0;
+    }
+
+    public long GetEventPowerLevel(string eventType) {
+        return Events.TryGetValue(eventType, out var level) ? level : EventsDefault ?? EventsDefault ?? 0;
+    }
+
+    public void SetUserPowerLevel(string userId, long powerLevel) {
+        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        Users ??= new();
+        if (Users.TryGetValue(userId, out var level)) {
+            Users[userId] = powerLevel;
+        }
+        else {
+            Users.Add(userId, powerLevel);
+        }
     }
 }

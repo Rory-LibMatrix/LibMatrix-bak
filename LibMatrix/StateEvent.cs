@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ArcaneLibs;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes;
+using LibMatrix.Extensions;
 using LibMatrix.Interfaces;
 
 namespace LibMatrix;
@@ -41,7 +42,12 @@ public class StateEvent {
                 return null!;
             }
             try {
-                return (EventContent)RawContent.Deserialize(GetType)!;
+                var jse = new JsonSerializerOptions();
+                jse ??= new JsonSerializerOptions();
+                jse.Converters.Add(new JsonFloatStringConverter());
+                jse.Converters.Add(new JsonDoubleStringConverter());
+                jse.Converters.Add(new JsonDecimalStringConverter());
+                return (EventContent)RawContent.Deserialize(GetType, jse)!;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);

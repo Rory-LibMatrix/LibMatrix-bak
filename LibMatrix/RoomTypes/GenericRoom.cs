@@ -27,9 +27,8 @@ public class GenericRoom {
     public string RoomId { get; set; }
 
     public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/state");
-        var result =
-            JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(await res.Content.ReadAsStreamAsync());
+        var result = _httpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>(
+            $"/_matrix/client/v3/rooms/{RoomId}/state");
         await foreach (var resp in result) {
             yield return resp;
         }
