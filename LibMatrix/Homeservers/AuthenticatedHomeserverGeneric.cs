@@ -168,7 +168,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
 
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
-        return $"{_httpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//", "/");
+        return $"{_httpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
     }
 
     public async Task UpdateProfileAsync(ProfileResponseEventContent? newProfile, bool preserveCustomRoomProfile = true) {
