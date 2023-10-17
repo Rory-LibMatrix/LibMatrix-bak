@@ -14,6 +14,8 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public SyncFilter? Filter { get; set; }
     public bool FullState { get; set; } = false;
 
+    public bool IsInitialSync { get; set; } = true;
+
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
@@ -39,14 +41,13 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         while (!cancellationToken?.IsCancellationRequested ?? true) {
             var sync = await SyncAsync(cancellationToken);
             if (sync is null) continue;
-            Since = sync.NextBatch ?? Since;
+            Since = string.IsNullOrWhiteSpace(sync?.NextBatch) ? Since : sync.NextBatch;
             yield return sync;
         }
     }
 
     public async Task RunSyncLoopAsync(bool skipInitialSyncEvents = true, CancellationToken? cancellationToken = null) {
         var sw = Stopwatch.StartNew();
-        bool isInitialSync = true;
         int emptyInitialSyncCount = 0;
         var oldTimeout = Timeout;
         Timeout = 0;
@@ -55,12 +56,12 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             if (sync?.ToJson(ignoreNull: true, indent: false).Length < 250) {
                 emptyInitialSyncCount++;
                 if (emptyInitialSyncCount > 5) {
-                    isInitialSync = false;
+                    IsInitialSync = false;
                     Timeout = oldTimeout;
                 }
             }
 
-            await RunSyncLoopCallbacksAsync(sync, isInitialSync && skipInitialSyncEvents);
+            await RunSyncLoopCallbacksAsync(sync, IsInitialSync && skipInitialSyncEvents);
         }
     }
 

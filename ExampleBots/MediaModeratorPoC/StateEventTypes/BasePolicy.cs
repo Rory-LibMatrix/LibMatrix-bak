@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using LibMatrix;
+using LibMatrix.Interfaces;
 
 namespace MediaModeratorPoC.StateEventTypes;
 
-public abstract class BasePolicy : StateEvent {
+public abstract class BasePolicy : EventContent {
     /// <summary>
     ///     Entity this policy applies to
     /// </summary>

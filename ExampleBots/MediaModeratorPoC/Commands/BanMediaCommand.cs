@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using ArcaneLibs.Extensions;
 using LibMatrix;
@@ -87,7 +88,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
 
                 MediaPolicyEventContent policy;
                 await policyRoom.SendStateEventAsync("gay.rory.media_moderator_poc.rule.media", Guid.NewGuid().ToString(), policy = new MediaPolicyEventContent {
-                    Entity = uriHash,
+                    // Entity = uriHash,
                     FileHash = fileHash,
                     Reason = string.Join(' ', ctx.Args[1..]),
                     Recommendation = recommendation,

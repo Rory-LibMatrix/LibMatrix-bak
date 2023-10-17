@@ -5,6 +5,8 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.Filters;
+using LibMatrix.Helpers;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
@@ -163,4 +165,129 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
 #endregion
+
+    public string? ResolveMediaUri(string? mxcUri) {
+        if (mxcUri is null) return null;
+        return $"{_httpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//", "/");
+    }
+
+    public async Task UpdateProfileAsync(ProfileResponseEventContent? newProfile, bool preserveCustomRoomProfile = true) {
+        Console.WriteLine($"Updating profile for {WhoAmI.UserId} to {newProfile.ToJson(ignoreNull: true)} (preserving room profiles: {preserveCustomRoomProfile})");
+        if (newProfile is null) return;
+        var oldProfile = await GetProfileAsync(WhoAmI.UserId!);
+        Dictionary<string, RoomMemberEventContent> targetRoomProfileOverrides = new();
+        var syncHelper = new SyncHelper(this) {
+            Filter = new SyncFilter {
+                AccountData = new SyncFilter.EventFilter() {
+                    Types = new List<string> {
+                        "m.room.member"
+                    }
+                }
+            },
+            Timeout = 250
+        };
+        int targetSyncCount = 0;
+
+        if (preserveCustomRoomProfile) {
+            var rooms = await GetJoinedRooms();
+            targetSyncCount = rooms.Count;
+            foreach (var room in rooms) {
+                try {
+                    var currentRoomProfile = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!);
+                    //build new profiles
+
+                    if (currentRoomProfile.DisplayName == oldProfile.DisplayName) {
+                        currentRoomProfile.DisplayName = newProfile.DisplayName;
+                    }
+
+                    if (currentRoomProfile.AvatarUrl == oldProfile.AvatarUrl) {
+                        currentRoomProfile.AvatarUrl = newProfile.AvatarUrl;
+                    }
+
+                    targetRoomProfileOverrides.Add(room.RoomId, currentRoomProfile);
+                }
+                catch (Exception e) { }
+            }
+
+            Console.WriteLine($"Rooms with custom profiles: {string.Join(',', targetRoomProfileOverrides.Keys)}");
+        }
+
+        if (oldProfile.DisplayName != newProfile.DisplayName) {
+            await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/displayname", new { displayname = newProfile.DisplayName });
+        }
+        else {
+            Console.WriteLine($"Not updating display name because {oldProfile.DisplayName} == {newProfile.DisplayName}");
+        }
+
+        if (oldProfile.AvatarUrl != newProfile.AvatarUrl) {
+            await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/avatar_url", new { avatar_url = newProfile.AvatarUrl });
+        }
+        else {
+            Console.WriteLine($"Not updating avatar URL because {newProfile.AvatarUrl} == {newProfile.AvatarUrl}");
+        }
+
+        if (!preserveCustomRoomProfile) return;
+
+        int syncCount = 0;
+        await foreach (var sync in syncHelper.EnumerateSyncAsync()) {
+            if (sync.Rooms is null) break;
+            foreach (var (roomId, roomData) in sync.Rooms.Join) {
+                if (roomData.State is { Events: { Count: > 0 } }) {
+                    var updatedRoomProfile =
+                        roomData.State?.Events?.FirstOrDefault(x => x.Type == "m.room.member" && x.StateKey == WhoAmI.UserId)?.TypedContent as RoomMemberEventContent;
+                    if (updatedRoomProfile is null) continue;
+                    if (!targetRoomProfileOverrides.ContainsKey(roomId)) continue;
+                    var targetRoomProfileOverride = targetRoomProfileOverrides[roomId];
+                    var room = GetRoom(roomId);
+                    if (updatedRoomProfile.DisplayName != targetRoomProfileOverride.DisplayName || updatedRoomProfile.AvatarUrl != targetRoomProfileOverride.AvatarUrl)
+                        await room.SendStateEventAsync("m.room.member", WhoAmI.UserId, targetRoomProfileOverride);
+                }
+            }
+
+            var differenceFound = false;
+            if (syncCount++ >= targetSyncCount) {
+                var profiles = GetRoomProfilesAsync();
+                await foreach ((string roomId, var profile) in profiles) {
+                    if (!targetRoomProfileOverrides.ContainsKey(roomId)) continue;
+                    var targetRoomProfileOverride = targetRoomProfileOverrides[roomId];
+                    if (profile.DisplayName != targetRoomProfileOverride.DisplayName || profile.AvatarUrl != targetRoomProfileOverride.AvatarUrl) {
+                        differenceFound = true;
+                        break;
+                    }
+                }
+                // var rooms = await GetJoinedRooms();
+                // List<ProfileResponseEventContent> currentProfiles = new();
+                // foreach (var room in rooms) {
+                //     try {
+                //         var roomProfile = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!);
+                //         currentProfiles.Add(new ProfileResponseEventContent {
+                //             AvatarUrl = roomProfile.AvatarUrl,
+                //             DisplayName = roomProfile.DisplayName
+                //         });
+                //     }
+                //     catch (Exception e) { }
+                // }
+                // if (currentProfiles.All(x => x.DisplayName == newProfile.DisplayName) && currentProfiles.All(x => x.AvatarUrl == newProfile.AvatarUrl)) {
+                //     Console.WriteLine("All rooms have been updated");
+                //     break;
+                // }
+            }
+
+            if (!differenceFound) return;
+        }
+    }
+
+    public async IAsyncEnumerable<KeyValuePair<string, RoomMemberEventContent>> GetRoomProfilesAsync() {
+        var rooms = await GetJoinedRooms();
+        foreach (var room in rooms) {
+            RoomMemberEventContent? content = null;
+            try {
+                content = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!);
+            }
+            catch (Exception e) { }
+
+            if (content is not null)
+                yield return new KeyValuePair<string, RoomMemberEventContent>(room.RoomId, content!);
+        }
+    }
 }

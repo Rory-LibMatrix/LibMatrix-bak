@@ -54,7 +54,7 @@ public class HomeserverProviderService {
     public async Task<RemoteHomeServer> GetRemoteHomeserver(string homeserver, string? proxy = null) {
         var hs = await RemoteHomeServer.Create(proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver));
         // hs._httpClient.Dispose();
-        // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
+        // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.ServerName) };
         // hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
         return hs;
     }
