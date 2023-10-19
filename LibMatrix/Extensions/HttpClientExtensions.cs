@@ -80,6 +80,7 @@ public class MatrixHttpClient : HttpClient {
     // GetFromJsonAsync
     public async Task<T> GetFromJsonAsync<T>(string requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
         options = GetJsonSerializerOptions(options);
+        // Console.WriteLine($"GetFromJsonAsync called for {requestUri} with json options {options?.ToJson(ignoreNull:true)} and cancellation token {cancellationToken}");
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         var response = await SendAsync(request, cancellationToken);

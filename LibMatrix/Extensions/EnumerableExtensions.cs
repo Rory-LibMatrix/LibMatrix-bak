@@ -1,7 +1,7 @@
 namespace LibMatrix.Extensions;
 
 public static class EnumerableExtensions {
-    public static void MergeStateEventLists(this List<StateEvent> oldState, List<StateEvent> newState) {
+    public static void MergeStateEventLists(this IList<StateEvent> oldState, IList<StateEvent> newState) {
         foreach (var stateEvent in newState) {
             var old = oldState.FirstOrDefault(x => x.Type == stateEvent.Type && x.StateKey == stateEvent.StateKey);
             if (old is null) {
@@ -13,7 +13,7 @@ public static class EnumerableExtensions {
         }
     }
 
-    public static void MergeStateEventLists(this List<StateEventResponse> oldState, List<StateEventResponse> newState) {
+    public static void MergeStateEventLists(this IList<StateEventResponse> oldState, IList<StateEventResponse> newState) {
         foreach (var stateEvent in newState) {
             var old = oldState.FirstOrDefault(x => x.Type == stateEvent.Type && x.StateKey == stateEvent.StateKey);
             if (old is null) {

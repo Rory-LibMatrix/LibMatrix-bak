@@ -15,15 +15,19 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public bool FullState { get; set; } = false;
 
     public bool IsInitialSync { get; set; } = true;
-
+    
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
+        if (homeserver is null) {
+            Console.WriteLine("Null passed as homeserver for SyncHelper!");
+            throw new ArgumentNullException("Null passed as homeserver for SyncHelper!");
+        }
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
         if (Filter is not null) url += $"&filter={Filter.ToJson(ignoreNull: true, indent: false)}";
         // Console.WriteLine("Calling: " + url);
         logger?.LogInformation("SyncHelper: Calling: {}", url);
         try {
-            return await homeserver._httpClient.GetFromJsonAsync<SyncResponse>(url, cancellationToken: cancellationToken ?? CancellationToken.None);
+            return await homeserver?._httpClient?.GetFromJsonAsync<SyncResponse>(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
         }
         catch (TaskCanceledException) {
             Console.WriteLine("Sync cancelled!");
