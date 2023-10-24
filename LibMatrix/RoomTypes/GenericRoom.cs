@@ -84,14 +84,9 @@ public class GenericRoom {
     }
 
     // TODO: should we even error handle here?
-    public async Task<string> GetNameAsync() {
-        try {
-            var res = await GetStateAsync<RoomNameEventContent>("m.room.name");
-            return res?.Name ?? RoomId;
-        }
-        catch (MatrixException e) {
-            return $"{RoomId} ({e.ErrorCode})";
-        }
+    public async Task<string?> GetNameAsync() {
+        var res = await GetStateAsync<RoomNameEventContent>("m.room.name");
+        return res?.Name;
     }
 
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null) {

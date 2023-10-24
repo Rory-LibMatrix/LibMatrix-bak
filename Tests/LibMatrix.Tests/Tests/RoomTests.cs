@@ -2,6 +2,7 @@ using System.Text;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
+using LibMatrix.Responses;
 using LibMatrix.Services;
 using LibMatrix.Tests.Abstractions;
 using LibMatrix.Tests.Fixtures;
@@ -150,11 +151,11 @@ public class RoomTests : TestBed<TestFixture> {
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
 
-        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new ProfileResponseEventContent() {
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new UserProfileResponse() {
             DisplayName = "wee_woo",
             AvatarUrl = "no"
         });
-        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", "state_key_maybe", new ProfileResponseEventContent() {
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", "state_key_maybe", new UserProfileResponse() {
             DisplayName = "wee_woo",
             AvatarUrl = "yes"
         });
@@ -167,16 +168,16 @@ public class RoomTests : TestBed<TestFixture> {
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
 
-        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new ProfileResponseEventContent() {
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", new UserProfileResponse() {
             DisplayName = "wee_woo",
             AvatarUrl = "no"
         });
-        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", "state_key_maybe", new ProfileResponseEventContent() {
+        await room.SendStateEventAsync("gay.rory.libmatrix.unit_tests", "state_key_maybe", new UserProfileResponse() {
             DisplayName = "wee_woo",
             AvatarUrl = "yes"
         });
 
-        var state1 = await room.GetStateAsync<ProfileResponseEventContent>("gay.rory.libmatrix.unit_tests");
+        var state1 = await room.GetStateAsync<UserProfileResponse>("gay.rory.libmatrix.unit_tests");
         Assert.NotNull(state1);
         Assert.NotNull(state1.DisplayName);
         Assert.NotEmpty(state1.DisplayName);
@@ -185,7 +186,7 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.Equal("wee_woo", state1.DisplayName);
         Assert.Equal("no", state1.AvatarUrl);
 
-        var state2 = await room.GetStateAsync<ProfileResponseEventContent>("gay.rory.libmatrix.unit_tests", "state_key_maybe");
+        var state2 = await room.GetStateAsync<UserProfileResponse>("gay.rory.libmatrix.unit_tests", "state_key_maybe");
         Assert.NotNull(state2);
         Assert.NotNull(state2.DisplayName);
         Assert.NotEmpty(state2.DisplayName);

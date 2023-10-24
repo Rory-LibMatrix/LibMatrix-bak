@@ -56,7 +56,12 @@ public class StateEvent {
 
             return null;
         }
-        set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
+        set {
+            if (value is null) {
+                RawContent = null;
+            }
+            else RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
+        }
     }
 
     [JsonPropertyName("state_key")]

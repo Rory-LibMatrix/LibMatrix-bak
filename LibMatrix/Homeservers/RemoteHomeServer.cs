@@ -23,17 +23,17 @@ public class RemoteHomeServer(string baseUrl) {
     public string BaseUrl { get; } = baseUrl;
     public MatrixHttpClient _httpClient { get; set; }
 
-    public async Task<ProfileResponseEventContent> GetProfileAsync(string mxid) {
+    public async Task<UserProfileResponse> GetProfileAsync(string mxid) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));
         if (_profileCache.TryGetValue(mxid, out var value)) {
             if (value is SemaphoreSlim s) await s.WaitAsync();
-            if (value is ProfileResponseEventContent p) return p;
+            if (value is UserProfileResponse p) return p;
         }
 
         _profileCache[mxid] = new SemaphoreSlim(1);
 
         var resp = await _httpClient.GetAsync($"/_matrix/client/v3/profile/{mxid}");
-        var data = await resp.Content.ReadFromJsonAsync<ProfileResponseEventContent>();
+        var data = await resp.Content.ReadFromJsonAsync<UserProfileResponse>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data);
         _profileCache[mxid] = data;
 

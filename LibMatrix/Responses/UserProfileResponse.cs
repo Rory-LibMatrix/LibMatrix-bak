@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using LibMatrix.Interfaces;
 
-namespace LibMatrix.EventTypes.Spec.State;
+namespace LibMatrix.Responses;
 
-public class ProfileResponseEventContent : EventContent {
+public class UserProfileResponse {
     [JsonPropertyName("avatar_url")]
     public string? AvatarUrl { get; set; }
 

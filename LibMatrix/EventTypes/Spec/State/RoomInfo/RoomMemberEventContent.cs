@@ -3,8 +3,10 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.member")]
+[MatrixEvent(EventName = EventId)]
 public class RoomMemberEventContent : EventContent {
+    public const string EventId = "m.room.member";
+
     [JsonPropertyName("reason")]
     public string? Reason { get; set; }
 

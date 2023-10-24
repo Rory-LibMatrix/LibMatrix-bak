@@ -156,7 +156,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
     }
 
-    public virtual async Task SetAccountData(string key, object data) {
+    public virtual async Task SetAccountDataAsync(string key, object data) {
         var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to set account data: {await res.Content.ReadAsStringAsync()}");
@@ -168,10 +168,11 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
 
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
+        if (mxcUri.StartsWith("https://")) return mxcUri;
         return $"{_httpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
     }
 
-    public async Task UpdateProfileAsync(ProfileResponseEventContent? newProfile, bool preserveCustomRoomProfile = true) {
+    public async Task UpdateProfileAsync(UserProfileResponse? newProfile, bool preserveCustomRoomProfile = true) {
         if (newProfile is null) return;
         Console.WriteLine($"Updating profile for {WhoAmI.UserId} to {newProfile.ToJson(ignoreNull: true)} (preserving room profiles: {preserveCustomRoomProfile})");
         var oldProfile = await GetProfileAsync(WhoAmI.UserId!);

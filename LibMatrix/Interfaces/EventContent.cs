@@ -6,8 +6,8 @@ public abstract class EventContent {
     [JsonPropertyName("m.relates_to")]
     public MessageRelatesTo? RelatesTo { get; set; }
 
-    [JsonPropertyName("m.new_content")]
-    public EventContent? NewContent { get; set; }
+    // [JsonPropertyName("m.new_content")]
+    // public EventContent? NewContent { get; set; }
 
     public class MessageRelatesTo {
         [JsonPropertyName("m.in_reply_to")]
