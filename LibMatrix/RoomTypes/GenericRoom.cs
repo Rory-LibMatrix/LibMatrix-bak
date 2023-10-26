@@ -18,7 +18,7 @@ public class GenericRoom {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new ArgumentException("Room ID cannot be null or whitespace", nameof(roomId));
         Homeserver = homeserver;
-        _httpClient = homeserver._httpClient;
+        _httpClient = homeserver.ClientHttpClient;
         RoomId = roomId;
         if (GetType() != typeof(SpaceRoom))
             AsSpace = new SpaceRoom(homeserver, RoomId);
@@ -83,11 +83,7 @@ public class GenericRoom {
         return res ?? new MessagesResponse();
     }
 
-    // TODO: should we even error handle here?
-    public async Task<string?> GetNameAsync() {
-        var res = await GetStateAsync<RoomNameEventContent>("m.room.name");
-        return res?.Name;
-    }
+    public async Task<string?> GetNameAsync() => (await GetStateAsync<RoomNameEventContent>("m.room.name"))?.Name;
 
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null) {
         var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
@@ -100,7 +96,7 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-    // TODO: rewrite (members endpoint?)
+    
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
         // var res = GetFullStateAsync();
         // await foreach (var member in res) {
@@ -108,7 +104,7 @@ public class GenericRoom {
         //     if (joinedOnly && (member.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
         //     yield return member;
         // }
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members?limit=2");
+        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
         var resText = await res.Content.ReadAsStringAsync();
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync());
         foreach (var resp in result.Chunk) {
@@ -156,6 +152,29 @@ public class GenericRoom {
 
     public async Task<RoomPowerLevelEventContent?> GetPowerLevelsAsync() =>
         await GetStateAsync<RoomPowerLevelEventContent>("m.room.power_levels");
+
+    public async Task<string> GetNameOrFallbackAsync() {
+        try {
+            return await GetNameAsync();
+        }
+        catch {
+            try {
+                var members = GetMembersAsync();
+                var memberList = new List<string>();
+                int memberCount = 0;
+                await foreach (var member in members)
+                    memberList.Add((member.TypedContent is RoomMemberEventContent memberEvent ? memberEvent.DisplayName : "") ?? "");
+                memberCount = memberList.Count;
+                memberList.RemoveAll(string.IsNullOrWhiteSpace);
+                if (memberList.Count >= 3)
+                    return string.Join(", ", memberList.Take(2)) + " and " + (memberCount - 2) + " others.";
+                return string.Join(", ", memberList);
+            }
+            catch {
+                return RoomId;
+            }
+        }
+    }
 
 #endregion
 

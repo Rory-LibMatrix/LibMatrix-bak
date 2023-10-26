@@ -16,23 +16,26 @@ public class HomeserverProviderService {
     }
 
     private static Dictionary<string, SemaphoreSlim> _authenticatedHomeserverSemaphore = new();
-    private static Dictionary<string, AuthenticatedHomeserverGeneric> _authenticatedHomeServerCache = new();
+    private static Dictionary<string, AuthenticatedHomeserverGeneric> _authenticatedHomeserverCache = new();
 
     private static Dictionary<string, SemaphoreSlim> _remoteHomeserverSemaphore = new();
-    private static Dictionary<string, RemoteHomeServer> _remoteHomeServerCache = new();
+    private static Dictionary<string, RemoteHomeserver> _remoteHomeserverCache = new();
 
-    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken,
-        string? proxy = null) {
+    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken, string? proxy = null) {
         var sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver + accessToken, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
-        lock (_authenticatedHomeServerCache) {
-            if (_authenticatedHomeServerCache.ContainsKey(homeserver + accessToken)) {
+        lock (_authenticatedHomeserverCache) {
+            if (_authenticatedHomeserverCache.ContainsKey(homeserver + accessToken)) {
                 sem.Release();
-                return _authenticatedHomeServerCache[homeserver + accessToken];
+                return _authenticatedHomeserverCache[homeserver + accessToken];
             }
         }
 
-        var domain = proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
+        // var domain = proxy ?? (await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver)).client;
+
+        var rhs = await RemoteHomeserver.Create(homeserver);
+        var serverVersion = await rhs.GetServerVersionAsync();
+        
 
         AuthenticatedHomeserverGeneric hs;
         if (true) {
@@ -44,15 +47,15 @@ public class HomeserverProviderService {
 
         // (() => hs.WhoAmI) = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
 
-        lock(_authenticatedHomeServerCache)
-            _authenticatedHomeServerCache[homeserver + accessToken] = hs;
+        lock (_authenticatedHomeserverCache)
+            _authenticatedHomeserverCache[homeserver + accessToken] = hs;
         sem.Release();
 
         return hs;
     }
 
-    public async Task<RemoteHomeServer> GetRemoteHomeserver(string homeserver, string? proxy = null) {
-        var hs = await RemoteHomeServer.Create(proxy ?? await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver));
+    public async Task<RemoteHomeserver> GetRemoteHomeserver(string homeserver, string? proxy = null) {
+        var hs = await RemoteHomeserver.Create(proxy ?? homeserver);
         // hs._httpClient.Dispose();
         // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.ServerName) };
         // hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
@@ -65,7 +68,7 @@ public class HomeserverProviderService {
             Identifier = new LoginRequest.LoginIdentifier { User = user },
             Password = password
         };
-        var resp = await hs._httpClient.PostAsJsonAsync("/_matrix/client/v3/login", payload);
+        var resp = await hs.ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/login", payload);
         var data = await resp.Content.ReadFromJsonAsync<LoginResponse>();
         return data!;
     }

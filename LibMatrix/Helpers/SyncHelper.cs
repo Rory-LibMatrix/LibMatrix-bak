@@ -27,7 +27,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         // Console.WriteLine("Calling: " + url);
         logger?.LogInformation("SyncHelper: Calling: {}", url);
         try {
-            return await homeserver?._httpClient?.GetFromJsonAsync<SyncResponse>(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
+            return await homeserver?.ClientHttpClient?.GetFromJsonAsync<SyncResponse>(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
         }
         catch (TaskCanceledException) {
             Console.WriteLine("Sync cancelled!");

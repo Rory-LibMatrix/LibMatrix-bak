@@ -8,42 +8,28 @@ namespace LibMatrix.Services;
 public class HomeserverResolverService(ILogger<HomeserverResolverService>? logger = null) {
     private readonly MatrixHttpClient _httpClient = new();
 
-    private static readonly Dictionary<string, string> _wellKnownCache = new();
+    private static readonly Dictionary<string, (string, string)> _wellKnownCache = new();
     private static readonly Dictionary<string, SemaphoreSlim> _wellKnownSemaphores = new();
 
-    public async Task<string> ResolveHomeserverFromWellKnown(string homeserver) {
+    public async Task<(string client, string server)> ResolveHomeserverFromWellKnown(string homeserver) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        if(_wellKnownCache.TryGetValue(homeserver, out var known)) return known;
-        logger?.LogInformation("Resolving homeserver: {}", homeserver);
-        var res = await _resolveHomeserverFromWellKnown(homeserver);
-        if (!res.StartsWith("http")) res = "https://" + res;
-        if (res.EndsWith(":443")) res = res[..^4];
-        return res;
-    }
-
-    private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
-        if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        var sem = _wellKnownSemaphores.GetOrCreate(homeserver, _ => new SemaphoreSlim(1, 1));
-        if(_wellKnownCache.TryGetValue(homeserver, out var wellKnown)) return wellKnown;
-        await sem.WaitAsync();
+        // if(!_wellKnownSemaphores.ContainsKey(homeserver))
+            // _wellKnownSemaphores[homeserver] = new(1, 1);
+        _wellKnownSemaphores.TryAdd(homeserver, new(1, 1));
+        await _wellKnownSemaphores[homeserver].WaitAsync();
         if (_wellKnownCache.TryGetValue(homeserver, out var known)) {
-            sem.Release();
+            _wellKnownSemaphores[homeserver].Release();
             return known;
         }
-
-        string? result = null;
-        logger?.LogInformation("Attempting to resolve homeserver: {}", homeserver);
-        result ??= await _tryResolveFromClientWellknown(homeserver);
-        result ??= await _tryResolveFromServerWellknown(homeserver);
-        result ??= await _tryCheckIfDomainHasHomeserver(homeserver);
-
-        if (result is null) throw new InvalidDataException($"Failed to resolve homeserver for {homeserver}! Is it online and configured correctly?");
-
-        //success!
-        logger?.LogInformation("Resolved homeserver: {} -> {}", homeserver, result);
-        _wellKnownCache[homeserver] = result;
-        sem.Release();
-        return result;
+        
+        logger?.LogInformation("Resolving homeserver: {}", homeserver);
+        var res = (
+            await _tryResolveFromClientWellknown(homeserver),
+            await _tryResolveFromServerWellknown(homeserver)
+        );
+        _wellKnownCache.Add(homeserver, res!);
+        _wellKnownSemaphores[homeserver].Release();
+        return res;
     }
 
     private async Task<string?> _tryResolveFromClientWellknown(string homeserver) {
@@ -63,6 +49,8 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
         if (await _httpClient.CheckSuccessStatus($"{homeserver}/.well-known/matrix/server")) {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
             var hs = resp.GetProperty("m.server").GetString();
+            if (!hs.StartsWithAnyOf("http://", "https://"))
+                hs = $"https://{hs}";
             return hs;
         }
 
@@ -70,24 +58,11 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
         return null;
     }
 
-    private async Task<string?> _tryCheckIfDomainHasHomeserver(string homeserver) {
-        logger?.LogInformation("Checking if {} hosts a homeserver...", homeserver);
-        if (await _httpClient.CheckSuccessStatus($"{homeserver}/_matrix/client/versions"))
-            return homeserver;
-        logger?.LogInformation("No homeserver on shortname...");
-        return null;
-    }
-
-    private async Task<string?> _tryCheckIfSubDomainHasHomeserver(string homeserver, string subdomain) {
-        homeserver = homeserver.Replace("https://", $"https://{subdomain}.");
-        return await _tryCheckIfDomainHasHomeserver(homeserver);
-    }
-
     public async Task<string?> ResolveMediaUri(string homeserver, string mxc) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
         if (mxc is null) throw new ArgumentNullException(nameof(mxc));
         if (!mxc.StartsWith("mxc://")) throw new InvalidDataException("mxc must start with mxc://");
-        homeserver = await ResolveHomeserverFromWellKnown(homeserver);
+        homeserver = (await ResolveHomeserverFromWellKnown(homeserver)).client;
         return mxc.Replace("mxc://", $"{homeserver}/_matrix/media/v3/download/");
     }
 }

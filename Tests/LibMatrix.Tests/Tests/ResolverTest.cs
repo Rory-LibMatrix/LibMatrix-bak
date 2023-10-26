@@ -21,7 +21,7 @@ public class ResolverTest : TestBed<TestFixture> {
     public async Task ResolveServer() {
         foreach (var (domain, expected) in _config.ExpectedHomeserverMappings) {
             var server = await _resolver.ResolveHomeserverFromWellKnown(domain);
-            Assert.Equal(expected, server);
+            Assert.Equal(expected, server.client);
         }
     }
 

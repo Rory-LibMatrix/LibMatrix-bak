@@ -6,7 +6,7 @@ namespace LibMatrix.Tests.Abstractions;
 
 public static class HomeserverAbstraction {
     public static async Task<AuthenticatedHomeserverGeneric> GetHomeserver() {
-        var rhs = await RemoteHomeServer.Create("https://matrixunittests.rory.gay");
+        var rhs = await RemoteHomeserver.Create("https://matrixunittests.rory.gay");
         // string username = Guid.NewGuid().ToString();
         // string password = Guid.NewGuid().ToString();
         string username = "@f1a2d2d6-1924-421b-91d0-893b347b2a49:matrixunittests.rory.gay";
@@ -45,7 +45,7 @@ public static class HomeserverAbstraction {
     }
 
     public static async Task<AuthenticatedHomeserverGeneric> GetRandomHomeserver() {
-        var rhs = await RemoteHomeServer.Create("https://matrixunittests.rory.gay");
+        var rhs = await RemoteHomeserver.Create("https://matrixunittests.rory.gay");
         LoginResponse reg = await rhs.RegisterAsync(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), "Unit tests!");
         var hs = await reg.GetAuthenticatedHomeserver("https://matrixunittests.rory.gay");
 

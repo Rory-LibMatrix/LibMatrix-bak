@@ -13,19 +13,29 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;
 
-public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : RemoteHomeServer(baseUrl) {
+public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : RemoteHomeserver(baseUrl) {
     public static async Task<T> Create<T>(string baseUrl, string accessToken) where T : AuthenticatedHomeserverGeneric {
         var instance = Activator.CreateInstance(typeof(T), baseUrl, accessToken) as T
                        ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
-        instance._httpClient = new() {
-            BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
+        var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
+        
+        instance.ClientHttpClient = new() {
+            BaseAddress = new Uri(urls.client
                                   ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
-        instance.WhoAmI = await instance._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+        instance.ServerHttpClient = new() {
+            BaseAddress = new Uri(urls.server
+                                  ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            Timeout = TimeSpan.FromMinutes(15),
+            DefaultRequestHeaders = {
+                Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
+            }
+        };
+        instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
         return instance;
     }
 
@@ -59,7 +69,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
     public virtual async Task<List<GenericRoom>> GetJoinedRooms() {
-        var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
+        var roomQuery = await ClientHttpClient.GetAsync("/_matrix/client/v3/joined_rooms");
 
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
         var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => GetRoom(room.GetString()!)).ToList();
@@ -70,7 +80,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
     public virtual async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
-        var res = await _httpClient.PostAsync($"/_matrix/media/v3/upload?filename={fileName}", new StreamContent(fileStream));
+        var res = await ClientHttpClient.PostAsync($"/_matrix/media/v3/upload?filename={fileName}", new StreamContent(fileStream));
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
@@ -99,7 +109,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         }
 
         creationEvent.CreationContent["creator"] = WhoAmI.UserId;
-        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent, new JsonSerializerOptions {
+        var res = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent, new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         });
         if (!res.IsSuccessStatusCode) {
@@ -116,7 +126,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     }
 
     public virtual async Task Logout() {
-        var res = await _httpClient.PostAsync("/_matrix/client/v3/logout", null);
+        var res = await ClientHttpClient.PostAsync("/_matrix/client/v3/logout", null);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to logout: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to logout: {await res.Content.ReadAsStringAsync()}");
@@ -153,11 +163,11 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         // }
         //
         // return await res.Content.ReadFromJsonAsync<T>();
-        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
+        return await ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
     }
 
     public virtual async Task SetAccountDataAsync(string key, object data) {
-        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}", data);
+        var res = await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to set account data: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to set account data: {await res.Content.ReadAsStringAsync()}");
@@ -169,7 +179,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
         if (mxcUri.StartsWith("https://")) return mxcUri;
-        return $"{_httpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
+        return $"{ClientHttpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
     }
 
     public async Task UpdateProfileAsync(UserProfileResponse? newProfile, bool preserveCustomRoomProfile = true) {
@@ -217,14 +227,14 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
         }
 
         if (oldProfile.DisplayName != newProfile.DisplayName) {
-            await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/displayname", new { displayname = newProfile.DisplayName });
+            await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/displayname", new { displayname = newProfile.DisplayName });
         }
         else {
             Console.WriteLine($"Not updating display name because {oldProfile.DisplayName} == {newProfile.DisplayName}");
         }
 
         if (oldProfile.AvatarUrl != newProfile.AvatarUrl) {
-            await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/avatar_url", new { avatar_url = newProfile.AvatarUrl });
+            await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/avatar_url", new { avatar_url = newProfile.AvatarUrl });
         }
         else {
             Console.WriteLine($"Not updating avatar URL because {newProfile.AvatarUrl} == {newProfile.AvatarUrl}");
