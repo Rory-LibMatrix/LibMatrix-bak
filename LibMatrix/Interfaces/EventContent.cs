@@ -13,7 +13,7 @@ public abstract class EventContent {
         [JsonPropertyName("m.in_reply_to")]
         public EventInReplyTo? InReplyTo { get; set; }
 
-        public abstract class EventInReplyTo {
+        public class EventInReplyTo {
             [JsonPropertyName("event_id")]
             public string EventId { get; set; }
 

@@ -10,24 +10,31 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class RemoteHomeserver(string baseUrl) {
-    public static async Task<RemoteHomeserver> Create(string baseUrl) {
-        var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
-        return new RemoteHomeserver(baseUrl) {
-            ClientHttpClient = new() {
-                BaseAddress = new Uri(urls.client ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-                Timeout = TimeSpan.FromSeconds(120)
-            },
-            ServerHttpClient = new() {
-                BaseAddress = new Uri(urls.server ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-                Timeout = TimeSpan.FromSeconds(120)
-            }
+    public static async Task<RemoteHomeserver> Create(string baseUrl, string? proxy = null) {
+        var homeserver = new RemoteHomeserver(baseUrl);
+        homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
+        homeserver.ClientHttpClient = new() {
+            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            Timeout = TimeSpan.FromSeconds(120)
         };
+        homeserver.ServerHttpClient = new() {
+            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Server ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            Timeout = TimeSpan.FromSeconds(120)
+        };
+
+        if (proxy is not null) {
+            homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
+            homeserver.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
+        }
+
+        return homeserver;
     }
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
     public string BaseUrl { get; } = baseUrl;
     public MatrixHttpClient ClientHttpClient { get; set; }
     public MatrixHttpClient ServerHttpClient { get; set; }
+    public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; }
 
     public async Task<UserProfileResponse> GetProfileAsync(string mxid) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));
@@ -99,6 +106,13 @@ public class RemoteHomeserver(string baseUrl) {
 
     public async Task<ServerVersionResponse> GetServerVersionAsync() {
         return await ServerHttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
+    }
+    
+    
+    public string? ResolveMediaUri(string? mxcUri) {
+        if (mxcUri is null) return null;
+        if (mxcUri.StartsWith("https://")) return mxcUri;
+        return $"{ClientHttpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
     }
 }
 

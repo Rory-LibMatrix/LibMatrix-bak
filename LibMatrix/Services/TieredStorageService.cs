@@ -2,12 +2,7 @@ using LibMatrix.Interfaces.Services;
 
 namespace LibMatrix.Services;
 
-public class TieredStorageService {
-    public IStorageProvider? CacheStorageProvider { get; }
-    public IStorageProvider? DataStorageProvider { get; }
-
-    public TieredStorageService(IStorageProvider? cacheStorageProvider, IStorageProvider? dataStorageProvider) {
-        CacheStorageProvider = cacheStorageProvider;
-        DataStorageProvider = dataStorageProvider;
-    }
+public class TieredStorageService(IStorageProvider? cacheStorageProvider, IStorageProvider? dataStorageProvider) {
+    public IStorageProvider? CacheStorageProvider { get; } = cacheStorageProvider;
+    public IStorageProvider? DataStorageProvider { get; } = dataStorageProvider;
 }

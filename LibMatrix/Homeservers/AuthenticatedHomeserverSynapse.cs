@@ -6,11 +6,7 @@ namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
     public readonly SynapseAdminApi Admin;
-    public class SynapseAdminApi {
-        private readonly AuthenticatedHomeserverGeneric _authenticatedHomeserver;
-
-        public SynapseAdminApi(AuthenticatedHomeserverGeneric authenticatedHomeserver) => _authenticatedHomeserver = authenticatedHomeserver;
-
+    public class SynapseAdminApi(AuthenticatedHomeserverSynapse authenticatedHomeserver) {
         public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f", string? searchTerm = null, LocalRoomQueryFilter? localFilter = null) {
             AdminRoomListingResult? res = null;
             var i = 0;
@@ -23,7 +19,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
 
                 Console.WriteLine($"--- ADMIN Querying Room List with URL: {url} - Already have {i} items... ---");
 
-                res = await _authenticatedHomeserver.ClientHttpClient.GetFromJsonAsync<AdminRoomListingResult>(url);
+                res = await authenticatedHomeserver.ClientHttpClient.GetFromJsonAsync<AdminRoomListingResult>(url);
                 totalRooms ??= res?.TotalRooms;
                 Console.WriteLine(res.ToJson(false));
                 foreach (var room in res.Rooms) {
@@ -101,7 +97,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
         }
     }
 
-    public AuthenticatedHomeserverSynapse(string baseUrl, string accessToken) : base(baseUrl, accessToken) {
+    public AuthenticatedHomeserverSynapse(string serverName, string accessToken) : base(serverName, accessToken) {
         Admin = new(this);
     }
 }

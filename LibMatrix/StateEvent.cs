@@ -36,6 +36,7 @@ public class StateEvent {
         return eventType ?? typeof(UnknownEventContent);
     }
 
+    [JsonIgnore]
     public EventContent TypedContent {
         get {
             if(Type == "m.receipt") {
@@ -134,6 +135,7 @@ public class StateEvent {
     public string cdtype => TypedContent.GetType().Name;
 }
 
+
 public class StateEventResponse : StateEvent {
     [JsonPropertyName("origin_server_ts")]
     public ulong OriginServerTs { get; set; }
@@ -150,8 +152,8 @@ public class StateEventResponse : StateEvent {
     [JsonPropertyName("event_id")]
     public string EventId { get; set; }
 
-    [JsonPropertyName("user_id")]
-    public string UserId { get; set; }
+    // [JsonPropertyName("user_id")]
+    // public string UserId { get; set; }
 
     [JsonPropertyName("replaces_state")]
     public new string ReplacesState { get; set; }
@@ -175,6 +177,12 @@ public class StateEventResponse : StateEvent {
         [JsonPropertyName("prev_content")]
         public JsonObject? PrevContent { get; set; }
     }
+}
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(ChunkedStateEventResponse))]
+internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext
+{
 }
 
 public class EventList {

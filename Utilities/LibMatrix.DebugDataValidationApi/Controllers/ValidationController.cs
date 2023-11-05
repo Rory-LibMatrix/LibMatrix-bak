@@ -6,12 +6,8 @@ namespace LibMatrix.DebugDataValidationApi.Controllers;
 
 [ApiController]
 [Route("/")]
-public class ValidationController : ControllerBase {
-    private readonly ILogger<ValidationController> _logger;
-
-    public ValidationController(ILogger<ValidationController> logger) {
-        _logger = logger;
-    }
+public class ValidationController(ILogger<ValidationController> logger) : ControllerBase {
+    private readonly ILogger<ValidationController> _logger = logger;
 
     [HttpPost("/validate/{type}")]
     public Task<bool> Get([FromRoute] string type, [FromBody] JsonElement content) {

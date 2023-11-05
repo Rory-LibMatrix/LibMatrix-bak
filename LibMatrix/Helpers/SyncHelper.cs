@@ -15,12 +15,13 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public bool FullState { get; set; } = false;
 
     public bool IsInitialSync { get; set; } = true;
-    
+
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
         if (homeserver is null) {
             Console.WriteLine("Null passed as homeserver for SyncHelper!");
             throw new ArgumentNullException("Null passed as homeserver for SyncHelper!");
         }
+
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
         if (Filter is not null) url += $"&filter={Filter.ToJson(ignoreNull: true, indent: false)}";
@@ -45,7 +46,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         while (!cancellationToken?.IsCancellationRequested ?? true) {
             var sync = await SyncAsync(cancellationToken);
             if (sync is null) continue;
-            Since = string.IsNullOrWhiteSpace(sync?.NextBatch) ? Since : sync.NextBatch;
+            if (!string.IsNullOrWhiteSpace(sync?.NextBatch)) Since = sync.NextBatch;
             yield return sync;
         }
     }
@@ -73,7 +74,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         var tasks = SyncReceivedHandlers.Select(x => x(syncResponse)).ToList();
         await Task.WhenAll(tasks);
 
-        if (syncResponse.AccountData is { Events: { Count: > 0 } }) {
+        if (syncResponse.AccountData is { Events.Count: > 0 }) {
             foreach (var accountDataEvent in syncResponse.AccountData.Events) {
                 tasks = AccountDataReceivedHandlers.Select(x => x(accountDataEvent)).ToList();
                 await Task.WhenAll(tasks);

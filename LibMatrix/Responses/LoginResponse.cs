@@ -24,8 +24,8 @@ public class LoginResponse {
     public string UserId { get; set; } = null!;
 
     public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedHomeserver(string? proxy = null) {
-        var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(Homeserver);
-        return await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(proxy ?? urls.client, AccessToken);
+        // var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(Homeserver);
+        return await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(Homeserver, AccessToken, proxy);
     }
 }
 public class LoginRequest {

@@ -6,15 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.Services;
 
-public class HomeserverProviderService {
-    private readonly ILogger<HomeserverProviderService> _logger;
-    private readonly HomeserverResolverService _homeserverResolverService;
-
-    public HomeserverProviderService(ILogger<HomeserverProviderService> logger, HomeserverResolverService homeserverResolverService) {
-        _logger = logger;
-        _homeserverResolverService = homeserverResolverService;
-    }
-
+public class HomeserverProviderService(ILogger<HomeserverProviderService> logger, HomeserverResolverService homeserverResolverService) {
     private static Dictionary<string, SemaphoreSlim> _authenticatedHomeserverSemaphore = new();
     private static Dictionary<string, AuthenticatedHomeserverGeneric> _authenticatedHomeserverCache = new();
 
@@ -22,40 +14,44 @@ public class HomeserverProviderService {
     private static Dictionary<string, RemoteHomeserver> _remoteHomeserverCache = new();
 
     public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken, string? proxy = null) {
-        var sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver + accessToken, _ => new SemaphoreSlim(1, 1));
+        var cacheKey = homeserver + accessToken + proxy;
+        var sem = _authenticatedHomeserverSemaphore.GetOrCreate(cacheKey, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
+        AuthenticatedHomeserverGeneric? hs;
         lock (_authenticatedHomeserverCache) {
-            if (_authenticatedHomeserverCache.ContainsKey(homeserver + accessToken)) {
+            if (_authenticatedHomeserverCache.TryGetValue(cacheKey, out hs)) {
                 sem.Release();
-                return _authenticatedHomeserverCache[homeserver + accessToken];
+                return hs;
             }
         }
 
         // var domain = proxy ?? (await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver)).client;
 
-        var rhs = await RemoteHomeserver.Create(homeserver);
-        var serverVersion = await rhs.GetServerVersionAsync();
-        
+        var rhs = await RemoteHomeserver.Create(homeserver, proxy);
+        var clientVersions = await rhs.GetClientVersionsAsync();
+        if(proxy is not null)
+            Console.WriteLine($"Homeserver {homeserver} proxied via {proxy}...");
+        Console.WriteLine($"{homeserver}: " + clientVersions.ToJson());
 
-        AuthenticatedHomeserverGeneric hs;
-        if (true) {
-            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken);
-        }
+        if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
+            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
         else {
-            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken);
+            var serverVersion = await rhs.GetServerVersionAsync();
+            if (serverVersion is { Server.Name: "Synapse" })
+                hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken, proxy);
+            else
+                hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(homeserver, accessToken, proxy);
         }
-
-        // (() => hs.WhoAmI) = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
 
         lock (_authenticatedHomeserverCache)
-            _authenticatedHomeserverCache[homeserver + accessToken] = hs;
+            _authenticatedHomeserverCache[cacheKey] = hs;
         sem.Release();
 
         return hs;
     }
 
     public async Task<RemoteHomeserver> GetRemoteHomeserver(string homeserver, string? proxy = null) {
-        var hs = await RemoteHomeserver.Create(proxy ?? homeserver);
+        var hs = await RemoteHomeserver.Create(homeserver, proxy);
         // hs._httpClient.Dispose();
         // hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.ServerName) };
         // hs._httpClient.Timeout = TimeSpan.FromSeconds(120);

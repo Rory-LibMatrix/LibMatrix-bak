@@ -53,11 +53,21 @@ public class MatrixHttpClient : HttpClient {
             Console.WriteLine(e);
         }
 
-        var a = await base.SendAsync(request, cancellationToken);
-        if (a.IsSuccessStatusCode) return a;
+        HttpResponseMessage responseMessage;
+        try {
+            responseMessage = await base.SendAsync(request, cancellationToken);
+        }
+        catch (Exception e) {
+            typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.SetValue(request, 0);
+            await Task.Delay(2500);
+            return await SendAsync(request, cancellationToken);
+        }
+
+        if (responseMessage.IsSuccessStatusCode) return responseMessage;
 
         //error handling
-        var content = await a.Content.ReadAsStringAsync(cancellationToken);
+        var content = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
         if (content.Length == 0)
             throw new MatrixException() {
                 ErrorCode = "M_UNKNOWN",

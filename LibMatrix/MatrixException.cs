@@ -17,6 +17,9 @@ public class MatrixException : Exception {
     public int? RetryAfterMs { get; set; }
 
     public string RawContent { get; set; }
+    
+    public string? GetAsJson() => new { ErrorCode, Error, SoftLogout, RetryAfterMs }.ToJson(ignoreNull: true);
+
 
     public override string Message =>
         $"{ErrorCode}: {ErrorCode switch {

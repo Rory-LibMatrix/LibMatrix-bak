@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
+using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Extensions;
@@ -96,22 +98,23 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-    
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
-        // var res = GetFullStateAsync();
-        // await foreach (var member in res) {
-        //     if (member?.Type != "m.room.member") continue;
-        //     if (joinedOnly && (member.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
-        //     yield return member;
-        // }
+        var sw = Stopwatch.StartNew();
         var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
+        Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
         var resText = await res.Content.ReadAsStringAsync();
-        var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync());
+        Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
+        var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
+            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
+        });
+        Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
             if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
             yield return resp;
         }
+
+        Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
     }
 
 #region Utility shortcuts
@@ -153,7 +156,7 @@ public class GenericRoom {
     public async Task<RoomPowerLevelEventContent?> GetPowerLevelsAsync() =>
         await GetStateAsync<RoomPowerLevelEventContent>("m.room.power_levels");
 
-    public async Task<string> GetNameOrFallbackAsync() {
+    public async Task<string> GetNameOrFallbackAsync(int maxMemberNames = 2) {
         try {
             return await GetNameAsync();
         }
@@ -166,8 +169,9 @@ public class GenericRoom {
                     memberList.Add((member.TypedContent is RoomMemberEventContent memberEvent ? memberEvent.DisplayName : "") ?? "");
                 memberCount = memberList.Count;
                 memberList.RemoveAll(string.IsNullOrWhiteSpace);
-                if (memberList.Count >= 3)
-                    return string.Join(", ", memberList.Take(2)) + " and " + (memberCount - 2) + " others.";
+                memberList = memberList.OrderBy(x => x).ToList();
+                if (memberList.Count > maxMemberNames)
+                    return string.Join(", ", memberList.Take(maxMemberNames)) + " and " + (memberCount - maxMemberNames) + " others.";
                 return string.Join(", ", memberList);
             }
             catch {
@@ -176,7 +180,14 @@ public class GenericRoom {
         }
     }
 
+    public async Task InviteUsersAsync(IEnumerable<string> users, string? reason = null, bool skipExisting = true) {
+        var tasks = users.Select(x => InviteUserAsync(x, reason, skipExisting)).ToList();
+        await Task.WhenAll(tasks);
+    }
+
 #endregion
+
+#region Simple calls
 
     public async Task ForgetAsync() =>
         await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
@@ -197,6 +208,16 @@ public class GenericRoom {
     public async Task UnbanAsync(string userId) =>
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
             new UserIdAndReason { UserId = userId });
+
+    public async Task InviteUserAsync(string userId, string? reason = null, bool skipExisting = true) {
+        if (skipExisting && await GetStateAsync<RoomMemberEventContent>("m.room.member", userId) is not null)
+            return;
+        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
+    }
+
+#endregion
+
+#region Events
 
     public async Task<EventIdResponse?> SendStateEventAsync(string eventType, object content) =>
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
@@ -243,8 +264,6 @@ public class GenericRoom {
         }
     }
 
-    public readonly SpaceRoom AsSpace;
-
     public async Task<T> GetEventAsync<T>(string eventId) {
         return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
     }
@@ -255,11 +274,29 @@ public class GenericRoom {
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
-    public async Task InviteUserAsync(string userId, string? reason = null, bool skipExisting = true) {
-        if (skipExisting && await GetStateAsync<RoomMemberEventContent>("m.room.member", userId) is not null)
-            return;
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
+#endregion
+
+#region Utilities
+
+    public async Task<Dictionary<string, List<string>>> GetMembersByHomeserverAsync(bool joinedOnly = true) {
+        if (Homeserver is AuthenticatedHomeserverMxApiExtended mxaeHomeserver)
+            return await Homeserver.ClientHttpClient.GetFromJsonAsync<Dictionary<string, List<string>>>(
+                $"/_matrix/client/v3/rooms/{RoomId}/members_by_homeserver?joined_only={joinedOnly}");
+        Dictionary<string, List<string>> roomHomeservers = new();
+        var members = GetMembersAsync();
+        await foreach (var member in members) {
+            string memberHs = member.StateKey.Split(':', 2)[1];
+            roomHomeservers.TryAdd(memberHs, new());
+            roomHomeservers[memberHs].Add(member.StateKey);
+        }
+
+        Console.WriteLine($"Finished processing {RoomId}");
+        return roomHomeservers;
     }
+
+#endregion
+
+    public readonly SpaceRoom AsSpace;
 
 #region Disband room
 
@@ -289,11 +326,6 @@ public class GenericRoom {
     }
 
 #endregion
-
-    public async Task InviteUsersAsync(IEnumerable<string> users, string? reason = null, bool skipExisting = true) {
-        var tasks = users.Select(x => InviteUserAsync(x, reason, skipExisting)).ToList();
-        await Task.WhenAll(tasks);
-    }
 }
 
 public class RoomIdResponse {

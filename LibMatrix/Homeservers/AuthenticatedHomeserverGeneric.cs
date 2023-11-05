@@ -13,42 +13,40 @@ using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;
 
-public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) : RemoteHomeserver(baseUrl) {
-    public static async Task<T> Create<T>(string baseUrl, string accessToken) where T : AuthenticatedHomeserverGeneric {
-        var instance = Activator.CreateInstance(typeof(T), baseUrl, accessToken) as T
+public class AuthenticatedHomeserverGeneric(string serverName, string accessToken) : RemoteHomeserver(serverName) {
+    public static async Task<T> Create<T>(string serverName, string accessToken, string? proxy = null) where T : AuthenticatedHomeserverGeneric {
+        var instance = Activator.CreateInstance(typeof(T), serverName, accessToken) as T
                        ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
-        var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
-        
+        HomeserverResolverService.WellKnownUris? urls = null;
+        if(proxy is null)
+            urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
+
         instance.ClientHttpClient = new() {
-            BaseAddress = new Uri(urls.client
-                                  ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            BaseAddress = new Uri(proxy ?? urls?.Client
+                ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
         instance.ServerHttpClient = new() {
-            BaseAddress = new Uri(urls.server
-                                  ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            BaseAddress = new Uri(proxy ?? urls?.Server
+                ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
+
         instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+
+        if (proxy is not null) {
+            instance.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
+            instance.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
+        }
+
         return instance;
     }
-
-    // Activator.CreateInstance(baseUrl, accessToken) {
-    //     _httpClient = new() {
-    //         BaseAddress = new Uri(await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl)
-    //                               ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-    //         Timeout = TimeSpan.FromMinutes(15),
-    //         DefaultRequestHeaders = {
-    //             Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
-    //         }
-    //     }
-    // };
 
     public WhoAmIResponse? WhoAmI { get; set; }
     public string? UserId => WhoAmI?.UserId;
@@ -176,12 +174,6 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
 
 #endregion
 
-    public string? ResolveMediaUri(string? mxcUri) {
-        if (mxcUri is null) return null;
-        if (mxcUri.StartsWith("https://")) return mxcUri;
-        return $"{ClientHttpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
-    }
-
     public async Task UpdateProfileAsync(UserProfileResponse? newProfile, bool preserveCustomRoomProfile = true) {
         if (newProfile is null) return;
         Console.WriteLine($"Updating profile for {WhoAmI.UserId} to {newProfile.ToJson(ignoreNull: true)} (preserving room profiles: {preserveCustomRoomProfile})");
@@ -247,7 +239,7 @@ public class AuthenticatedHomeserverGeneric(string baseUrl, string accessToken) 
             if (sync.Rooms is null) break;
             List<Task> tasks = new();
             foreach (var (roomId, roomData) in sync.Rooms.Join) {
-                if (roomData.State is { Events: { Count: > 0 } }) {
+                if (roomData.State is { Events.Count: > 0 }) {
                     var incommingRoomProfile =
                         roomData.State?.Events?.FirstOrDefault(x => x.Type == "m.room.member" && x.StateKey == WhoAmI.UserId)?.TypedContent as RoomMemberEventContent;
                     if (incommingRoomProfile is null) continue;
