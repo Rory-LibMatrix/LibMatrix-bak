@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomCreateEventContent : EventContent {
+public class RoomCreateEventContent : TimelineEventContent {
     public const string EventId = "m.room.create";
 
     [JsonPropertyName("room_version")]

@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.message")]
-public class RoomMessageEventContent : EventContent {
+public class RoomMessageEventContent : TimelineEventContent {
     public RoomMessageEventContent(string? messageType = "m.notice", string? body = null) {
         MessageType = messageType;
         Body = body;

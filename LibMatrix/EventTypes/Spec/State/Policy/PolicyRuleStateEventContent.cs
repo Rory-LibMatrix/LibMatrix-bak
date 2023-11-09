@@ -6,7 +6,7 @@ namespace LibMatrix.EventTypes.Spec.State;
 [MatrixEvent(EventName = "m.policy.rule.user")]
 [MatrixEvent(EventName = "m.policy.rule.server")]
 [MatrixEvent(EventName = "org.matrix.mjolnir.rule.server")]
-public class PolicyRuleEventContent : EventContent {
+public class PolicyRuleEventContent : TimelineEventContent {
     /// <summary>
     ///     Entity this ban applies to, can use * and ? as globs.
     /// </summary>

@@ -227,7 +227,7 @@ public class GenericRoom {
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse?> SendTimelineEventAsync(string eventType, EventContent content) {
+    public async Task<EventIdResponse?> SendTimelineEventAsync(string eventType, TimelineEventContent content) {
         var res = await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull

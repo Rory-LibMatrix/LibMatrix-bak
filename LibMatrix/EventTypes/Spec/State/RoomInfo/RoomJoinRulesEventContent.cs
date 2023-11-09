@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.join_rules")]
-public class RoomJoinRulesEventContent : EventContent {
+public class RoomJoinRulesEventContent : TimelineEventContent {
     private static string Public = "public";
     private static string Invite = "invite";
     private static string Knock = "knock";

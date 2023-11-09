@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.space.child")]
-public class SpaceChildEventContent : EventContent {
+public class SpaceChildEventContent : TimelineEventContent {
     [JsonPropertyName("auto_join")]
     public bool? AutoJoin { get; set; }
     [JsonPropertyName("via")]

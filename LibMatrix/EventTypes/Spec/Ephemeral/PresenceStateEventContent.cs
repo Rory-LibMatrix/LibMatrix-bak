@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.presence")]
-public class PresenceEventContent : EventContent {
+public class PresenceEventContent : TimelineEventContent {
     [JsonPropertyName("presence")]
     public string Presence { get; set; }
     [JsonPropertyName("last_active_ago")]

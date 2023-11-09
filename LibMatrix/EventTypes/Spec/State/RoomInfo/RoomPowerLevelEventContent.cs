@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomPowerLevelEventContent : EventContent {
+public class RoomPowerLevelEventContent : TimelineEventContent {
     public const string EventId = "m.room.power_levels";
 
     [JsonPropertyName("ban")]

@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Common;
 
 [MatrixEvent(EventName = "im.ponies.room_emotes")]
-public class RoomEmotesEventContent : EventContent {
+public class RoomEmotesEventContent : TimelineEventContent {
     [JsonPropertyName("emoticons")]
     public Dictionary<string, EmoticonData>? Emoticons { get; set; }
 

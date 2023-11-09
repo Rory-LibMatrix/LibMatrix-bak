@@ -48,7 +48,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return instance;
     }
 
-    public WhoAmIResponse? WhoAmI { get; set; }
+    public WhoAmIResponse WhoAmI { get; set; }
     public string? UserId => WhoAmI?.UserId;
     public string? UserLocalpart => UserId?.Split(":")[0][1..];
     public string? ServerName => UserId?.Split(":", 2)[1];

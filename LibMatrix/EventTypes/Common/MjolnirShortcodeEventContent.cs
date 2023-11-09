@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Common;
 
 [MatrixEvent(EventName = "org.matrix.mjolnir.shortcode")]
-public class MjolnirShortcodeEventContent : EventContent {
+public class MjolnirShortcodeEventContent : TimelineEventContent {
     [JsonPropertyName("shortcode")]
     public string? Shortcode { get; set; }
 }

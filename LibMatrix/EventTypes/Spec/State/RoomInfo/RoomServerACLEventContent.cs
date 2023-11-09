@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.server_acl")]
-public class RoomServerACLEventContent : EventContent {
+public class RoomServerACLEventContent : TimelineEventContent {
     [JsonPropertyName("allow")]
     public List<string> Allow { get; set; } // = null!;
 

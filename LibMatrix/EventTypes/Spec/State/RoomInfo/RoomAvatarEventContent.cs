@@ -4,7 +4,7 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomAvatarEventContent : EventContent {
+public class RoomAvatarEventContent : TimelineEventContent {
     public const string EventId = "m.room.avatar";
     [JsonPropertyName("url")]
     public string? Url { get; set; }
