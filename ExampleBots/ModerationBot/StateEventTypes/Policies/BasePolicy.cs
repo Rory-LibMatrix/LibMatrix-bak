@@ -3,14 +3,14 @@ using System.Text.Json.Serialization;
 using LibMatrix;
 using LibMatrix.Interfaces;
 
-namespace MediaModeratorPoC.StateEventTypes;
+namespace ModerationBot.StateEventTypes.Policies;
 
 public abstract class BasePolicy : EventContent {
     /// <summary>
-    ///     Entity this policy applies to
+    ///     Entity this policy applies to, null if event was redacted
     /// </summary>
     [JsonPropertyName("entity")]
-    public string Entity { get; set; }
+    public string? Entity { get; set; }
 
     /// <summary>
     ///     Reason this policy exists
@@ -40,4 +40,13 @@ public abstract class BasePolicy : EventContent {
         get => Expiry == null ? null : DateTimeOffset.FromUnixTimeMilliseconds(Expiry.Value).DateTime;
         set => Expiry = value is null ? null : ((DateTimeOffset)value).ToUnixTimeMilliseconds();
     }
+
+#region Internal metadata
+
+    [JsonIgnore]
+    public PolicyList PolicyList { get; set; }
+
+    public StateEventResponse OriginalEvent { get; set; }
+
+#endregion
 }

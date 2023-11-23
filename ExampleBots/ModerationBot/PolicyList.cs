@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using LibMatrix;
 using LibMatrix.RoomTypes;
-using MediaModeratorPoC.StateEventTypes;
+using ModerationBot.StateEventTypes;
 
-namespace MediaModeratorPoC;
+namespace ModerationBot;
 
 public class PolicyList {
     [JsonIgnore]
@@ -13,5 +13,5 @@ public class PolicyList {
     public bool Trusted { get; set; } = false;
 
     [JsonIgnore]
-    public List<StateEvent> Policies { get; set; } = new();
+    public List<StateEventResponse> Policies { get; set; } = new();
 }

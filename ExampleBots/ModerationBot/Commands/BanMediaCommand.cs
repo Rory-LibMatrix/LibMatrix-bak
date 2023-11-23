@@ -6,18 +6,19 @@ using LibMatrix.EventTypes.Spec;
 using LibMatrix.Helpers;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
-using MediaModeratorPoC.AccountData;
-using MediaModeratorPoC.StateEventTypes;
+using ModerationBot.AccountData;
+using ModerationBot.StateEventTypes;
+using ModerationBot.StateEventTypes.Policies.Implementations;
 
-namespace MediaModeratorPoC.Commands;
+namespace ModerationBot.Commands;
 
-public class BanMediaCommand(IServiceProvider services, HomeserverProviderService hsProvider, HomeserverResolverService hsResolver) : ICommand {
+public class BanMediaCommand(IServiceProvider services, HomeserverProviderService hsProvider, HomeserverResolverService hsResolver, PolicyEngine engine) : ICommand {
     public string Name { get; } = "banmedia";
     public string Description { get; } = "Create a policy banning a piece of media, must be used in reply to a message";
 
     public async Task<bool> CanInvoke(CommandContext ctx) {
         //check if user is admin in control room
-        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.modbot_data");
+        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.moderation_bot_data");
         var controlRoom = ctx.Homeserver.GetRoom(botData.ControlRoom);
         var isAdmin = (await controlRoom.GetPowerLevelsAsync())!.UserHasPermission(ctx.MessageEvent.Sender, "m.room.ban");
         if (!isAdmin) {
@@ -30,8 +31,9 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
     }
 
     public async Task Invoke(CommandContext ctx) {
-        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.modbot_data");
-        var policyRoom = ctx.Homeserver.GetRoom(botData.PolicyRoom ?? botData.ControlRoom);
+        
+        var botData = await ctx.Homeserver.GetAccountDataAsync<BotData>("gay.rory.moderation_bot_data");
+        var policyRoom = ctx.Homeserver.GetRoom(botData.DefaultPolicyRoom ?? botData.ControlRoom);
         var logRoom = ctx.Homeserver.GetRoom(botData.LogRoom ?? botData.ControlRoom);
 
         //check if reply
@@ -69,7 +71,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                 byte[]? fileHash = null;
 
                 try {
-                    fileHash = await hashAlgo.ComputeHashAsync(await ctx.Homeserver._httpClient.GetStreamAsync(resolvedUri));
+                    fileHash = await hashAlgo.ComputeHashAsync(await ctx.Homeserver.ClientHttpClient.GetStreamAsync(resolvedUri));
                 }
                 catch (Exception ex) {
                     await logRoom.SendMessageEventAsync(
@@ -77,7 +79,7 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                             ex));
                     try {
                         resolvedUri = await hsResolver.ResolveMediaUri(ctx.Homeserver.BaseUrl, mxcUri);
-                        fileHash = await hashAlgo.ComputeHashAsync(await ctx.Homeserver._httpClient.GetStreamAsync(resolvedUri));
+                        fileHash = await hashAlgo.ComputeHashAsync(await ctx.Homeserver.ClientHttpClient.GetStreamAsync(resolvedUri));
                     }
                     catch (Exception ex2) {
                         await ctx.Room.SendMessageEventAsync(MessageFormatter.FormatException("Error calculating file hash", ex2));
@@ -86,10 +88,10 @@ public class BanMediaCommand(IServiceProvider services, HomeserverProviderServic
                     }
                 }
 
-                MediaPolicyEventContent policy;
-                await policyRoom.SendStateEventAsync("gay.rory.media_moderator_poc.rule.media", Guid.NewGuid().ToString(), policy = new MediaPolicyEventContent {
-                    // Entity = uriHash,
-                    FileHash = fileHash,
+                MediaPolicyFile policy;
+                await policyRoom.SendStateEventAsync("gay.rory.moderation.rule.media", Guid.NewGuid().ToString(), policy = new MediaPolicyFile {
+                    Entity = Convert.ToBase64String(uriHash),
+                    FileHash = Convert.ToBase64String(fileHash),
                     Reason = string.Join(' ', ctx.Args[1..]),
                     Recommendation = recommendation,
                 });

@@ -37,7 +37,9 @@ public class CommandListenerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
-        var syncHelper = new SyncHelper(_hs, _logger);
+        var syncHelper = new SyncHelper(_hs, _logger) {
+            Timeout = 300_000
+        };
         syncHelper.TimelineEventHandlers.Add(async @event => {
             try {
                 var room = _hs.GetRoom(@event.RoomId);

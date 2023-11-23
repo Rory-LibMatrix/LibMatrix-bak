@@ -37,7 +37,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
 
                     var state = ctx.Room.GetMembersAsync();
                     await foreach (var member in state) {
-                        sysData.Members.Add(member.UserId);
+                        sysData.Members.Add(member.StateKey);
                     }
 
                     await ctx.Room.SendStateEventAsync("m.room.name", new RoomNameEventContent() {

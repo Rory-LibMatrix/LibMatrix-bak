@@ -36,12 +36,11 @@ public class MatrixHttpClient : HttpClient {
         return options;
     }
 
-    public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-        CancellationToken cancellationToken) {
+    public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
 
-        // Console.WriteLine($"Sending request to {request.RequestUri}");
+        Console.WriteLine($"Sending request to {request.RequestUri}");
 
         try {
             var webAssemblyEnableStreamingResponseKey =
@@ -60,7 +59,7 @@ public class MatrixHttpClient : HttpClient {
         catch (Exception e) {
             typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.SetValue(request, 0);
-            await Task.Delay(2500);
+            await Task.Delay(2500, cancellationToken);
             return await SendAsync(request, cancellationToken);
         }
 
@@ -123,7 +122,7 @@ public class MatrixHttpClient : HttpClient {
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         Console.WriteLine($"Sending PUT {requestUri}");
-        Console.WriteLine($"Content: {value.ToJson()}");
+        Console.WriteLine($"Content: {JsonSerializer.Serialize(value, value.GetType(), options)}");
         Console.WriteLine($"Type: {value.GetType().FullName}");
         request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options),
             Encoding.UTF8, "application/json");

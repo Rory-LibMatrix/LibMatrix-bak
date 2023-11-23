@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MediaModeratorPoC.AccountData;
+namespace ModerationBot.AccountData;
 
 public class BotData {
     [JsonPropertyName("control_room")]
@@ -8,4 +8,7 @@ public class BotData {
 
     [JsonPropertyName("log_room")]
     public string? LogRoom { get; set; } = "";
+
+    [JsonPropertyName("default_policy_room")]
+    public string? DefaultPolicyRoom { get; set; }
 }

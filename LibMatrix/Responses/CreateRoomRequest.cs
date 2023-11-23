@@ -81,9 +81,48 @@ public class CreateRoomRequest {
         return errors;
     }
 
+    public static CreateRoomRequest CreatePublic(AuthenticatedHomeserverGeneric hs, string? name = null, string? roomAliasName = null) {
+        var request = new CreateRoomRequest {
+            Name = name ?? "New public Room",
+            Visibility = "public",
+            CreationContent = new(),
+            PowerLevelContentOverride = new() {
+                EventsDefault = 0,
+                UsersDefault = 0,
+                Kick = 50,
+                Ban = 50,
+                Invite = 25,
+                StateDefault = 10,
+                Redact = 50,
+                NotificationsPl = new() {
+                    Room = 10
+                },
+                Events = new() {
+                    { "m.room.avatar", 50 },
+                    { "m.room.canonical_alias", 50 },
+                    { "m.room.encryption", 100 },
+                    { "m.room.history_visibility", 100 },
+                    { "m.room.name", 50 },
+                    { "m.room.power_levels", 100 },
+                    { "m.room.server_acl", 100 },
+                    { "m.room.tombstone", 100 }
+                },
+                Users = new() {
+                    {
+                        hs.UserId,
+                        101
+                    }
+                }
+            },
+            RoomAliasName = roomAliasName,
+            InitialState = new()
+        };
+
+        return request;
+    }
     public static CreateRoomRequest CreatePrivate(AuthenticatedHomeserverGeneric hs, string? name = null, string? roomAliasName = null) {
         var request = new CreateRoomRequest {
-            Name = name ?? "Private Room",
+            Name = name ?? "New private Room",
             Visibility = "private",
             CreationContent = new(),
             PowerLevelContentOverride = new() {

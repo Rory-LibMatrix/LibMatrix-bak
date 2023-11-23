@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Web;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Filters;
@@ -18,7 +19,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var instance = Activator.CreateInstance(typeof(T), serverName, accessToken) as T
                        ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
         HomeserverResolverService.WellKnownUris? urls = null;
-        if(proxy is null)
+        if (proxy is null)
             urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
 
         instance.ClientHttpClient = new() {
@@ -78,7 +79,11 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     public virtual async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
-        var res = await ClientHttpClient.PostAsync($"/_matrix/media/v3/upload?filename={fileName}", new StreamContent(fileStream));
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/_matrix/media/v3/upload?filename={fileName}");
+        req.Content = new StreamContent(fileStream);
+        req.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        var res = await ClientHttpClient.SendAsync(req);
+
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
@@ -281,6 +286,17 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         await foreach (var res in results) {
             yield return res;
         }
+    }
+
+    public async Task<RoomIdResponse> JoinRoomAsync(string roomId, List<string> homeservers = null, string? reason = null) {
+        var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(roomId)}";
+        Console.WriteLine($"Calling {join_url} with {homeservers?.Count ?? 0} via's...");
+        if (homeservers == null || homeservers.Count == 0) homeservers = new() { roomId.Split(':')[1] };
+        var fullJoinUrl = $"{join_url}?server_name=" + string.Join("&server_name=", homeservers);
+        var res = await ClientHttpClient.PostAsJsonAsync(fullJoinUrl, new {
+            reason
+        });
+        return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
 #region Room Profile Utility

@@ -7,7 +7,9 @@ using Microsoft.Extensions.Logging;
 namespace LibMatrix.Services;
 
 public class HomeserverResolverService(ILogger<HomeserverResolverService>? logger = null) {
-    private readonly MatrixHttpClient _httpClient = new();
+    private readonly MatrixHttpClient _httpClient = new() {
+        Timeout = TimeSpan.FromMilliseconds(10000)
+    };
 
     private static readonly ConcurrentDictionary<string, WellKnownUris> _wellKnownCache = new();
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _wellKnownSemaphores = new();
@@ -20,7 +22,7 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
             _wellKnownSemaphores[homeserver].Release();
             return known;
         }
-        
+
         logger?.LogInformation("Resolving homeserver: {}", homeserver);
         var res = new WellKnownUris {
             Client = await _tryResolveFromClientWellknown(homeserver),
@@ -33,11 +35,12 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
 
     private async Task<string?> _tryResolveFromClientWellknown(string homeserver) {
         if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
-        if (await _httpClient.CheckSuccessStatus($"{homeserver}/.well-known/matrix/client")) {
+        try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/client");
             var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
             return hs;
         }
+        catch { }
 
         logger?.LogInformation("No client well-known...");
         return null;
@@ -45,13 +48,14 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
 
     private async Task<string?> _tryResolveFromServerWellknown(string homeserver) {
         if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
-        if (await _httpClient.CheckSuccessStatus($"{homeserver}/.well-known/matrix/server")) {
+        try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
             var hs = resp.GetProperty("m.server").GetString();
             if (!hs.StartsWithAnyOf("http://", "https://"))
                 hs = $"https://{hs}";
             return hs;
         }
+        catch { }
 
         // fallback: most servers host these on the same location
         var clientUrl = await _tryResolveFromClientWellknown(homeserver);

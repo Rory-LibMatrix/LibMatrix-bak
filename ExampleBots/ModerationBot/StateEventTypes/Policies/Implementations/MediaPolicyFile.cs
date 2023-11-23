@@ -1,17 +1,16 @@
 using System.Text.Json.Serialization;
 using LibMatrix.EventTypes;
 
-namespace MediaModeratorPoC.StateEventTypes;
+namespace ModerationBot.StateEventTypes.Policies.Implementations;
 
 /// <summary>
 ///     File policy event, entity is the MXC URI of the file, hashed with SHA3-256.
 /// </summary>
-[MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.homeserver")]
-[MatrixEvent(EventName = "gay.rory.media_moderator_poc.rule.media")]
-public class MediaPolicyEventContent : BasePolicy {
+[MatrixEvent(EventName = "gay.rory.moderation.rule.media")]
+public class MediaPolicyFile : BasePolicy {
     /// <summary>
     ///     Hash of the file
     /// </summary>
     [JsonPropertyName("file_hash")]
-    public byte[]? FileHash { get; set; }
+    public string? FileHash { get; set; }
 }

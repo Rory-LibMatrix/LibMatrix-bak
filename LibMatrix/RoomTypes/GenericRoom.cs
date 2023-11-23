@@ -29,11 +29,14 @@ public class GenericRoom {
     public string RoomId { get; set; }
 
     public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
-        var result = _httpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>(
-            $"/_matrix/client/v3/rooms/{RoomId}/state");
+        var result = _httpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
         await foreach (var resp in result) {
             yield return resp;
         }
+    }
+
+    public async Task<List<StateEventResponse>> GetFullStateAsListAsync() {
+        return await _httpClient.GetFromJsonAsync<List<StateEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
     }
 
     public async Task<T?> GetStateAsync<T>(string type, string stateKey = "") {
@@ -77,17 +80,82 @@ public class GenericRoom {
         }
     }
 
-    public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b",
-        string filter = "") {
-        var url = $"/_matrix/client/v3/rooms/{RoomId}/messages?from={from}&limit={limit}&dir={dir}";
-        if (!string.IsNullOrEmpty(filter)) url += $"&filter={filter}";
+    public async Task<MessagesResponse> GetMessagesAsync(string from = "", int? limit = null, string dir = "b", string filter = "") {
+        var url = $"/_matrix/client/v3/rooms/{RoomId}/messages?dir={dir}";
+        if (!string.IsNullOrWhiteSpace(from)) url += $"&from={from}";
+        if (limit is not null) url += $"&limit={limit}";
+        if (!string.IsNullOrWhiteSpace(filter)) url += $"&filter={filter}";
         var res = await _httpClient.GetFromJsonAsync<MessagesResponse>(url);
         return res ?? new MessagesResponse();
     }
 
+    /// <summary>
+    /// Same as <see cref="GetMessagesAsync"/>, except keeps fetching more responses until the beginning of the room is found, or the target message limit is reached
+    /// </summary>
+    public async IAsyncEnumerable<MessagesResponse> GetManyMessagesAsync(string from = "", int limit = 100, string dir = "b", string filter = "", bool includeState = true,
+        bool fixForward = false) {
+        if (dir == "f" && fixForward) {
+            var concat = new List<MessagesResponse>();
+            while (true) {
+                var resp = await GetMessagesAsync(from, int.MaxValue, "b", filter);
+                concat.Add(resp);
+                if (!includeState)
+                    resp.State.Clear();
+                from = resp.End;
+                if (resp.End is null) break;
+            }
+
+            concat.Reverse();
+            foreach (var eventResponse in concat) {
+                limit -= eventResponse.State.Count + eventResponse.Chunk.Count;
+                while (limit < 0) {
+                    if (eventResponse.State.Count > 0 && eventResponse.State.Max(x => x.OriginServerTs) > eventResponse.Chunk.Max(x => x.OriginServerTs))
+                        eventResponse.State.Remove(eventResponse.State.MaxBy(x => x.OriginServerTs));
+                    else
+                        eventResponse.Chunk.Remove(eventResponse.Chunk.MaxBy(x => x.OriginServerTs));
+
+                    limit++;
+                }
+
+                eventResponse.Chunk.Reverse();
+                eventResponse.State.Reverse();
+                yield return eventResponse;
+                if (limit <= 0) yield break;
+            }
+        }
+        else {
+            while (limit > 0) {
+                var resp = await GetMessagesAsync(from, limit, dir, filter);
+
+                if (!includeState)
+                    resp.State.Clear();
+
+                limit -= resp.Chunk.Count + resp.State.Count;
+                from = resp.End;
+                yield return resp;
+                if (resp.End is null) {
+                    Console.WriteLine("End is null");
+                    yield break;
+                }
+            }
+        }
+
+        Console.WriteLine("End of GetManyAsync");
+    }
+
     public async Task<string?> GetNameAsync() => (await GetStateAsync<RoomNameEventContent>("m.room.name"))?.Name;
 
-    public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null) {
+    public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
+        if (checkIfAlreadyMember) {
+            try {
+                var ce = await GetCreateEventAsync();
+                return new() {
+                    RoomId = RoomId
+                };
+            }
+            catch { } //ignore
+        }
+
         var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
         Console.WriteLine($"Calling {join_url} with {homeservers?.Length ?? 0} via's...");
         if (homeservers == null || homeservers.Length == 0) homeservers = new[] { RoomId.Split(':')[1] };
@@ -235,13 +303,17 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<EventIdResponse>();
     }
 
-    public async Task<EventIdResponse?> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file") {
+    public async Task<EventIdResponse?> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file", string contentType = "application/octet-stream") {
         var url = await Homeserver.UploadFile(fileName, fileStream);
         var content = new RoomMessageEventContent() {
             MessageType = messageType,
             Url = url,
             Body = fileName,
             FileName = fileName,
+            FileInfo = new() {
+                Size = fileStream.Length,
+                MimeType = contentType
+            }
         };
         return await SendTimelineEventAsync("m.room.message", content);
     }

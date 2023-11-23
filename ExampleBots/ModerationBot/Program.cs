@@ -2,7 +2,7 @@
 
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot;
-using MediaModeratorPoC;
+using ModerationBot;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,12 +15,14 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
             dataStorageProvider: new FileStorageProvider("bot_data/data/")
         )
     );
-    services.AddSingleton<MediaModBotConfiguration>();
+    services.AddSingleton<ModerationBotConfiguration>();
 
     services.AddRoryLibMatrixServices();
     services.AddBot(withCommands: true);
 
-    services.AddHostedService<MediaModBot>();
+    services.AddSingleton<PolicyEngine>();
+    
+    services.AddHostedService<ModerationBot.ModerationBot>();
 }).UseConsoleLifetime().Build();
 
 await host.RunAsync();

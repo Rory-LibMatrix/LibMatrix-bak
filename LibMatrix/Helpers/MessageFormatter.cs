@@ -35,6 +35,11 @@ public static class MessageFormatter {
     public static string HtmlFormatMention(string id, string? displayName = null) {
         return $"<a href=\"https://matrix.to/#/{id}\">{displayName ?? id}</a>";
     }
+    
+    public static string HtmlFormatMessageLink(string roomId, string eventId, string[]? servers = null, string? displayName = null) {
+        if (servers is not { Length: > 0 }) servers = new[] { roomId.Split(':', 2)[1] };
+        return $"<a href=\"https://matrix.to/#/{roomId}/{eventId}?via={string.Join("&via=", servers)}\">{displayName ?? eventId}</a>";
+    }
 
 #region Extension functions
 

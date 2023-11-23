@@ -4,17 +4,17 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.presence")]
-public class PresenceEventContent : TimelineEventContent {
-    [JsonPropertyName("presence")]
-    public string Presence { get; set; }
+public class PresenceEventContent : EventContent {
+    [JsonPropertyName("presence"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Presence { get; set; }
     [JsonPropertyName("last_active_ago")]
     public long LastActiveAgo { get; set; }
     [JsonPropertyName("currently_active")]
     public bool CurrentlyActive { get; set; }
-    [JsonPropertyName("status_msg")]
-    public string StatusMessage { get; set; }
-    [JsonPropertyName("avatar_url")]
-    public string AvatarUrl { get; set; }
-    [JsonPropertyName("displayname")]
-    public string DisplayName { get; set; }
+    [JsonPropertyName("status_msg"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StatusMessage { get; set; }
+    [JsonPropertyName("avatar_url"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AvatarUrl { get; set; }
+    [JsonPropertyName("displayname"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DisplayName { get; set; }
 }
