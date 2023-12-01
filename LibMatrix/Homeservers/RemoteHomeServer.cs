@@ -68,7 +68,7 @@ public class RemoteHomeserver(string baseUrl) {
         return data;
     }
 
-#region Authentication
+    #region Authentication
 
     public async Task<LoginResponse> LoginAsync(string username, string password, string? deviceName = null) {
         var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/r0/login", new {
@@ -102,13 +102,13 @@ public class RemoteHomeserver(string baseUrl) {
         return data;
     }
 
-#endregion
+    #endregion
 
     public async Task<ServerVersionResponse> GetServerVersionAsync() {
         return await ServerHttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
     }
-    
-    
+
+
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
         if (mxcUri.StartsWith("https://")) return mxcUri;
@@ -120,11 +120,11 @@ public class ServerVersionResponse {
 
     [JsonPropertyName("server")]
     public ServerInfo Server { get; set; }
-    
+
     public class ServerInfo {
         [JsonPropertyName("name")]
         public string Name { get; set; }
-        
+
         [JsonPropertyName("version")]
         public string Version { get; set; }
     }

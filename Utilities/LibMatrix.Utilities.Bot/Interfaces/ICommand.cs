@@ -1,4 +1,4 @@
-namespace LibMatrix.Utilities.Bot.Interfaces; 
+namespace LibMatrix.Utilities.Bot.Interfaces;
 
 public interface ICommand {
     public string Name { get; }
@@ -7,6 +7,6 @@ public interface ICommand {
     public Task<bool> CanInvoke(CommandContext ctx) {
         return Task.FromResult(true);
     }
-    
+
     public Task Invoke(CommandContext ctx);
 }

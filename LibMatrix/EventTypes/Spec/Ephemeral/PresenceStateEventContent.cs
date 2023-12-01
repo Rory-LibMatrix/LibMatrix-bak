@@ -3,8 +3,10 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.presence")]
+[MatrixEvent(EventName = EventId)]
 public class PresenceEventContent : EventContent {
+    public const string EventId = "m.presence";
+
     [JsonPropertyName("presence"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Presence { get; set; }
     [JsonPropertyName("last_active_ago")]

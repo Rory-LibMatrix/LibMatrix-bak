@@ -52,29 +52,29 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
                             totalRooms--;
                             continue;
                         }
-                        if(!room.GuestAccess?.Contains(localFilter.GuestAccessContains) == true) {
+                        if (!room.GuestAccess?.Contains(localFilter.GuestAccessContains) == true) {
                             totalRooms--;
                             continue;
                         }
-                        if(!room.HistoryVisibility?.Contains(localFilter.HistoryVisibilityContains) == true) {
-                            totalRooms--;
-                            continue;
-                        }
-
-                        if(localFilter.CheckFederation && room.Federatable != localFilter.Federatable) {
-                            totalRooms--;
-                            continue;
-                        }
-                        if(localFilter.CheckPublic && room.Public != localFilter.Public) {
+                        if (!room.HistoryVisibility?.Contains(localFilter.HistoryVisibilityContains) == true) {
                             totalRooms--;
                             continue;
                         }
 
-                        if(room.JoinedMembers < localFilter.JoinedMembersGreaterThan || room.JoinedMembers > localFilter.JoinedMembersLessThan) {
+                        if (localFilter.CheckFederation && room.Federatable != localFilter.Federatable) {
                             totalRooms--;
                             continue;
                         }
-                        if(room.JoinedLocalMembers < localFilter.JoinedLocalMembersGreaterThan || room.JoinedLocalMembers > localFilter.JoinedLocalMembersLessThan) {
+                        if (localFilter.CheckPublic && room.Public != localFilter.Public) {
+                            totalRooms--;
+                            continue;
+                        }
+
+                        if (room.JoinedMembers < localFilter.JoinedMembersGreaterThan || room.JoinedMembers > localFilter.JoinedMembersLessThan) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (room.JoinedLocalMembers < localFilter.JoinedLocalMembersGreaterThan || room.JoinedLocalMembers > localFilter.JoinedLocalMembersLessThan) {
                             totalRooms--;
                             continue;
                         }

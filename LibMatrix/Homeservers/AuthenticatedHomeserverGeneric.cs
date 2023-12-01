@@ -136,7 +136,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-#region Utility Functions
+    #region Utility Functions
 
     public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type) {
         var rooms = await GetJoinedRooms();
@@ -154,9 +154,9 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-#endregion
+    #endregion
 
-#region Account Data
+    #region Account Data
 
     public virtual async Task<T> GetAccountDataAsync<T>(string key) {
         // var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
@@ -177,7 +177,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-#endregion
+    #endregion
 
     public async Task UpdateProfileAsync(UserProfileResponse? newProfile, bool preserveCustomRoomProfile = true) {
         if (newProfile is null) return;
@@ -299,11 +299,11 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-#region Room Profile Utility
+    #region Room Profile Utility
 
     private async Task<KeyValuePair<string, RoomMemberEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) {
         return new KeyValuePair<string, RoomMemberEventContent>(room.RoomId, await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!));
     }
 
-#endregion
+    #endregion
 }

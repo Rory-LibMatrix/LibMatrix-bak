@@ -39,7 +39,7 @@ public class StateEvent {
     [JsonIgnore]
     public EventContent TypedContent {
         get {
-            if(Type == "m.receipt") {
+            if (Type == "m.receipt") {
                 return null!;
             }
             try {
@@ -181,8 +181,7 @@ public class StateEventResponse : StateEvent {
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(ChunkedStateEventResponse))]
-internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext
-{
+internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext {
 }
 
 public class EventList {

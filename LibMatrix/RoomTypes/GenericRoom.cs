@@ -185,7 +185,7 @@ public class GenericRoom {
         Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
     }
 
-#region Utility shortcuts
+    #region Utility shortcuts
 
     public async Task<EventIdResponse?> SendMessageEventAsync(RoomMessageEventContent content) =>
         await SendTimelineEventAsync("m.room.message", content);
@@ -253,9 +253,9 @@ public class GenericRoom {
         await Task.WhenAll(tasks);
     }
 
-#endregion
+    #endregion
 
-#region Simple calls
+    #region Simple calls
 
     public async Task ForgetAsync() =>
         await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
@@ -283,9 +283,9 @@ public class GenericRoom {
         await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
 
-#endregion
+    #endregion
 
-#region Events
+    #region Events
 
     public async Task<EventIdResponse?> SendStateEventAsync(string eventType, object content) =>
         await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
@@ -346,9 +346,9 @@ public class GenericRoom {
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
-#endregion
+    #endregion
 
-#region Utilities
+    #region Utilities
 
     public async Task<Dictionary<string, List<string>>> GetMembersByHomeserverAsync(bool joinedOnly = true) {
         if (Homeserver is AuthenticatedHomeserverMxApiExtended mxaeHomeserver)
@@ -366,11 +366,11 @@ public class GenericRoom {
         return roomHomeservers;
     }
 
-#endregion
+    #endregion
 
     public readonly SpaceRoom AsSpace;
 
-#region Disband room
+    #region Disband room
 
     public async Task DisbandRoomAsync() {
         var states = GetFullStateAsync();
@@ -397,7 +397,7 @@ public class GenericRoom {
         }
     }
 
-#endregion
+    #endregion
 }
 
 public class RoomIdResponse {

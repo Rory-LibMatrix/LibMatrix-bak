@@ -3,8 +3,10 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.alias")]
+[MatrixEvent(EventName = EventId)]
 public class RoomAliasEventContent : TimelineEventContent {
+    public const string EventId = "m.room.alias";
+
     [JsonPropertyName("aliases")]
     public List<string>? Aliases { get; set; }
 }

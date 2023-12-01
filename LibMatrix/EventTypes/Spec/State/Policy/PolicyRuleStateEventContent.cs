@@ -4,27 +4,34 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.EventTypes.Spec.State;
 
 //spec
-[MatrixEvent(EventName = "m.policy.rule.server")] //spec
+[MatrixEvent(EventName = EventId)] //spec
 [MatrixEvent(EventName = "m.room.rule.server")] //???
 [MatrixEvent(EventName = "org.matrix.mjolnir.rule.server")] //legacy
-public class ServerPolicyRuleEventContent : PolicyRuleEventContent { }
+public class ServerPolicyRuleEventContent : PolicyRuleEventContent {
+    public const string EventId = "m.policy.rule.server";
+}
 
-[MatrixEvent(EventName = "m.policy.rule.user")] //spec
+[MatrixEvent(EventName = EventId)] //spec
 [MatrixEvent(EventName = "m.room.rule.user")] //???
 [MatrixEvent(EventName = "org.matrix.mjolnir.rule.user")] //legacy
-public class UserPolicyRuleEventContent : PolicyRuleEventContent { }
+public class UserPolicyRuleEventContent : PolicyRuleEventContent {
+    public const string EventId = "m.policy.rule.user";
+}
 
-[MatrixEvent(EventName = "m.policy.rule.room")] //spec
+[MatrixEvent(EventName = EventId)] //spec
 [MatrixEvent(EventName = "m.room.rule.room")] //???
 [MatrixEvent(EventName = "org.matrix.mjolnir.rule.room")] //legacy
-public class RoomPolicyRuleEventContent : PolicyRuleEventContent { }
+public class RoomPolicyRuleEventContent : PolicyRuleEventContent {
+    public const string EventId = "m.policy.rule.room";
+}
 
 public abstract class PolicyRuleEventContent : EventContent {
     /// <summary>
     ///     Entity this ban applies to, can use * and ? as globs.
+    ///     Policy is invalid if entity is null
     /// </summary>
     [JsonPropertyName("entity")]
-    public string Entity { get; set; }
+    public string? Entity { get; set; }
 
     /// <summary>
     ///     Reason this user is banned

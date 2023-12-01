@@ -13,9 +13,6 @@ public class RoomPowerLevelEventContent : TimelineEventContent {
     [JsonPropertyName("events_default")]
     public long? EventsDefault { get; set; } = 0;
 
-    [JsonPropertyName("events")]
-    public Dictionary<string, long>? Events { get; set; } // = null!;
-
     [JsonPropertyName("invite")]
     public long? Invite { get; set; } = 0;
 
@@ -30,6 +27,9 @@ public class RoomPowerLevelEventContent : TimelineEventContent {
 
     [JsonPropertyName("state_default")]
     public long? StateDefault { get; set; } = 50;
+
+    [JsonPropertyName("events")]
+    public Dictionary<string, long>? Events { get; set; } // = null!;
 
     [JsonPropertyName("users")]
     public Dictionary<string, long>? Users { get; set; } // = null!;
@@ -48,17 +48,22 @@ public class RoomPowerLevelEventContent : TimelineEventContent {
     }
 
     public bool IsUserAdmin(string userId) {
-        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        if (userId is null) throw new ArgumentNullException(nameof(userId));
         return Users.TryGetValue(userId, out var level) && level >= Events.Max(x => x.Value);
     }
 
-    public bool UserHasPermission(string userId, string eventType) {
-        if(userId is null) throw new ArgumentNullException(nameof(userId));
+    public bool UserHasTimelinePermission(string userId, string eventType) {
+        if (userId is null) throw new ArgumentNullException(nameof(userId));
         return Users.TryGetValue(userId, out var level) && level >= Events.GetValueOrDefault(eventType, EventsDefault ?? 0);
     }
 
+    public bool UserHasStatePermission(string userId, string eventType) {
+        if (userId is null) throw new ArgumentNullException(nameof(userId));
+        return Users.TryGetValue(userId, out var level) && level >= Events.GetValueOrDefault(eventType, StateDefault ?? 50);
+    }
+
     public long GetUserPowerLevel(string userId) {
-        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        if (userId is null) throw new ArgumentNullException(nameof(userId));
         return Users.TryGetValue(userId, out var level) ? level : UsersDefault ?? UsersDefault ?? 0;
     }
 
@@ -67,13 +72,8 @@ public class RoomPowerLevelEventContent : TimelineEventContent {
     }
 
     public void SetUserPowerLevel(string userId, long powerLevel) {
-        if(userId is null) throw new ArgumentNullException(nameof(userId));
+        if (userId is null) throw new ArgumentNullException(nameof(userId));
         Users ??= new();
-        if (Users.TryGetValue(userId, out var level)) {
-            Users[userId] = powerLevel;
-        }
-        else {
-            Users.Add(userId, powerLevel);
-        }
+        Users[userId] = powerLevel;
     }
 }

@@ -1,0 +1,3 @@
+[submodule "ArcaneLibs"]
+	path = ArcaneLibs
+	url = git@github.com:TheArcaneBrony/ArcaneLibs.git

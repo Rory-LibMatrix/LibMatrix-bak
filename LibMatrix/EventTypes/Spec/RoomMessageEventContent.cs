@@ -3,8 +3,10 @@ using LibMatrix.Interfaces;
 
 namespace LibMatrix.EventTypes.Spec;
 
-[MatrixEvent(EventName = "m.room.message")]
+[MatrixEvent(EventName = EventId)]
 public class RoomMessageEventContent : TimelineEventContent {
+    public const string EventId = "m.room.message";
+
     public RoomMessageEventContent(string? messageType = "m.notice", string? body = null) {
         MessageType = messageType;
         Body = body;
@@ -27,9 +29,9 @@ public class RoomMessageEventContent : TimelineEventContent {
     /// </summary>
     [JsonPropertyName("url")]
     public string? Url { get; set; }
-    
+
     public string? FileName { get; set; }
-    
+
     [JsonPropertyName("info")]
     public FileInfoStruct? FileInfo { get; set; }
 
@@ -41,5 +43,5 @@ public class RoomMessageEventContent : TimelineEventContent {
         [JsonPropertyName("thumbnail_url")]
         public string? ThumbnailUrl { get; set; }
     }
-    
+
 }

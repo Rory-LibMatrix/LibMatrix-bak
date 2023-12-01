@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace LibMatrix.ExampleBot.Bot; 
+namespace LibMatrix.ExampleBot.Bot;
 
 public class MRUBotConfiguration {
     public MRUBotConfiguration(IConfiguration config) {

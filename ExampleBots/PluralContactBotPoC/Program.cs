@@ -1,4 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+// See https://aka.ms/new-console-template for more information
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -48,7 +48,7 @@ var asConfig = new AppServiceConfiguration() {
     Protocols = new List<string>() { "matrix" }
 };
 
-if(File.Exists("appservice.json"))
+if (File.Exists("appservice.json"))
     asConfig = JsonSerializer.Deserialize<AppServiceConfiguration>(File.ReadAllText("appservice.json"))!;
 
 File.WriteAllText("appservice.yaml", asConfig.ToYaml());

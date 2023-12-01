@@ -59,7 +59,7 @@ public class TestCleanup : TestBed<TestFixture> {
             sw.Restart();
             if (response.Rooms?.Leave is { Count: > 0 }) {
                 // foreach (var room in response.Rooms.Leave) {
-                    // await hs.GetRoom(room.Key).ForgetAsync();
+                // await hs.GetRoom(room.Key).ForgetAsync();
                 // }
                 var tasks = response.Rooms.Leave.Select(async room => {
                     await hs.GetRoom(room.Key).ForgetAsync();

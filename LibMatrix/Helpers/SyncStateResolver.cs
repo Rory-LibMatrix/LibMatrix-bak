@@ -74,7 +74,7 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
         return oldState;
     }
 
-#region Merge rooms
+    #region Merge rooms
 
     private SyncResponse.RoomsDataStructure MergeRoomsDataStructure(SyncResponse.RoomsDataStructure oldState, SyncResponse.RoomsDataStructure newState) {
         oldState.Join ??= new();
@@ -170,5 +170,5 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
         return oldData;
     }
 
-#endregion
+    #endregion
 }

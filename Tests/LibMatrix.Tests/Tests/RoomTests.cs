@@ -109,7 +109,7 @@ public class RoomTests : TestBed<TestFixture> {
         var hs2 = await HomeserverAbstraction.GetRandomHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
-        await room.InviteUserAsync(hs2.UserId,"Unit test!");
+        await room.InviteUserAsync(hs2.UserId, "Unit test!");
         await hs2.GetRoom(room.RoomId).JoinAsync();
         await room.KickAsync(hs2.UserId, "test");
         var banState = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs2.UserId);
@@ -241,7 +241,7 @@ public class RoomTests : TestBed<TestFixture> {
         // var expectedCount = 1;
 
         var tasks = new List<Task>();
-        await foreach(var otherUser in otherUsers) {
+        await foreach (var otherUser in otherUsers) {
             tasks.Add(Task.Run(async () => {
                 await room.InviteUserAsync(otherUser.UserId);
                 await otherUser.GetRoom(room.RoomId).JoinAsync();
@@ -251,7 +251,7 @@ public class RoomTests : TestBed<TestFixture> {
 
         var states = room.GetMembersAsync(false);
         var count = 0;
-        await foreach(var state in states) {
+        await foreach (var state in states) {
             count++;
         }
         // Assert.Equal(++expectedCount, count);

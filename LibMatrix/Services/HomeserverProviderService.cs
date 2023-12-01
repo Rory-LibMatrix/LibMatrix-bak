@@ -29,7 +29,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
 
         var rhs = await RemoteHomeserver.Create(homeserver, proxy);
         var clientVersions = await rhs.GetClientVersionsAsync();
-        if(proxy is not null)
+        if (proxy is not null)
             Console.WriteLine($"Homeserver {homeserver} proxied via {proxy}...");
         Console.WriteLine($"{homeserver}: " + clientVersions.ToJson());
 
