@@ -13,7 +13,7 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
     public SyncFilter? Filter { get; set; }
     public bool FullState { get; set; } = false;
 
-    public SyncResponse? MergedState { get; set; } = null!;
+    public SyncResponse? MergedState { get; set; }
 
     private SyncHelper _syncHelper = new SyncHelper(homeserver, logger);
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
 using ArcaneLibs.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Homeservers;
@@ -12,15 +13,24 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public int Timeout { get; set; } = 30000;
     public string? SetPresence { get; set; } = "online";
     public SyncFilter? Filter { get; set; }
-    public bool FullState { get; set; } = false;
+    public bool FullState { get; set; }
 
     public bool IsInitialSync { get; set; } = true;
+
+    public TimeSpan MinimumDelay { get; set; } = new(0);
 
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
         if (homeserver is null) {
             Console.WriteLine("Null passed as homeserver for SyncHelper!");
-            throw new ArgumentNullException("Null passed as homeserver for SyncHelper!");
+            throw new ArgumentNullException(nameof(homeserver), "Null passed as homeserver for SyncHelper!");
         }
+        if (homeserver.ClientHttpClient is null) {
+            Console.WriteLine("Homeserver for SyncHelper is not properly configured!");
+            throw new ArgumentNullException(nameof(homeserver.ClientHttpClient), "Null passed as homeserver for SyncHelper!");
+        }
+
+
+        var sw = Stopwatch.StartNew();
 
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
@@ -28,7 +38,16 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         // Console.WriteLine("Calling: " + url);
         logger?.LogInformation("SyncHelper: Calling: {}", url);
         try {
-            return await homeserver?.ClientHttpClient?.GetFromJsonAsync<SyncResponse>(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
+            var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
+            if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
+            logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp?.Content.Headers.ContentLength ?? -1, sw.Elapsed);
+            var deserializeSw = Stopwatch.StartNew();
+            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None)!;
+            logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp?.Content.Headers.ContentLength ?? -1, deserializeSw.Elapsed, sw.Elapsed);
+            var timeToWait = MinimumDelay.Subtract(sw.Elapsed);
+            if (timeToWait.TotalMilliseconds > 0)
+                await Task.Delay(timeToWait);
+            return resp;
         }
         catch (TaskCanceledException) {
             Console.WriteLine("Sync cancelled!");
@@ -57,7 +76,6 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         var oldTimeout = Timeout;
         Timeout = 0;
         await foreach (var sync in EnumerateSyncAsync(cancellationToken)) {
-            logger?.LogInformation("Got sync response: {} bytes, {} elapsed", sync?.ToJson(ignoreNull: true, indent: false).Length ?? -1, sw.Elapsed);
             if (sync?.ToJson(ignoreNull: true, indent: false).Length < 250) {
                 emptyInitialSyncCount++;
                 if (emptyInitialSyncCount > 5) {

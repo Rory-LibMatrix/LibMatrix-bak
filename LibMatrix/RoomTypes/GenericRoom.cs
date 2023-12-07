@@ -173,7 +173,8 @@ public class GenericRoom {
         var resText = await res.Content.ReadAsStringAsync();
         Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
-            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
+            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
+            
         });
         Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
         foreach (var resp in result.Chunk) {

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -29,26 +30,26 @@ public class StateEvent {
             return typeof(Dictionary<string, JsonObject>);
         }
 
-        // var eventType = KnownStateEventTypes.FirstOrDefault(x =>
-        // x.GetCustomAttributes<MatrixEventAttribute>()?.Any(y => y.EventName == type) ?? false);
-        var eventType = KnownStateEventTypesByName.GetValueOrDefault(type);
-
-        return eventType ?? typeof(UnknownEventContent);
+        return KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
     }
 
+    private static readonly JsonSerializerOptions TypedContentSerializerOptions = new JsonSerializerOptions() {
+        Converters = {
+            new JsonFloatStringConverter(),
+            new JsonDoubleStringConverter(),
+            new JsonDecimalStringConverter()
+        }
+    };
+
     [JsonIgnore]
-    public EventContent TypedContent {
+    [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+    public EventContent? TypedContent {
         get {
-            if (Type == "m.receipt") {
-                return null!;
-            }
+            // if (Type == "m.receipt") {
+                // return null;
+            // }
             try {
-                var jse = new JsonSerializerOptions();
-                jse ??= new JsonSerializerOptions();
-                jse.Converters.Add(new JsonFloatStringConverter());
-                jse.Converters.Add(new JsonDoubleStringConverter());
-                jse.Converters.Add(new JsonDecimalStringConverter());
-                return (EventContent)RawContent.Deserialize(GetType, jse)!;
+                return (EventContent)RawContent.Deserialize(GetType, TypedContentSerializerOptions)!;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -59,7 +60,7 @@ public class StateEvent {
         }
         set {
             if (value is null) {
-                RawContent = null;
+                RawContent?.Clear();
             }
             else RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
         }
@@ -69,7 +70,7 @@ public class StateEvent {
     public string StateKey { get; set; } = "";
 
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public required string Type { get; set; }
 
     [JsonPropertyName("replaces_state")]
     public string? ReplacesState { get; set; }
@@ -121,7 +122,7 @@ public class StateEvent {
 
     //debug
     [JsonIgnore]
-    public string dtype {
+    public string InternalSelfTypeName {
         get {
             var res = GetType().Name switch {
                 "StateEvent`1" => "StateEvent",
@@ -132,7 +133,7 @@ public class StateEvent {
     }
 
     [JsonIgnore]
-    public string cdtype => TypedContent.GetType().Name;
+    public string InternalContentTypeName => TypedContent?.GetType().Name ?? "null";
 }
 
 
@@ -151,9 +152,6 @@ public class StateEventResponse : StateEvent {
 
     [JsonPropertyName("event_id")]
     public string EventId { get; set; }
-
-    // [JsonPropertyName("user_id")]
-    // public string UserId { get; set; }
 
     [JsonPropertyName("replaces_state")]
     public new string ReplacesState { get; set; }
