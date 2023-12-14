@@ -1,7 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using LibMatrix.Homeservers;
-using LibMatrix.Services;
 
 namespace LibMatrix.Responses;
 

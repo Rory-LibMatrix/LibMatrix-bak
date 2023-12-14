@@ -4,39 +4,39 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
-using LibMatrix.Extensions;
+using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Homeservers;
-using LibMatrix.Interfaces;
 
 namespace LibMatrix.RoomTypes;
 
 public class GenericRoom {
     internal readonly AuthenticatedHomeserverGeneric Homeserver;
-    internal readonly MatrixHttpClient _httpClient;
 
     public GenericRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new ArgumentException("Room ID cannot be null or whitespace", nameof(roomId));
         Homeserver = homeserver;
-        _httpClient = homeserver.ClientHttpClient;
         RoomId = roomId;
-        if (GetType() != typeof(SpaceRoom))
+        // if (GetType() != typeof(SpaceRoom))
+        if (GetType() == typeof(GenericRoom)) {
             AsSpace = new SpaceRoom(homeserver, RoomId);
+        }
     }
 
     public string RoomId { get; set; }
 
     public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
-        var result = _httpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
+        var result = Homeserver.ClientHttpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
         await foreach (var resp in result) {
             yield return resp;
         }
     }
 
     public async Task<List<StateEventResponse>> GetFullStateAsListAsync() {
-        return await _httpClient.GetFromJsonAsync<List<StateEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
+        return await Homeserver.ClientHttpClient.GetFromJsonAsync<List<StateEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
     }
 
     public async Task<T?> GetStateAsync<T>(string type, string stateKey = "") {
@@ -56,7 +56,7 @@ public class GenericRoom {
 
             return resp.Deserialize<T>();
 #else
-            var resp = await _httpClient.GetFromJsonAsync<T>(url);
+            var resp = await Homeserver.ClientHttpClient.GetFromJsonAsync<T>(url);
             return resp;
 #endif
         }
@@ -85,8 +85,8 @@ public class GenericRoom {
         if (!string.IsNullOrWhiteSpace(from)) url += $"&from={from}";
         if (limit is not null) url += $"&limit={limit}";
         if (!string.IsNullOrWhiteSpace(filter)) url += $"&filter={filter}";
-        var res = await _httpClient.GetFromJsonAsync<MessagesResponse>(url);
-        return res ?? new MessagesResponse();
+        var res = await Homeserver.ClientHttpClient.GetFromJsonAsync<MessagesResponse>(url);
+        return res;
     }
 
     /// <summary>
@@ -101,8 +101,8 @@ public class GenericRoom {
                 concat.Add(resp);
                 if (!includeState)
                     resp.State.Clear();
-                from = resp.End;
                 if (resp.End is null) break;
+                from = resp.End;
             }
 
             concat.Reverse();
@@ -131,12 +131,12 @@ public class GenericRoom {
                     resp.State.Clear();
 
                 limit -= resp.Chunk.Count + resp.State.Count;
-                from = resp.End;
                 yield return resp;
                 if (resp.End is null) {
                     Console.WriteLine("End is null");
                     yield break;
                 }
+                from = resp.End;
             }
         }
 
@@ -148,19 +148,19 @@ public class GenericRoom {
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
         if (checkIfAlreadyMember) {
             try {
-                var ce = await GetCreateEventAsync();
-                return new() {
+                _ = await GetCreateEventAsync();
+                return new RoomIdResponse {
                     RoomId = RoomId
                 };
             }
             catch { } //ignore
         }
 
-        var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
-        Console.WriteLine($"Calling {join_url} with {homeservers?.Length ?? 0} via's...");
+        var joinUrl = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
+        Console.WriteLine($"Calling {joinUrl} with {homeservers?.Length ?? 0} via's...");
         if (homeservers == null || homeservers.Length == 0) homeservers = new[] { RoomId.Split(':')[1] };
-        var fullJoinUrl = $"{join_url}?server_name=" + string.Join("&server_name=", homeservers);
-        var res = await _httpClient.PostAsJsonAsync(fullJoinUrl, new {
+        var fullJoinUrl = $"{joinUrl}?server_name=" + string.Join("&server_name=", homeservers);
+        var res = await Homeserver.ClientHttpClient.PostAsJsonAsync(fullJoinUrl, new {
             reason
         });
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
@@ -168,9 +168,9 @@ public class GenericRoom {
 
     public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
         var sw = Stopwatch.StartNew();
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
+        var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
         Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
-        var resText = await res.Content.ReadAsStringAsync();
+        // var resText = await res.Content.ReadAsStringAsync();
         Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
             TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
@@ -188,7 +188,7 @@ public class GenericRoom {
 
     #region Utility shortcuts
 
-    public async Task<EventIdResponse?> SendMessageEventAsync(RoomMessageEventContent content) =>
+    public async Task<EventIdResponse> SendMessageEventAsync(RoomMessageEventContent content) =>
         await SendTimelineEventAsync("m.room.message", content);
 
     public async Task<List<string>?> GetAliasesAsync() {
@@ -259,29 +259,29 @@ public class GenericRoom {
     #region Simple calls
 
     public async Task ForgetAsync() =>
-        await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
+        await Homeserver.ClientHttpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
 
     public async Task LeaveAsync(string? reason = null) =>
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/leave", new {
+        await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/leave", new {
             reason
         });
 
     public async Task KickAsync(string userId, string? reason = null) =>
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/kick",
+        await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/kick",
             new UserIdAndReason { UserId = userId, Reason = reason });
 
     public async Task BanAsync(string userId, string? reason = null) =>
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/ban",
+        await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/ban",
             new UserIdAndReason { UserId = userId, Reason = reason });
 
     public async Task UnbanAsync(string userId) =>
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
+        await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
             new UserIdAndReason { UserId = userId });
 
     public async Task InviteUserAsync(string userId, string? reason = null, bool skipExisting = true) {
         if (skipExisting && await GetStateAsync<RoomMemberEventContent>("m.room.member", userId) is not null)
             return;
-        await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
+        await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
 
     #endregion
@@ -289,19 +289,19 @@ public class GenericRoom {
     #region Events
 
     public async Task<EventIdResponse?> SendStateEventAsync(string eventType, object content) =>
-        await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
+        await (await Homeserver.ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
     public async Task<EventIdResponse?> SendStateEventAsync(string eventType, string stateKey, object content) =>
-        await (await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
+        await (await Homeserver.ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse?> SendTimelineEventAsync(string eventType, TimelineEventContent content) {
-        var res = await _httpClient.PutAsJsonAsync(
+    public async Task<EventIdResponse> SendTimelineEventAsync(string eventType, TimelineEventContent content) {
+        var res = await Homeserver.ClientHttpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
-        return await res.Content.ReadFromJsonAsync<EventIdResponse>();
+        return await res.Content.ReadFromJsonAsync<EventIdResponse>() ?? throw new Exception("Failed to send event");
     }
 
     public async Task<EventIdResponse?> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file", string contentType = "application/octet-stream") {
@@ -320,7 +320,7 @@ public class GenericRoom {
     }
 
     public async Task<T?> GetRoomAccountDataAsync<T>(string key) {
-        var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}");
+        var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}");
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to get room account data: {await res.Content.ReadAsStringAsync()}");
@@ -330,7 +330,7 @@ public class GenericRoom {
     }
 
     public async Task SetRoomAccountDataAsync(string key, object data) {
-        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}", data);
+        var res = await Homeserver.ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{Homeserver.UserId}/rooms/{RoomId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to set room account data: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to set room account data: {await res.Content.ReadAsStringAsync()}");
@@ -338,12 +338,12 @@ public class GenericRoom {
     }
 
     public async Task<T> GetEventAsync<T>(string eventId) {
-        return await _httpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+        return await Homeserver.ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
     }
 
     public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
         var data = new { reason };
-        return (await (await _httpClient.PutAsJsonAsync(
+        return (await (await Homeserver.ClientHttpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
@@ -353,7 +353,7 @@ public class GenericRoom {
 
     public async Task<Dictionary<string, List<string>>> GetMembersByHomeserverAsync(bool joinedOnly = true) {
         if (Homeserver is AuthenticatedHomeserverMxApiExtended mxaeHomeserver)
-            return await Homeserver.ClientHttpClient.GetFromJsonAsync<Dictionary<string, List<string>>>(
+            return await mxaeHomeserver.ClientHttpClient.GetFromJsonAsync<Dictionary<string, List<string>>>(
                 $"/_matrix/client/v3/rooms/{RoomId}/members_by_homeserver?joined_only={joinedOnly}");
         Dictionary<string, List<string>> roomHomeservers = new();
         var members = GetMembersAsync();

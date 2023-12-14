@@ -1,5 +1,6 @@
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
@@ -61,7 +62,7 @@ public static class RoomAbstraction {
             RoomAliasName = Guid.NewGuid().ToString(),
             InitialState = new()
         };
-        crq._creationContentBaseType.Type = "m.space";
+        crq.CreationContentBaseType.Type = "m.space";
 
 
         var createRoomTasks = Enumerable.Range(0, roomCount)

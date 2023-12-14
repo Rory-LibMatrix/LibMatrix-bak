@@ -4,10 +4,8 @@ using LibMatrix.Homeservers;
 namespace LibMatrix.RoomTypes;
 
 public class SpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) : GenericRoom(homeserver, roomId) {
-    private readonly GenericRoom _room;
-
     public async IAsyncEnumerable<GenericRoom> GetChildrenAsync(bool includeRemoved = false) {
-        var rooms = new List<GenericRoom>();
+        // var rooms = new List<GenericRoom>();
         var state = GetFullStateAsync();
         await foreach (var stateEvent in state) {
             if (stateEvent!.Type != "m.space.child") continue;

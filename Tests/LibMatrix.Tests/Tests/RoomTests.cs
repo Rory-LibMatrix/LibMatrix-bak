@@ -1,5 +1,4 @@
 using System.Text;
-using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;

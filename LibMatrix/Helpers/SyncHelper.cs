@@ -38,12 +38,12 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         // Console.WriteLine("Calling: " + url);
         logger?.LogInformation("SyncHelper: Calling: {}", url);
         try {
-            var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None)!;
+            var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
             if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
-            logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp?.Content.Headers.ContentLength ?? -1, sw.Elapsed);
+            logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp.Content.Headers.ContentLength ?? -1, sw.Elapsed);
             var deserializeSw = Stopwatch.StartNew();
-            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None)!;
-            logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp?.Content.Headers.ContentLength ?? -1, deserializeSw.Elapsed, sw.Elapsed);
+            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None);
+            logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp.Content.Headers.ContentLength ?? -1, deserializeSw.Elapsed, sw.Elapsed);
             var timeToWait = MinimumDelay.Subtract(sw.Elapsed);
             if (timeToWait.TotalMilliseconds > 0)
                 await Task.Delay(timeToWait);
@@ -65,7 +65,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         while (!cancellationToken?.IsCancellationRequested ?? true) {
             var sync = await SyncAsync(cancellationToken);
             if (sync is null) continue;
-            if (!string.IsNullOrWhiteSpace(sync?.NextBatch)) Since = sync.NextBatch;
+            if (!string.IsNullOrWhiteSpace(sync.NextBatch)) Since = sync.NextBatch;
             yield return sync;
         }
     }
@@ -76,7 +76,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         var oldTimeout = Timeout;
         Timeout = 0;
         await foreach (var sync in EnumerateSyncAsync(cancellationToken)) {
-            if (sync?.ToJson(ignoreNull: true, indent: false).Length < 250) {
+            if (sync.ToJson(ignoreNull: true, indent: false).Length < 250) {
                 emptyInitialSyncCount++;
                 if (emptyInitialSyncCount > 5) {
                     IsInitialSync = false;

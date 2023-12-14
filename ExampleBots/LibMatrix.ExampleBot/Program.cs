@@ -3,8 +3,6 @@
 using ArcaneLibs;
 using LibMatrix.ExampleBot.Bot;
 using LibMatrix.ExampleBot.Bot.Interfaces;
-using LibMatrix.ExampleBot.Bot.StartupTasks;
-using LibMatrix.Extensions;
 using LibMatrix.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,13 +1,11 @@
 // See https://aka.ms/new-console-template for more information
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using PluralContactBotPoC;
 using PluralContactBotPoC.Bot;
 
 Console.WriteLine("Hello, World!");

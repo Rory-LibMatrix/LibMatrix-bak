@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace PluralContactBotPoC.Bot;
+namespace TestDataGenerator.Bot;
 
 public class DataFetcherConfiguration {
     public DataFetcherConfiguration(IConfiguration config) => config.GetRequiredSection("DataFetcher").Bind(this);

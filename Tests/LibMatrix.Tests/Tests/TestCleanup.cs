@@ -1,9 +1,7 @@
 using System.Diagnostics;
-using ArcaneLibs.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Services;
 using LibMatrix.Tests.Abstractions;
-using LibMatrix.Tests.DataTests;
 using LibMatrix.Tests.Fixtures;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
@@ -12,14 +10,14 @@ using Xunit.Microsoft.DependencyInjection.Abstracts;
 namespace LibMatrix.Tests.Tests;
 
 public class TestCleanup : TestBed<TestFixture> {
-    private readonly TestFixture _fixture;
+    // private readonly TestFixture _fixture;
     private readonly HomeserverResolverService _resolver;
     private readonly Config _config;
     private readonly HomeserverProviderService _provider;
     private readonly ILogger<TestCleanup> _logger;
 
     public TestCleanup(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
-        _fixture = fixture;
+        // _fixture = fixture;
         _resolver = _fixture.GetService<HomeserverResolverService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverResolverService)}");
         _config = _fixture.GetService<Config>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(Config)}");
         _provider = _fixture.GetService<HomeserverProviderService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverProviderService)}");

@@ -10,28 +10,28 @@ using LibMatrix.Interfaces;
 namespace LibMatrix.Responses;
 
 public class CreateRoomRequest {
-    [JsonIgnore] public CreationContentBaseType _creationContentBaseType;
+    [JsonIgnore] public CreationContentBaseType CreationContentBaseType;
 
-    public CreateRoomRequest() => _creationContentBaseType = new CreationContentBaseType(this);
+    public CreateRoomRequest() => CreationContentBaseType = new CreationContentBaseType(this);
 
     [JsonPropertyName("name")]
-    public string Name { get; set; } = null!;
+    public string? Name { get; set; }
 
     [JsonPropertyName("room_alias_name")]
-    public string RoomAliasName { get; set; } = null!;
+    public string? RoomAliasName { get; set; }
 
     //we dont want to use this, we want more control
     // [JsonPropertyName("preset")]
     // public string Preset { get; set; } = null!;
 
     [JsonPropertyName("initial_state")]
-    public List<StateEvent> InitialState { get; set; } = null!;
+    public List<StateEvent>? InitialState { get; set; }
 
     /// <summary>
     /// One of: ["public", "private"]
     /// </summary>
     [JsonPropertyName("visibility")]
-    public string Visibility { get; set; } = null!;
+    public string? Visibility { get; set; }
 
     [JsonPropertyName("power_level_content_override")]
     public RoomPowerLevelEventContent PowerLevelContentOverride { get; set; } = null!;
@@ -46,25 +46,25 @@ public class CreateRoomRequest {
     ///     For use only when you can't use the CreationContent property
     /// </summary>
 
-    public StateEvent this[string event_type, string event_key = ""] {
+    public StateEvent this[string eventType, string eventKey = ""] {
         get {
-            var stateEvent = InitialState.FirstOrDefault(x => x.Type == event_type && x.StateKey == event_key);
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == eventType && x.StateKey == eventKey);
             if (stateEvent == null) {
                 InitialState.Add(stateEvent = new StateEvent {
-                    Type = event_type,
-                    StateKey = event_key,
+                    Type = eventType,
+                    StateKey = eventKey,
                     TypedContent = (EventContent)Activator.CreateInstance(
                         StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
                             x.GetCustomAttributes<MatrixEventAttribute>()?
-                                .Any(y => y.EventName == event_type) ?? false) ?? typeof(object)
-                    )
+                                .Any(y => y.EventName == eventType) ?? false) ?? typeof(object)
+                    )!
                 });
             }
 
             return stateEvent;
         }
         set {
-            var stateEvent = InitialState.FirstOrDefault(x => x.Type == event_type && x.StateKey == event_key);
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == eventType && x.StateKey == eventKey);
             if (stateEvent == null)
                 InitialState.Add(value);
             else

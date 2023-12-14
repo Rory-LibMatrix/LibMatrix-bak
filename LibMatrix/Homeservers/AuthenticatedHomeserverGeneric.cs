@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -50,9 +51,9 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     public WhoAmIResponse WhoAmI { get; set; }
-    public string? UserId => WhoAmI?.UserId;
-    public string? UserLocalpart => UserId?.Split(":")[0][1..];
-    public string? ServerName => UserId?.Split(":", 2)[1];
+    public string UserId => WhoAmI.UserId;
+    public string UserLocalpart => UserId.Split(":")[0][1..];
+    public string ServerName => UserId.Split(":", 2)[1];
 
     // public virtual async Task<WhoAmIResponse> WhoAmI() {
     // if (_whoAmI is not null) return _whoAmI;
@@ -289,10 +290,10 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     public async Task<RoomIdResponse> JoinRoomAsync(string roomId, List<string> homeservers = null, string? reason = null) {
-        var join_url = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(roomId)}";
-        Console.WriteLine($"Calling {join_url} with {homeservers?.Count ?? 0} via's...");
+        var joinUrl = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(roomId)}";
+        Console.WriteLine($"Calling {joinUrl} with {homeservers?.Count ?? 0} via's...");
         if (homeservers == null || homeservers.Count == 0) homeservers = new() { roomId.Split(':')[1] };
-        var fullJoinUrl = $"{join_url}?server_name=" + string.Join("&server_name=", homeservers);
+        var fullJoinUrl = $"{joinUrl}?server_name=" + string.Join("&server_name=", homeservers);
         var res = await ClientHttpClient.PostAsJsonAsync(fullJoinUrl, new {
             reason
         });

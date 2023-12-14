@@ -20,7 +20,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
                 Console.WriteLine($"--- ADMIN Querying Room List with URL: {url} - Already have {i} items... ---");
 
                 res = await authenticatedHomeserver.ClientHttpClient.GetFromJsonAsync<AdminRoomListingResult>(url);
-                totalRooms ??= res?.TotalRooms;
+                totalRooms ??= res.TotalRooms;
                 Console.WriteLine(res.ToJson(false));
                 foreach (var room in res.Rooms) {
                     if (localFilter is not null) {

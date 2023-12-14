@@ -1,5 +1,4 @@
 using LibMatrix.EventTypes.Spec;
-using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 
 namespace LibMatrix.ExampleBot.Bot.Interfaces;

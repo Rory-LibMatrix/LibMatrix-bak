@@ -4,5 +4,5 @@ namespace LibMatrix;
 
 public class EventIdResponse {
     [JsonPropertyName("event_id")]
-    public string EventId { get; set; } = null!;
+    public required string EventId { get; set; }
 }

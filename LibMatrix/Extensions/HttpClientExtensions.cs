@@ -116,8 +116,8 @@ public class MatrixHttpClient : HttpClient {
         return await response.Content.ReadAsStreamAsync(cancellationToken);
     }
 
-    public new async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    public async Task<HttpResponseMessage> PutAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
+        CancellationToken cancellationToken = default) where T : notnull {
         options = GetJsonSerializerOptions(options);
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -130,7 +130,7 @@ public class MatrixHttpClient : HttpClient {
     }
 
     public async Task<HttpResponseMessage> PostAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) where T : notnull {
         options ??= new();
         options.Converters.Add(new JsonFloatStringConverter());
         options.Converters.Add(new JsonDoubleStringConverter());

@@ -1,9 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using ArcaneLibs.Extensions;
 using LibMatrix.ExampleBot.Bot.Interfaces;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

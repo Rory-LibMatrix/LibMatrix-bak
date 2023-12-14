@@ -3,7 +3,6 @@ using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.ExampleBot.Bot.Interfaces;
-using LibMatrix.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;

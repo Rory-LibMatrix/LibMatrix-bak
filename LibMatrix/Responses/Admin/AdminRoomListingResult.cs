@@ -20,7 +20,7 @@ public class AdminRoomListingResult {
 
     public class AdminRoomListingResultRoom {
         [JsonPropertyName("room_id")]
-        public string RoomId { get; set; }
+        public required string RoomId { get; set; }
 
         [JsonPropertyName("name")]
         public string? Name { get; set; }
@@ -35,10 +35,10 @@ public class AdminRoomListingResult {
         public int JoinedLocalMembers { get; set; }
 
         [JsonPropertyName("version")]
-        public string Version { get; set; }
+        public string? Version { get; set; }
 
         [JsonPropertyName("creator")]
-        public string Creator { get; set; }
+        public string? Creator { get; set; }
 
         [JsonPropertyName("encryption")]
         public string? Encryption { get; set; }

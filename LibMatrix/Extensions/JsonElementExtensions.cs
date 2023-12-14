@@ -37,7 +37,7 @@ public static class JsonElementExtensions {
 
                 if (field.Name == "content" && (objectType == typeof(StateEventResponse) || objectType == typeof(StateEvent))) {
                     unknownPropertyFound |= field.FindExtraJsonPropertyFieldsByValueKind(
-                        StateEvent.GetStateEventType(obj.GetProperty("type").GetString()),
+                        StateEvent.GetStateEventType(obj.GetProperty("type").GetString()!), // We expect type to always be present
                         mappedProperty.PropertyType);
                     continue;
                 }

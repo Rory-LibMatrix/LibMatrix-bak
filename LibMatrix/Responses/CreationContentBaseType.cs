@@ -3,16 +3,16 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.Responses;
 
 public class CreationContentBaseType {
-    private readonly CreateRoomRequest createRoomRequest;
+    private readonly CreateRoomRequest _createRoomRequest;
 
-    public CreationContentBaseType(CreateRoomRequest createRoomRequest) => this.createRoomRequest = createRoomRequest;
+    public CreationContentBaseType(CreateRoomRequest createRoomRequest) => this._createRoomRequest = createRoomRequest;
 
     [JsonPropertyName("type")]
     public string Type {
-        get => (string)createRoomRequest.CreationContent["type"];
+        get => (string)_createRoomRequest.CreationContent["type"];
         set {
-            if (value is "null" or "") createRoomRequest.CreationContent.Remove("type");
-            else createRoomRequest.CreationContent["type"] = value;
+            if (value is "null" or "") _createRoomRequest.CreationContent.Remove("type");
+            else _createRoomRequest.CreationContent["type"] = value;
         }
     }
 }

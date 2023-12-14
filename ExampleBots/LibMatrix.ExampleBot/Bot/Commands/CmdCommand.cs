@@ -1,4 +1,3 @@
-using ArcaneLibs.Extensions;
 using ArcaneLibs.StringNormalisation;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.ExampleBot.Bot.Interfaces;

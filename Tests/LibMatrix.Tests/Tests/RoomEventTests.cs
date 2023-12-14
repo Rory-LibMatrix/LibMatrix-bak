@@ -1,6 +1,3 @@
-using System.Text;
-using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
 using LibMatrix.Tests.Abstractions;
@@ -88,8 +85,8 @@ public class RoomEventTests : TestBed<TestFixture> {
         Assert.NotNull(room);
         var rule = await room.GetJoinRuleAsync();
         Assert.NotNull(rule);
-        Assert.NotNull(rule.JoinRule);
-        Assert.NotEmpty(rule.JoinRule);
+        Assert.NotNull(rule.JoinRuleValue);
+        Assert.NotEmpty(rule.JoinRuleValue);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
@@ -7,31 +9,23 @@ using ArcaneLibs;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes;
 using LibMatrix.Extensions;
-using LibMatrix.Interfaces;
 
 namespace LibMatrix;
 
 public class StateEvent {
-    public static List<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies();
+    public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
 
-    public static readonly Dictionary<string, Type> KnownStateEventTypesByName = KnownStateEventTypes.Aggregate(
+    public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),
         (dict, type) => {
             var attrs = type.GetCustomAttributes<MatrixEventAttribute>();
             foreach (var attr in attrs) {
                 dict[attr.EventName] = type;
             }
-
             return dict;
-        });
+        }).ToFrozenDictionary();
 
-    public static Type GetStateEventType(string type) {
-        if (type == "m.receipt") {
-            return typeof(Dictionary<string, JsonObject>);
-        }
-
-        return KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
-    }
+    public static Type GetStateEventType(string type) => KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
 
     private static readonly JsonSerializerOptions TypedContentSerializerOptions = new JsonSerializerOptions() {
         Converters = {
@@ -80,13 +74,7 @@ public class StateEvent {
     [JsonPropertyName("content")]
     public JsonObject? RawContent {
         get => _rawContent;
-        set {
-            _rawContent = value;
-            // if (Type is not null && this is StateEventResponse stateEventResponse) {
-            //     if (File.Exists($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json")) return;
-            //     var x = GetType.Name;
-            // }
-        }
+        set => _rawContent = value;
     }
 
     [JsonIgnore]
@@ -139,22 +127,22 @@ public class StateEvent {
 
 public class StateEventResponse : StateEvent {
     [JsonPropertyName("origin_server_ts")]
-    public ulong OriginServerTs { get; set; }
+    public ulong? OriginServerTs { get; set; }
 
     [JsonPropertyName("room_id")]
-    public string RoomId { get; set; }
+    public string? RoomId { get; set; }
 
     [JsonPropertyName("sender")]
-    public string Sender { get; set; }
+    public string? Sender { get; set; }
 
     [JsonPropertyName("unsigned")]
     public UnsignedData? Unsigned { get; set; }
 
     [JsonPropertyName("event_id")]
-    public string EventId { get; set; }
+    public string? EventId { get; set; }
 
     [JsonPropertyName("replaces_state")]
-    public new string ReplacesState { get; set; }
+    public new string? ReplacesState { get; set; }
 
     public class UnsignedData {
         [JsonPropertyName("age")]
@@ -179,8 +167,7 @@ public class StateEventResponse : StateEvent {
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(ChunkedStateEventResponse))]
-internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext {
-}
+internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext;
 
 public class EventList {
     [JsonPropertyName("events")]

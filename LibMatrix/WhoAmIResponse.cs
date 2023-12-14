@@ -4,7 +4,7 @@ namespace LibMatrix;
 
 public class WhoAmIResponse {
     [JsonPropertyName("user_id")]
-    public string? UserId { get; set; } = null!;
+    public required string UserId { get; set; }
 
     [JsonPropertyName("device_id")]
     public string? DeviceId { get; set; }

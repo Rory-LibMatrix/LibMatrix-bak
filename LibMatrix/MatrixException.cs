@@ -5,10 +5,10 @@ namespace LibMatrix;
 
 public class MatrixException : Exception {
     [JsonPropertyName("errcode")]
-    public string ErrorCode { get; set; }
+    public required string ErrorCode { get; set; }
 
     [JsonPropertyName("error")]
-    public string Error { get; set; }
+    public required string Error { get; set; }
 
     [JsonPropertyName("soft_logout")]
     public bool? SoftLogout { get; set; }

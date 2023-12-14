@@ -6,7 +6,7 @@ namespace LibMatrix.Helpers;
 public static class MessageFormatter {
     public static RoomMessageEventContent FormatError(string error) {
         return new RoomMessageEventContent(body: error, messageType: "m.text") {
-            FormattedBody = $"<font color=\"#FF0000\">{error}: {error}</font>",
+            FormattedBody = $"<font color=\"#FF0000\">{error}</font>",
             Format = "org.matrix.custom.html"
         };
     }
@@ -46,4 +46,11 @@ public static class MessageFormatter {
     public static RoomMessageEventContent ToMatrixMessage(this Exception e, string error) => FormatException(error, e);
 
     #endregion
+
+    public static RoomMessageEventContent FormatWarning(string warning) {
+        return new RoomMessageEventContent(body: warning, messageType: "m.text") {
+            FormattedBody = $"<font color=\"#FFFF00\">{warning}</font>",
+            Format = "org.matrix.custom.html"
+        };
+    }
 }

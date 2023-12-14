@@ -11,15 +11,15 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
         Timeout = TimeSpan.FromMilliseconds(10000)
     };
 
-    private static readonly ConcurrentDictionary<string, WellKnownUris> _wellKnownCache = new();
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _wellKnownSemaphores = new();
+    private static readonly ConcurrentDictionary<string, WellKnownUris> WellKnownCache = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> WellKnownSemaphores = new();
 
     public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        _wellKnownSemaphores.TryAdd(homeserver, new(1, 1));
-        await _wellKnownSemaphores[homeserver].WaitAsync();
-        if (_wellKnownCache.TryGetValue(homeserver, out var known)) {
-            _wellKnownSemaphores[homeserver].Release();
+        WellKnownSemaphores.TryAdd(homeserver, new(1, 1));
+        await WellKnownSemaphores[homeserver].WaitAsync();
+        if (WellKnownCache.TryGetValue(homeserver, out var known)) {
+            WellKnownSemaphores[homeserver].Release();
             return known;
         }
 
@@ -28,8 +28,8 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
             Client = await _tryResolveFromClientWellknown(homeserver),
             Server = await _tryResolveFromServerWellknown(homeserver)
         };
-        _wellKnownCache.TryAdd(homeserver, res);
-        _wellKnownSemaphores[homeserver].Release();
+        WellKnownCache.TryAdd(homeserver, res);
+        WellKnownSemaphores[homeserver].Release();
         return res;
     }
 
@@ -40,7 +40,9 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
             var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
             return hs;
         }
-        catch { }
+        catch {
+            // ignored
+        }
 
         logger?.LogInformation("No client well-known...");
         return null;
@@ -51,11 +53,14 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
         try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
             var hs = resp.GetProperty("m.server").GetString();
+            if(hs is null) throw new InvalidDataException("m.server is null");
             if (!hs.StartsWithAnyOf("http://", "https://"))
                 hs = $"https://{hs}";
             return hs;
         }
-        catch { }
+        catch {
+            // ignored
+        }
 
         // fallback: most servers host these on the same location
         var clientUrl = await _tryResolveFromClientWellknown(homeserver);

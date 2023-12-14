@@ -50,13 +50,13 @@ public class SyncResponse {
 
         public class LeftRoomDataStructure {
             [JsonPropertyName("account_data")]
-            public EventList AccountData { get; set; }
+            public EventList? AccountData { get; set; }
 
             [JsonPropertyName("timeline")]
             public JoinedRoomDataStructure.TimelineDataStructure? Timeline { get; set; }
 
             [JsonPropertyName("state")]
-            public EventList State { get; set; }
+            public EventList? State { get; set; }
         }
 
         public class JoinedRoomDataStructure {
@@ -99,13 +99,13 @@ public class SyncResponse {
 
             public class SummaryDataStructure {
                 [JsonPropertyName("m.heroes")]
-                public List<string> Heroes { get; set; }
+                public List<string>? Heroes { get; set; }
 
                 [JsonPropertyName("m.invited_member_count")]
-                public int InvitedMemberCount { get; set; }
+                public int? InvitedMemberCount { get; set; }
 
                 [JsonPropertyName("m.joined_member_count")]
-                public int JoinedMemberCount { get; set; }
+                public int? JoinedMemberCount { get; set; }
             }
         }
 

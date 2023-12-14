@@ -44,8 +44,8 @@ public class AppServiceConfiguration {
         else
             yaml += "protocols: []";
         yaml += "\n";
-        if (RateLimited is not null)
-            yaml += $"rate_limited: {RateLimited!.ToString().ToLower()}\n";
+        if (RateLimited.HasValue)
+            yaml += $"rate_limited: {RateLimited.Value.ToString().ToLower()}\n";
         else
             yaml += "rate_limited: false\n";
 

@@ -21,8 +21,8 @@ public static class BotCommandInstaller {
         services.AddSingleton<LibMatrixBotConfiguration>();
 
         services.AddScoped<AuthenticatedHomeserverGeneric>(x => {
-            var config = x.GetService<LibMatrixBotConfiguration>();
-            var hsProvider = x.GetService<HomeserverProviderService>();
+            var config = x.GetService<LibMatrixBotConfiguration>() ?? throw new Exception("No configuration found!");
+            var hsProvider = x.GetService<HomeserverProviderService>() ?? throw new Exception("No homeserver provider found!");
             var hs = hsProvider.GetAuthenticatedWithToken(config.Homeserver, config.AccessToken).Result;
 
             return hs;

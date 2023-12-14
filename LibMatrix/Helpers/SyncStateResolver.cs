@@ -162,7 +162,11 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
         oldData.UnreadNotifications.HighlightCount = newData.UnreadNotifications?.HighlightCount ?? oldData.UnreadNotifications.HighlightCount;
         oldData.UnreadNotifications.NotificationCount = newData.UnreadNotifications?.NotificationCount ?? oldData.UnreadNotifications.NotificationCount;
 
-        oldData.Summary ??= new();
+        oldData.Summary ??= new() {
+            Heroes = newData.Summary?.Heroes ?? oldData.Summary.Heroes,
+            JoinedMemberCount = newData.Summary?.JoinedMemberCount ?? oldData.Summary.JoinedMemberCount,
+            InvitedMemberCount = newData.Summary?.InvitedMemberCount ?? oldData.Summary.InvitedMemberCount
+        };
         oldData.Summary.Heroes = newData.Summary?.Heroes ?? oldData.Summary.Heroes;
         oldData.Summary.JoinedMemberCount = newData.Summary?.JoinedMemberCount ?? oldData.Summary.JoinedMemberCount;
         oldData.Summary.InvitedMemberCount = newData.Summary?.InvitedMemberCount ?? oldData.Summary.InvitedMemberCount;
