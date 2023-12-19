@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomMemberEventContent : TimelineEventContent {
+public class RoomMemberEventContent : EventContent {
     public const string EventId = "m.room.member";
 
     [JsonPropertyName("reason")]

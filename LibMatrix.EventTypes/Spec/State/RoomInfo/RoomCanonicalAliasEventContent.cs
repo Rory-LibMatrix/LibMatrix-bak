@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomCanonicalAliasEventContent : TimelineEventContent {
+public class RoomCanonicalAliasEventContent : EventContent {
     public const string EventId = "m.room.canonical_alias";
 
     [JsonPropertyName("alias")]

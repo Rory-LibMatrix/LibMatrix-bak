@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.server_acl")]
-public class RoomServerACLEventContent : TimelineEventContent {
+public class RoomServerACLEventContent : EventContent {
     [JsonPropertyName("allow")]
     public List<string>? Allow { get; set; } // = null!;
 

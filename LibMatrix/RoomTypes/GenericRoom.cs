@@ -9,6 +9,7 @@ using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Homeservers;
+using LibMatrix.Services;
 
 namespace LibMatrix.RoomTypes;
 
@@ -136,6 +137,7 @@ public class GenericRoom {
                     Console.WriteLine("End is null");
                     yield break;
                 }
+
                 from = resp.End;
             }
         }
@@ -174,7 +176,6 @@ public class GenericRoom {
         Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
             TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
-            
         });
         Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
         foreach (var resp in result.Chunk) {
@@ -186,7 +187,7 @@ public class GenericRoom {
         Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
     }
 
-    #region Utility shortcuts
+#region Utility shortcuts
 
     public async Task<EventIdResponse> SendMessageEventAsync(RoomMessageEventContent content) =>
         await SendTimelineEventAsync("m.room.message", content);
@@ -254,9 +255,25 @@ public class GenericRoom {
         await Task.WhenAll(tasks);
     }
 
-    #endregion
+    public async Task<string?> GetResolvedRoomAvatarUrlAsync(bool useOriginHomeserver = false) {
+        var avatar = await GetAvatarUrlAsync();
+        if (avatar?.Url is null) return null;
+        if (!avatar.Url.StartsWith("mxc://")) return avatar.Url;
+        if (useOriginHomeserver)
+            try {
+                var hs = avatar.Url.Split('/', 3)[1];
+                return await new HomeserverResolverService().ResolveMediaUri(hs, avatar.Url);
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+    
+        return Homeserver.ResolveMediaUri(avatar.Url);
+    }
 
-    #region Simple calls
+#endregion
+
+#region Simple calls
 
     public async Task ForgetAsync() =>
         await Homeserver.ClientHttpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
@@ -284,9 +301,9 @@ public class GenericRoom {
         await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
 
-    #endregion
+#endregion
 
-    #region Events
+#region Events
 
     public async Task<EventIdResponse?> SendStateEventAsync(string eventType, object content) =>
         await (await Homeserver.ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
@@ -347,9 +364,9 @@ public class GenericRoom {
             $"/_matrix/client/v3/rooms/{RoomId}/redact/{eventToRedact}/{Guid.NewGuid()}", data)).Content.ReadFromJsonAsync<EventIdResponse>())!;
     }
 
-    #endregion
+#endregion
 
-    #region Utilities
+#region Utilities
 
     public async Task<Dictionary<string, List<string>>> GetMembersByHomeserverAsync(bool joinedOnly = true) {
         if (Homeserver is AuthenticatedHomeserverMxApiExtended mxaeHomeserver)
@@ -367,11 +384,7 @@ public class GenericRoom {
         return roomHomeservers;
     }
 
-    #endregion
-
-    public readonly SpaceRoom AsSpace;
-
-    #region Disband room
+#region Disband room
 
     public async Task DisbandRoomAsync() {
         var states = GetFullStateAsync();
@@ -398,7 +411,11 @@ public class GenericRoom {
         }
     }
 
-    #endregion
+#endregion
+
+#endregion
+
+    public readonly SpaceRoom AsSpace;
 }
 
 public class RoomIdResponse {

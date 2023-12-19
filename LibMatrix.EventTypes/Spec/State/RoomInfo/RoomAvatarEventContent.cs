@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State.RoomInfo;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomAvatarEventContent : TimelineEventContent {
+public class RoomAvatarEventContent : EventContent {
     public const string EventId = "m.room.avatar";
 
     [JsonPropertyName("url")]

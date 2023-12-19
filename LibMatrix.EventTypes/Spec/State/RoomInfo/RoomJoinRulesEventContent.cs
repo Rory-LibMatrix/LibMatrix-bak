@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.join_rules")]
-public class RoomJoinRulesEventContent : TimelineEventContent {
+public class RoomJoinRulesEventContent : EventContent {
     /// <summary>
     /// one of ["public", "invite", "knock", "restricted", "knock_restricted"]
     /// "private" is reserved without implementation!
@@ -12,7 +12,7 @@ public class RoomJoinRulesEventContent : TimelineEventContent {
     public string JoinRuleValue { get; set; }
     
     [JsonIgnore]
-    public required JoinRules JoinRule {
+    public JoinRules JoinRule {
         get => JoinRuleValue switch {
             "public" => JoinRules.Public,
             "invite" => JoinRules.Invite,

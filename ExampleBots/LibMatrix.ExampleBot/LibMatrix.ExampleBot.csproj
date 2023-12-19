@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ArcaneLibs.StringNormalisation" Version="1.0.0-preview6876311209.3b815f2" />
+    <PackageReference Include="ArcaneLibs.StringNormalisation" Version="1.0.0-preview7205256004.28c0e5a" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>

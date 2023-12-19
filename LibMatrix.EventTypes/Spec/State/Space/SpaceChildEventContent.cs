@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.space.child")]
-public class SpaceChildEventContent : TimelineEventContent {
+public class SpaceChildEventContent : EventContent {
     [JsonPropertyName("auto_join")]
     public bool? AutoJoin { get; set; }
     [JsonPropertyName("via")]

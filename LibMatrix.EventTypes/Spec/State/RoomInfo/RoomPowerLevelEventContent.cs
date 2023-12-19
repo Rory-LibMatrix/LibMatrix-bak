@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
-public class RoomPowerLevelEventContent : TimelineEventContent {
+public class RoomPowerLevelEventContent : EventContent {
     public const string EventId = "m.room.power_levels";
 
     [JsonPropertyName("ban")]

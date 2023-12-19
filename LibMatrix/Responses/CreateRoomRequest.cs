@@ -56,7 +56,7 @@ public class CreateRoomRequest {
                     TypedContent = (EventContent)Activator.CreateInstance(
                         StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
                             x.GetCustomAttributes<MatrixEventAttribute>()?
-                                .Any(y => y.EventName == eventType) ?? false) ?? typeof(object)
+                                .Any(y => y.EventName == eventType) ?? false) ?? typeof(UnknownEventContent)
                     )!
                 });
             }
