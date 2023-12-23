@@ -25,6 +25,7 @@ public static class HttpClientExtensions {
 }
 
 public class MatrixHttpClient : HttpClient {
+    public Dictionary<string, string> AdditionalQueryParameters { get; set; } = new();
     internal string? AssertedUserId { get; set; }
 
     private JsonSerializerOptions GetJsonSerializerOptions(JsonSerializerOptions? options = null) {
@@ -38,7 +39,11 @@ public class MatrixHttpClient : HttpClient {
 
     public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
-        if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
+        if (!request.RequestUri.IsAbsoluteUri) request.RequestUri = new Uri(BaseAddress, request.RequestUri);
+        // if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
+        foreach (var (key, value) in AdditionalQueryParameters) {
+            request.RequestUri = request.RequestUri.AddQuery(key, value);
+        }
 
         Console.WriteLine($"Sending request to {request.RequestUri}");
 
@@ -84,6 +89,11 @@ public class MatrixHttpClient : HttpClient {
         typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(request, 0);
         return await SendAsync(request, cancellationToken);
+    }
+
+    // GetAsync
+    public Task<HttpResponseMessage> GetAsync([StringSyntax("Uri")] string? requestUri, CancellationToken? cancellationToken = null) {
+        return SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), cancellationToken ?? CancellationToken.None);
     }
 
     // GetFromJsonAsync

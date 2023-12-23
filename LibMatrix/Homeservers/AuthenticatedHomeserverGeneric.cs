@@ -307,4 +307,9 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     #endregion
+    
+    public async Task SetImpersonate(string mxid) {
+        ClientHttpClient.AdditionalQueryParameters["user_id"] = mxid;
+        WhoAmI = await ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+    }
 }

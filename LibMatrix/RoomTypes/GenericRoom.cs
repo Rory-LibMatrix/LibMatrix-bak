@@ -168,7 +168,7 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-    public async IAsyncEnumerable<StateEventResponse> GetMembersAsync(bool joinedOnly = true) {
+    public async IAsyncEnumerable<StateEventResponse> GetMembersEnumerableAsync(bool joinedOnly = true) {
         var sw = Stopwatch.StartNew();
         var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
         Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
@@ -185,6 +185,27 @@ public class GenericRoom {
         }
 
         Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
+    }
+    
+    public async Task<List<StateEventResponse>> GetMembersListAsync(bool joinedOnly = true) {
+        var sw = Stopwatch.StartNew();
+        var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
+        Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
+        // var resText = await res.Content.ReadAsStringAsync();
+        Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
+        var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
+            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
+        });
+        Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
+        var members = new List<StateEventResponse>();
+        foreach (var resp in result.Chunk) {
+            if (resp?.Type != "m.room.member") continue;
+            if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
+            members.Add(resp);
+        }
+
+        Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
+        return members;
     }
 
 #region Utility shortcuts
@@ -232,7 +253,7 @@ public class GenericRoom {
         }
         catch {
             try {
-                var members = GetMembersAsync();
+                var members = GetMembersEnumerableAsync();
                 var memberList = new List<string>();
                 int memberCount = 0;
                 await foreach (var member in members)
@@ -373,7 +394,7 @@ public class GenericRoom {
             return await mxaeHomeserver.ClientHttpClient.GetFromJsonAsync<Dictionary<string, List<string>>>(
                 $"/_matrix/client/v3/rooms/{RoomId}/members_by_homeserver?joined_only={joinedOnly}");
         Dictionary<string, List<string>> roomHomeservers = new();
-        var members = GetMembersAsync();
+        var members = GetMembersEnumerableAsync();
         await foreach (var member in members) {
             string memberHs = member.StateKey.Split(':', 2)[1];
             roomHomeservers.TryAdd(memberHs, new());
