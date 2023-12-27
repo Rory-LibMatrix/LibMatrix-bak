@@ -25,10 +25,6 @@
         <PackageReference Condition="!Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')" Include="ArcaneLibs" Version="*-preview*"/>
         <ProjectReference Include="..\LibMatrix.EventTypes\LibMatrix.EventTypes.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="EventTypes\" />
-    </ItemGroup>
     
     <Target Name="ArcaneLibsNugetWarning" AfterTargets="AfterBuild">
         <Warning Text="ArcaneLibs is being referenced from NuGet, which is dangerous. Please read the warning in LibMatrix.csproj!" Condition="!Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')"/>

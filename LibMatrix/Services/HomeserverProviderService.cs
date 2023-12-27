@@ -13,8 +13,8 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
     private static readonly Dictionary<string, SemaphoreSlim> RemoteHomeserverSemaphore = new();
     private static readonly Dictionary<string, RemoteHomeserver> RemoteHomeserverCache = new();
 
-    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken, string? proxy = null) {
-        var cacheKey = homeserver + accessToken + proxy;
+    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken, string? proxy = null, string? impersonatedMxid = null) {
+        var cacheKey = homeserver + accessToken + proxy + impersonatedMxid;
         var sem = AuthenticatedHomeserverSemaphore.GetOrCreate(cacheKey, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
         AuthenticatedHomeserverGeneric? hs;
@@ -43,6 +43,9 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
                 hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(homeserver, accessToken, proxy);
         }
 
+        if(impersonatedMxid is not null)
+            await hs.SetImpersonate(impersonatedMxid);
+        
         lock (AuthenticatedHomeserverCache)
             AuthenticatedHomeserverCache[cacheKey] = hs;
         sem.Release();

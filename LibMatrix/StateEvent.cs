@@ -43,7 +43,7 @@ public class StateEvent {
                 // return null;
             // }
             try {
-                return (EventContent)RawContent.Deserialize(GetType, TypedContentSerializerOptions)!;
+                return (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -76,37 +76,37 @@ public class StateEvent {
         get => _rawContent;
         set => _rawContent = value;
     }
-
-    [JsonIgnore]
-    public new Type GetType {
-        get {
-            var type = GetStateEventType(Type);
-
-            //special handling for some types
-            // if (type == typeof(RoomEmotesEventContent)) {
-            //     RawContent["emote"] = RawContent["emote"]?.AsObject() ?? new JsonObject();
-            // }
-            //
-            // if (this is StateEventResponse stateEventResponse) {
-            //     if (type == null || type == typeof(object)) {
-            //         Console.WriteLine($"Warning: unknown event type '{Type}'!");
-            //         Console.WriteLine(RawContent.ToJson());
-            //         Directory.CreateDirectory($"unknown_state_events/{Type}");
-            //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
-            //             RawContent.ToJson());
-            //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
-            //     }
-            //     else if (RawContent is not null && RawContent.FindExtraJsonObjectFields(type)) {
-            //         Directory.CreateDirectory($"unknown_state_events/{Type}");
-            //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
-            //             RawContent.ToJson());
-            //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
-            //     }
-            // }
-
-            return type;
-        }
-    }
+    //
+    // [JsonIgnore]
+    // public new Type GetType {
+    //     get {
+    //         var type = GetStateEventType(Type);
+    //
+    //         //special handling for some types
+    //         // if (type == typeof(RoomEmotesEventContent)) {
+    //         //     RawContent["emote"] = RawContent["emote"]?.AsObject() ?? new JsonObject();
+    //         // }
+    //         //
+    //         // if (this is StateEventResponse stateEventResponse) {
+    //         //     if (type == null || type == typeof(object)) {
+    //         //         Console.WriteLine($"Warning: unknown event type '{Type}'!");
+    //         //         Console.WriteLine(RawContent.ToJson());
+    //         //         Directory.CreateDirectory($"unknown_state_events/{Type}");
+    //         //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
+    //         //             RawContent.ToJson());
+    //         //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
+    //         //     }
+    //         //     else if (RawContent is not null && RawContent.FindExtraJsonObjectFields(type)) {
+    //         //         Directory.CreateDirectory($"unknown_state_events/{Type}");
+    //         //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
+    //         //             RawContent.ToJson());
+    //         //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
+    //         //     }
+    //         // }
+    //
+    //         return type;
+    //     }
+    // }
 
     //debug
     [JsonIgnore]

@@ -74,8 +74,6 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
         var rooms = roomsJson.GetProperty("joined_rooms").EnumerateArray().Select(room => GetRoom(room.GetString()!)).ToList();
 
-        Console.WriteLine($"Fetched {rooms.Count} rooms");
-
         return rooms;
     }
 

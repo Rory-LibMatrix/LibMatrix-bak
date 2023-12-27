@@ -4,9 +4,11 @@ namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = "m.room.join_rules")]
 public class RoomJoinRulesEventContent : EventContent {
+    public const string EventId = "m.room.join_rules";
     /// <summary>
     /// one of ["public", "invite", "knock", "restricted", "knock_restricted"]
     /// "private" is reserved without implementation!
+    /// unknown values are treated as "private"
     /// </summary>
     [JsonPropertyName("join_rule")]
     public string JoinRuleValue { get; set; }
@@ -19,7 +21,7 @@ public class RoomJoinRulesEventContent : EventContent {
             "knock" => JoinRules.Knock,
             "restricted" => JoinRules.Restricted,
             "knock_restricted" => JoinRules.KnockRestricted,
-            _ => throw new ArgumentOutOfRangeException()
+            _ => JoinRules.Private
         };
         set => JoinRuleValue = value switch {
             JoinRules.Public => "public",
@@ -27,7 +29,7 @@ public class RoomJoinRulesEventContent : EventContent {
             JoinRules.Knock => "knock",
             JoinRules.Restricted => "restricted",
             JoinRules.KnockRestricted => "knock_restricted",
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            _ => "private"
         };
     }
 
@@ -47,6 +49,7 @@ public class RoomJoinRulesEventContent : EventContent {
         Invite,
         Knock,
         Restricted,
-        KnockRestricted
+        KnockRestricted,
+        Private // reserved without implementation!
     }
 }
