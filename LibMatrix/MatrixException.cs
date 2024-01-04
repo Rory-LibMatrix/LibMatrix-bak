@@ -11,14 +11,17 @@ public class MatrixException : Exception {
     public required string Error { get; set; }
 
     [JsonPropertyName("soft_logout")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? SoftLogout { get; set; }
 
     [JsonPropertyName("retry_after_ms")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? RetryAfterMs { get; set; }
 
     public string RawContent { get; set; }
 
-    public string? GetAsJson() => new { ErrorCode, Error, SoftLogout, RetryAfterMs }.ToJson(ignoreNull: true);
+    public object GetAsObject() => new { ErrorCode, Error, SoftLogout, RetryAfterMs };
+    public string GetAsJson() => GetAsObject().ToJson(ignoreNull: true);
 
 
     public override string Message =>
