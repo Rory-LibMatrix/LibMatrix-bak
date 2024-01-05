@@ -2,6 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.Responses;
 
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(SyncResponse))]
+internal partial class SyncResponseSerializerContext : JsonSerializerContext { }
+
 public class SyncResponse {
     [JsonPropertyName("next_batch")]
     public string NextBatch { get; set; } = null!;

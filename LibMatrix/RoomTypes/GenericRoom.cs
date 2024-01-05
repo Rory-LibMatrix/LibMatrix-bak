@@ -184,7 +184,7 @@ public class GenericRoom {
         else sw.Restart();
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
-            if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
+            if (joinedOnly && resp.RawContent?["membership"]?.GetValue<string>() != "join") continue;
             yield return resp;
         }
 
@@ -209,7 +209,7 @@ public class GenericRoom {
         var members = new List<StateEventResponse>();
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
-            if (joinedOnly && (resp.TypedContent as RoomMemberEventContent)?.Membership is not "join") continue;
+            if (joinedOnly && resp.RawContent?["membership"]?.GetValue<string>() != "join") continue;
             members.Add(resp);
         }
 
@@ -267,7 +267,7 @@ public class GenericRoom {
                 var memberList = new List<string>();
                 int memberCount = 0;
                 await foreach (var member in members)
-                    memberList.Add((member.TypedContent is RoomMemberEventContent memberEvent ? memberEvent.DisplayName : "") ?? "");
+                    memberList.Add(member.RawContent?["displayname"]?.GetValue<string>() ?? "");
                 memberCount = memberList.Count;
                 memberList.RemoveAll(string.IsNullOrWhiteSpace);
                 memberList = memberList.OrderBy(x => x).ToList();

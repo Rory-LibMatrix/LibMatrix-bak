@@ -52,7 +52,7 @@ public class RoomTests : TestBed<TestFixture> {
         var hs = await HomeserverAbstraction.GetHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
-        var members = room.GetMembersAsync();
+        var members = room.GetMembersEnumerableAsync();
         Assert.NotNull(members);
         bool hitMembers = false;
         await foreach (var member in members) {
@@ -248,12 +248,7 @@ public class RoomTests : TestBed<TestFixture> {
         }
         await Task.WhenAll(tasks);
 
-        var states = room.GetMembersAsync(false);
-        var count = 0;
-        await foreach (var state in states) {
-            count++;
-        }
-        // Assert.Equal(++expectedCount, count);
-        Assert.Equal(16, count);
+        var states = await room.GetMembersListAsync(false);
+        Assert.Equal(16, states.Count);
     }
 }

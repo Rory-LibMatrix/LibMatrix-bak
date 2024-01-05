@@ -26,8 +26,11 @@ public class StateEvent {
         }).ToFrozenDictionary();
 
     public static Type GetStateEventType(string type) => KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
+    
+    [JsonIgnore]
+    public Type MappedType => GetStateEventType(Type);
 
-    private static readonly JsonSerializerOptions TypedContentSerializerOptions = new JsonSerializerOptions() {
+    private static readonly JsonSerializerOptions TypedContentSerializerOptions = new() {
         Converters = {
             new JsonFloatStringConverter(),
             new JsonDoubleStringConverter(),

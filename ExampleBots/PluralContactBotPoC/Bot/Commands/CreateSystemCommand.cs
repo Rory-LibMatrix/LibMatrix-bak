@@ -35,7 +35,7 @@ public class CreateSystemCommand(IServiceProvider services, HomeserverProviderSe
                         Members = new(),
                     };
 
-                    var state = ctx.Room.GetMembersAsync();
+                    var state = ctx.Room.GetMembersEnumerableAsync();
                     await foreach (var member in state) {
                         sysData.Members.Add(member.StateKey);
                     }

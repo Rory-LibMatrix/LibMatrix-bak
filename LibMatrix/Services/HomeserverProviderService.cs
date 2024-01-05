@@ -25,22 +25,34 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             }
         }
 
-        // var domain = proxy ?? (await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver)).client;
-
         var rhs = await RemoteHomeserver.Create(homeserver, proxy);
-        var clientVersions = await rhs.GetClientVersionsAsync();
-        if (proxy is not null)
-            logger.LogInformation($"Homeserver {homeserver} proxied via {proxy}...");
-        logger.LogInformation($"{homeserver}: " + clientVersions.ToJson());
+        ClientVersionsResponse clientVersions = new();
+        try {
+            clientVersions = await rhs.GetClientVersionsAsync();
+        }
+        catch (Exception e) {
+            logger.LogError(e, "Failed to get client versions for {homeserver}", homeserver);
+        }
 
-        if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
-            hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
-        else {
-            var serverVersion = await rhs.GetServerVersionAsync();
-            if (serverVersion is { Server.Name: "Synapse" })
-                hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken, proxy);
-            else
-                hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(homeserver, accessToken, proxy);
+        if (proxy is not null)
+            logger.LogInformation("Homeserver {homeserver} proxied via {proxy}...", homeserver, proxy);
+        logger.LogInformation("{homeserver}: {clientVersions}", homeserver, clientVersions.ToJson());
+
+        try {
+            if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
+                hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
+            else {
+                var serverVersion = await rhs.GetServerVersionAsync();
+                if (serverVersion is { Server.Name: "Synapse" })
+                    hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken, proxy);
+                else
+                    hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(homeserver, accessToken, proxy);
+            }
+        }
+        catch (Exception e) {
+            logger.LogError(e, "Failed to create authenticated homeserver for {homeserver}", homeserver);
+            sem.Release();
+            throw;
         }
 
         if(impersonatedMxid is not null)

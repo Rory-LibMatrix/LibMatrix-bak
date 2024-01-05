@@ -16,36 +16,40 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverGeneric(string serverName, string accessToken) : RemoteHomeserver(serverName) {
-    public static async Task<T> Create<T>(string serverName, string accessToken, string? proxy = null) where T : AuthenticatedHomeserverGeneric {
-        var instance = Activator.CreateInstance(typeof(T), serverName, accessToken) as T
-                       ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
-        HomeserverResolverService.WellKnownUris? urls = null;
-        if (proxy is null)
-            urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
-
+    public static async Task<T> Create<T>(string serverName, string accessToken, string? proxy = null) where T : AuthenticatedHomeserverGeneric =>
+        await Create(typeof(T), serverName, accessToken, proxy) as T ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
+    public static async Task<AuthenticatedHomeserverGeneric> Create(Type type, string serverName, string accessToken, string? proxy = null) {
+        if(!type.IsAssignableTo(typeof(AuthenticatedHomeserverGeneric))) throw new ArgumentException("Type must be a subclass of AuthenticatedHomeserverGeneric", nameof(type));
+        var instance = Activator.CreateInstance(type, serverName, accessToken) as AuthenticatedHomeserverGeneric
+                       ?? throw new InvalidOperationException($"Failed to create instance of {type.Name}");
+        
         instance.ClientHttpClient = new() {
-            BaseAddress = new Uri(proxy ?? urls?.Client
-                ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
         instance.ServerHttpClient = new() {
-            BaseAddress = new Uri(proxy ?? urls?.Server
-                ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
 
-        instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
-
-        if (proxy is not null) {
+        if (string.IsNullOrWhiteSpace(proxy)) {
+            HomeserverResolverService.WellKnownUris? urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
+            instance.ClientHttpClient.BaseAddress = new Uri(urls?.Client ?? throw new InvalidOperationException("Failed to resolve homeserver"));
+            instance.ServerHttpClient.BaseAddress = new Uri(urls?.Server ?? throw new InvalidOperationException("Failed to resolve homeserver"));
+        }
+        else {
+            instance.ClientHttpClient.BaseAddress = new Uri(proxy);
+            instance.ServerHttpClient.BaseAddress = new Uri(proxy);
             instance.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
             instance.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
         }
+
+        instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+
 
         return instance;
     }
@@ -54,12 +58,6 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     public string UserId => WhoAmI.UserId;
     public string UserLocalpart => UserId.Split(":")[0][1..];
     public string ServerName => UserId.Split(":", 2)[1];
-
-    // public virtual async Task<WhoAmIResponse> WhoAmI() {
-    // if (_whoAmI is not null) return _whoAmI;
-    // _whoAmI = await _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
-    // return _whoAmI;
-    // }
 
     public string AccessToken { get; set; } = accessToken;
 

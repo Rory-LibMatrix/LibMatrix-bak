@@ -37,9 +37,9 @@ public class RemoteHomeserver(string baseUrl) {
     public MatrixHttpClient ServerHttpClient { get; set; } = null!;
     public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; } = null!;
 
-    public async Task<UserProfileResponse> GetProfileAsync(string mxid) {
+    public async Task<UserProfileResponse> GetProfileAsync(string mxid, bool useCache = false) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));
-        if (_profileCache.TryGetValue(mxid, out var value)) {
+        if (useCache && _profileCache.TryGetValue(mxid, out var value)) {
             if (value is SemaphoreSlim s) await s.WaitAsync();
             if (value is UserProfileResponse p) return p;
         }

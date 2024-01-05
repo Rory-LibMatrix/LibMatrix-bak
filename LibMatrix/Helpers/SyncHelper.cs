@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Homeservers;
@@ -28,8 +30,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             Console.WriteLine("Homeserver for SyncHelper is not properly configured!");
             throw new ArgumentNullException(nameof(homeserver.ClientHttpClient), "Null passed as homeserver for SyncHelper!");
         }
-
-
+        
         var sw = Stopwatch.StartNew();
 
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
@@ -42,7 +43,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
             logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp.Content.Headers.ContentLength ?? -1, sw.Elapsed);
             var deserializeSw = Stopwatch.StartNew();
-            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None);
+            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None, jsonTypeInfo: SyncResponseSerializerContext.Default.SyncResponse);
             logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp.Content.Headers.ContentLength ?? -1, deserializeSw.Elapsed, sw.Elapsed);
             var timeToWait = MinimumDelay.Subtract(sw.Elapsed);
             if (timeToWait.TotalMilliseconds > 0)
