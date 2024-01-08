@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 using LibMatrix.Responses;
@@ -9,7 +10,16 @@ using LibMatrix.Services;
 namespace LibMatrix.Homeservers;
 
 public class RemoteHomeserver(string baseUrl) {
-    
+    public static async Task<RemoteHomeserver?> TryCreate(string baseUrl, string? proxy = null) {
+        try {
+            return await Create(baseUrl, proxy);
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to create homeserver {baseUrl}: {e.Message}");
+            return null;
+        }
+    }
+
     public static async Task<RemoteHomeserver> Create(string baseUrl, string? proxy = null) {
         var homeserver = new RemoteHomeserver(baseUrl);
         homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
@@ -17,14 +27,16 @@ public class RemoteHomeserver(string baseUrl) {
             BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException("Failed to resolve homeserver")),
             Timeout = TimeSpan.FromSeconds(120)
         };
-        homeserver.ServerHttpClient = new() {
-            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Server ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-            Timeout = TimeSpan.FromSeconds(120)
-        };
+        if (!string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
+            homeserver.ServerHttpClient = new() {
+                BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Server ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+                Timeout = TimeSpan.FromSeconds(120)
+            };
 
         if (proxy is not null) {
             homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
-            homeserver.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
+            if (!string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
+                homeserver.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
         }
 
         return homeserver;
@@ -32,7 +44,7 @@ public class RemoteHomeserver(string baseUrl) {
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
     public string BaseUrl { get; } = baseUrl;
-    
+
     public MatrixHttpClient ClientHttpClient { get; set; } = null!;
     public MatrixHttpClient ServerHttpClient { get; set; } = null!;
     public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; } = null!;
@@ -46,7 +58,7 @@ public class RemoteHomeserver(string baseUrl) {
 
         _profileCache[mxid] = new SemaphoreSlim(1);
 
-        var resp = await ClientHttpClient.GetAsync($"/_matrix/client/v3/profile/{mxid}");
+        var resp = await ClientHttpClient.GetAsync($"/_matrix/client/v3/profile/{HttpUtility.UrlEncode(mxid)}");
         var data = await resp.Content.ReadFromJsonAsync<UserProfileResponse>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data);
         _profileCache[mxid] = data;
@@ -69,7 +81,7 @@ public class RemoteHomeserver(string baseUrl) {
         return data;
     }
 
-    #region Authentication
+#region Authentication
 
     public async Task<LoginResponse> LoginAsync(string username, string password, string? deviceName = null) {
         var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/r0/login", new {
@@ -103,12 +115,11 @@ public class RemoteHomeserver(string baseUrl) {
         return data;
     }
 
-    #endregion
+#endregion
 
     public async Task<ServerVersionResponse> GetServerVersionAsync() {
         return await ServerHttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
     }
-
 
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
@@ -118,7 +129,6 @@ public class RemoteHomeserver(string baseUrl) {
 }
 
 public class ServerVersionResponse {
-
     [JsonPropertyName("server")]
     public required ServerInfo Server { get; set; }
 
