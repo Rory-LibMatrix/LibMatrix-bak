@@ -6,7 +6,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ArcaneLibs;
+using ArcaneLibs.Attributes;
 using ArcaneLibs.Extensions;
+using Castle.DynamicProxy;
 using LibMatrix.EventTypes;
 using LibMatrix.Extensions;
 
@@ -14,7 +16,7 @@ namespace LibMatrix;
 
 public class StateEvent {
     public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
-
+    
     public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),
         (dict, type) => {
@@ -22,13 +24,23 @@ public class StateEvent {
             foreach (var attr in attrs) {
                 dict[attr.EventName] = type;
             }
+
             return dict;
         }).ToFrozenDictionary();
 
     public static Type GetStateEventType(string type) => KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
-    
+
     [JsonIgnore]
     public Type MappedType => GetStateEventType(Type);
+
+    [JsonIgnore]
+    public bool IsLegacyType => MappedType.GetCustomAttributes<MatrixEventAttribute>().FirstOrDefault(x => x.EventName == Type)?.Legacy ?? false;
+
+    [JsonIgnore]
+    public string FriendlyTypeName => MappedType.GetFriendlyNameOrNull() ?? Type;
+
+    [JsonIgnore]
+    public string FriendlyTypeNamePlural => MappedType.GetFriendlyNamePluralOrNull() ?? Type;
 
     private static readonly JsonSerializerOptions TypedContentSerializerOptions = new() {
         Converters = {
@@ -38,15 +50,30 @@ public class StateEvent {
         }
     };
 
+    private class EventContentInterceptor : IInterceptor {
+        public void Intercept(IInvocation invocation) {
+            Console.WriteLine($"Intercepting {invocation.Method.Name}");
+            // if (invocation.Method.Name == "ToString") {
+            //     invocation.ReturnValue = "EventContent";
+            //     return;
+            // }
+
+            invocation.Proceed();
+        }
+    }
+    
     [JsonIgnore]
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
     public EventContent? TypedContent {
         get {
             // if (Type == "m.receipt") {
-                // return null;
+            // return null;
             // }
             try {
-                return (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
+                var c= (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
+                // c = (EventContent)new ProxyGenerator().CreateClassProxyWithTarget(GetStateEventType(Type), c, new EventContentInterceptor());
+                // Console.WriteLine(c.GetType().Name + ": " + string.Join(", ", c.GetType().GetRuntimeProperties().Select(x=>x.Name)));
+                return c;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -126,7 +153,6 @@ public class StateEvent {
     [JsonIgnore]
     public string InternalContentTypeName => TypedContent?.GetType().Name ?? "null";
 }
-
 
 public class StateEventResponse : StateEvent {
     [JsonPropertyName("origin_server_ts")]

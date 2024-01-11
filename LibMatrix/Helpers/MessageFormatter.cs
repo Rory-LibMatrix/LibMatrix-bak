@@ -13,7 +13,7 @@ public static class MessageFormatter {
 
     public static RoomMessageEventContent FormatException(string error, Exception e) {
         return new RoomMessageEventContent(body: $"{error}: {e.Message}", messageType: "m.text") {
-            FormattedBody = $"<font color=\"#EE4444\">{error}: <pre>{e.Message}</pre></font>",
+            FormattedBody = $"<font color=\"#EE4444\">{error}: <pre><code>{e.Message}</code></pre></font>",
             Format = "org.matrix.custom.html"
         };
     }
@@ -27,7 +27,7 @@ public static class MessageFormatter {
 
     public static RoomMessageEventContent FormatSuccessJson(string text, object data) {
         return new RoomMessageEventContent(body: text, messageType: "m.text") {
-            FormattedBody = $"<font color=\"#00FF00\">{text}: <pre>{data.ToJson(ignoreNull: true)}</pre></font>",
+            FormattedBody = $"<font color=\"#00FF00\">{text}: <pre><code>{data.ToJson(ignoreNull: true)}</code></pre></font>",
             Format = "org.matrix.custom.html"
         };
     }
@@ -50,6 +50,26 @@ public static class MessageFormatter {
     public static RoomMessageEventContent FormatWarning(string warning) {
         return new RoomMessageEventContent(body: warning, messageType: "m.text") {
             FormattedBody = $"<font color=\"#FFFF00\">{warning}</font>",
+            Format = "org.matrix.custom.html"
+        };
+    }
+    
+    public static RoomMessageEventContent FormatWarningJson(string warning, object data) {
+        return new RoomMessageEventContent(body: warning, messageType: "m.text") {
+            FormattedBody = $"<font color=\"#FFFF00\">{warning}: <pre><code>{data.ToJson(ignoreNull: true)}</code></pre></font>",
+            Format = "org.matrix.custom.html"
+        };
+    }
+    
+    public static RoomMessageEventContent Concat(this RoomMessageEventContent a, RoomMessageEventContent b) {
+        return new RoomMessageEventContent(body: $"{a.Body}{b.Body}", messageType: a.MessageType) {
+            FormattedBody = $"{a.FormattedBody}{b.FormattedBody}",
+            Format = a.Format
+        };
+    }
+    public static RoomMessageEventContent ConcatLine(this RoomMessageEventContent a, RoomMessageEventContent b) {
+        return new RoomMessageEventContent(body: $"{a.Body}\n{b.Body}", messageType: "m.text") {
+            FormattedBody = $"{a.FormattedBody}<br/>{b.FormattedBody}",
             Format = "org.matrix.custom.html"
         };
     }

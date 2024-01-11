@@ -135,8 +135,8 @@ public class MatrixHttpClient : HttpClient {
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         Console.WriteLine($"Sending PUT {requestUri}");
-        Console.WriteLine($"Content: {JsonSerializer.Serialize(value, value.GetType(), options)}");
-        Console.WriteLine($"Type: {value.GetType().FullName}");
+        // Console.WriteLine($"Content: {JsonSerializer.Serialize(value, value.GetType(), options)}");
+        // Console.WriteLine($"Type: {value.GetType().FullName}");
         request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options),
             Encoding.UTF8, "application/json");
         return await SendAsync(request, cancellationToken);
