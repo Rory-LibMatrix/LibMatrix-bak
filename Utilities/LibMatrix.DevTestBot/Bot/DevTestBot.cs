@@ -44,6 +44,8 @@ public class DevTestBot : IHostedService {
             throw;
         }
 
+        var res = await hs.ResolveRoomAliasAsync("#watercooler:maunium.net");
+
         var syncHelper = new SyncHelper(hs);
 
         await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();

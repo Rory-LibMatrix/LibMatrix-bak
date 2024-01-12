@@ -26,11 +26,12 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             Console.WriteLine("Null passed as homeserver for SyncHelper!");
             throw new ArgumentNullException(nameof(homeserver), "Null passed as homeserver for SyncHelper!");
         }
+
         if (homeserver.ClientHttpClient is null) {
             Console.WriteLine("Homeserver for SyncHelper is not properly configured!");
             throw new ArgumentNullException(nameof(homeserver.ClientHttpClient), "Null passed as homeserver for SyncHelper!");
         }
-        
+
         var sw = Stopwatch.StartNew();
 
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
@@ -43,7 +44,8 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
             logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp.Content.Headers.ContentLength ?? -1, sw.Elapsed);
             var deserializeSw = Stopwatch.StartNew();
-            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None, jsonTypeInfo: SyncResponseSerializerContext.Default.SyncResponse);
+            var resp = await httpResp.Content.ReadFromJsonAsync<SyncResponse>(cancellationToken: cancellationToken ?? CancellationToken.None,
+                jsonTypeInfo: SyncResponseSerializerContext.Default.SyncResponse);
             logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp.Content.Headers.ContentLength ?? -1, deserializeSw.Elapsed, sw.Elapsed);
             var timeToWait = MinimumDelay.Subtract(sw.Elapsed);
             if (timeToWait.TotalMilliseconds > 0)
@@ -74,16 +76,38 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     public async Task RunSyncLoopAsync(bool skipInitialSyncEvents = true, CancellationToken? cancellationToken = null) {
         var sw = Stopwatch.StartNew();
         int emptyInitialSyncCount = 0;
+        int syncCount = 0;
         var oldTimeout = Timeout;
         Timeout = 0;
         await foreach (var sync in EnumerateSyncAsync(cancellationToken)) {
-            if (sync.ToJson(ignoreNull: true, indent: false).Length < 250) {
+            syncCount++;
+            if (sync is {
+                    AccountData: null or {
+                        Events: null or { Count: 0 }
+                    },
+                    Rooms: null or {
+                        Invite: null or { Count: 0 },
+                        Join: null or { Count: 0 },
+                        Leave: null or { Count: 0 }
+                    },
+                    Presence: null or {
+                        Events: null or { Count: 0 }
+                    },
+                    DeviceLists: null or {
+                        Changed: null or { Count: 0 },
+                        Left: null or { Count: 0 }
+                    },
+                    ToDevice: null or {
+                        Events: null or { Count: 0 }
+                    } 
+                }) {
                 emptyInitialSyncCount++;
-                if (emptyInitialSyncCount > 5) {
+                if (emptyInitialSyncCount >= 2) {
                     IsInitialSync = false;
                     Timeout = oldTimeout;
                 }
-            }
+            } else if (syncCount > 15) 
+                Console.WriteLine(sync.ToJson(ignoreNull: true, indent: true));
 
             await RunSyncLoopCallbacksAsync(sync, IsInitialSync && skipInitialSyncEvents);
         }
