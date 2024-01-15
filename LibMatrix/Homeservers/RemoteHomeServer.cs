@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
@@ -21,22 +22,26 @@ public class RemoteHomeserver(string baseUrl) {
     }
 
     public static async Task<RemoteHomeserver> Create(string baseUrl, string? proxy = null) {
+        if (string.IsNullOrWhiteSpace(proxy))
+            proxy = null;
         var homeserver = new RemoteHomeserver(baseUrl);
         homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
+        if(string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
+            Console.WriteLine($"Failed to resolve homeserver client URI for {baseUrl}");
+        if(string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
+            Console.WriteLine($"Failed to resolve homeserver server URI for {baseUrl}");
+        
+        Console.WriteLine(homeserver.WellKnownUris.ToJson(ignoreNull:false));
+        
         homeserver.ClientHttpClient = new() {
-            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException("Failed to resolve homeserver")),
+            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException($"Failed to resolve homeserver client URI for {baseUrl}")),
             Timeout = TimeSpan.FromSeconds(120)
         };
-        if (!string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
-            homeserver.ServerHttpClient = new() {
-                BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Server ?? throw new InvalidOperationException("Failed to resolve homeserver")),
-                Timeout = TimeSpan.FromSeconds(120)
-            };
+        
+        homeserver.FederationClient = await FederationClient.TryCreate(baseUrl, proxy);
 
         if (proxy is not null) {
             homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
-            if (!string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
-                homeserver.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
         }
 
         return homeserver;
@@ -46,7 +51,7 @@ public class RemoteHomeserver(string baseUrl) {
     public string BaseUrl { get; } = baseUrl;
 
     public MatrixHttpClient ClientHttpClient { get; set; } = null!;
-    public MatrixHttpClient ServerHttpClient { get; set; } = null!;
+    public FederationClient? FederationClient { get; set; }
     public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; } = null!;
 
     public async Task<UserProfileResponse> GetProfileAsync(string mxid, bool useCache = false) {
@@ -117,28 +122,10 @@ public class RemoteHomeserver(string baseUrl) {
 
 #endregion
 
-    public async Task<ServerVersionResponse> GetServerVersionAsync() {
-        return await ServerHttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
-    }
-
     public string? ResolveMediaUri(string? mxcUri) {
         if (mxcUri is null) return null;
         if (mxcUri.StartsWith("https://")) return mxcUri;
         return $"{ClientHttpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
-    }
-}
-
-public class ServerVersionResponse {
-    [JsonPropertyName("server")]
-    public required ServerInfo Server { get; set; }
-
-    // ReSharper disable once ClassNeverInstantiated.Global
-    public class ServerInfo {
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-
-        [JsonPropertyName("version")]
-        public string Version { get; set; }
     }
 }
 

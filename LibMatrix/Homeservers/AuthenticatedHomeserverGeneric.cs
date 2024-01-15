@@ -19,6 +19,8 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     public static async Task<T> Create<T>(string serverName, string accessToken, string? proxy = null) where T : AuthenticatedHomeserverGeneric =>
         await Create(typeof(T), serverName, accessToken, proxy) as T ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
     public static async Task<AuthenticatedHomeserverGeneric> Create(Type type, string serverName, string accessToken, string? proxy = null) {
+        if (string.IsNullOrWhiteSpace(proxy))
+            proxy = null;
         if(!type.IsAssignableTo(typeof(AuthenticatedHomeserverGeneric))) throw new ArgumentException("Type must be a subclass of AuthenticatedHomeserverGeneric", nameof(type));
         var instance = Activator.CreateInstance(type, serverName, accessToken) as AuthenticatedHomeserverGeneric
                        ?? throw new InvalidOperationException($"Failed to create instance of {type.Name}");
@@ -29,23 +31,15 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
             }
         };
-        instance.ServerHttpClient = new() {
-            Timeout = TimeSpan.FromMinutes(15),
-            DefaultRequestHeaders = {
-                Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
-            }
-        };
+        instance.FederationClient = await FederationClient.TryCreate(serverName, proxy);
 
         if (string.IsNullOrWhiteSpace(proxy)) {
             HomeserverResolverService.WellKnownUris? urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
             instance.ClientHttpClient.BaseAddress = new Uri(urls?.Client ?? throw new InvalidOperationException("Failed to resolve homeserver"));
-            instance.ServerHttpClient.BaseAddress = new Uri(urls?.Server ?? throw new InvalidOperationException("Failed to resolve homeserver"));
         }
         else {
             instance.ClientHttpClient.BaseAddress = new Uri(proxy);
-            instance.ServerHttpClient.BaseAddress = new Uri(proxy);
             instance.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
-            instance.ServerHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", serverName);
         }
 
         instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");

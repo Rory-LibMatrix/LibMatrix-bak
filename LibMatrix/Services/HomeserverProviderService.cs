@@ -42,7 +42,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
                 hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
             else {
-                var serverVersion = await rhs.GetServerVersionAsync();
+                var serverVersion = await (rhs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null));
                 if (serverVersion is { Server.Name: "Synapse" })
                     hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken, proxy);
                 else
