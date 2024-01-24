@@ -2,8 +2,8 @@ using Microsoft.Extensions.Configuration;
 
 namespace LibMatrix.ExampleBot.Bot;
 
-public class MRUBotConfiguration {
-    public MRUBotConfiguration(IConfiguration config) {
+public class RMUBotConfiguration {
+    public RMUBotConfiguration(IConfiguration config) {
         config.GetRequiredSection("Bot").Bind(this);
     }
     public string Homeserver { get; set; } = "";

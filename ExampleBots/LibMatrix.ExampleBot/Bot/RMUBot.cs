@@ -12,14 +12,14 @@ using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.ExampleBot.Bot;
 
-public class MRUBot : IHostedService {
+public class RMUBot : IHostedService {
     private readonly HomeserverProviderService _homeserverProviderService;
-    private readonly ILogger<MRUBot> _logger;
-    private readonly MRUBotConfiguration _configuration;
+    private readonly ILogger<RMUBot> _logger;
+    private readonly RMUBotConfiguration _configuration;
     private readonly IEnumerable<ICommand> _commands;
 
-    public MRUBot(HomeserverProviderService homeserverProviderService, ILogger<MRUBot> logger,
-        MRUBotConfiguration configuration, IServiceProvider services) {
+    public RMUBot(HomeserverProviderService homeserverProviderService, ILogger<RMUBot> logger,
+        RMUBotConfiguration configuration, IServiceProvider services) {
         logger.LogInformation("{} instantiated!", this.GetType().Name);
         _homeserverProviderService = homeserverProviderService;
         _logger = logger;

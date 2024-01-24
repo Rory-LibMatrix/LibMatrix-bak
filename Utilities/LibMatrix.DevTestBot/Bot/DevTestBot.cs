@@ -44,6 +44,7 @@ public class DevTestBot : IHostedService {
             throw;
         }
 
+        var msg = new MessageBuilder().WithRainbowString("Meanwhile, I'm sitting here, still struggling with trying to rainbow. ^^'").Build();
         var res = await hs.ResolveRoomAliasAsync("#watercooler:maunium.net");
 
         var syncHelper = new SyncHelper(hs);

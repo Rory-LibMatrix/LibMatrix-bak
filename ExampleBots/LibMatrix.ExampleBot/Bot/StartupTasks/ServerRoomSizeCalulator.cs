@@ -10,11 +10,11 @@ namespace LibMatrix.ExampleBot.Bot.StartupTasks;
 public class ServerRoomSizeCalulator : IHostedService {
     private readonly HomeserverProviderService _homeserverProviderService;
     private readonly ILogger<ServerRoomSizeCalulator> _logger;
-    private readonly MRUBotConfiguration _configuration;
+    private readonly RMUBotConfiguration _configuration;
     private readonly IEnumerable<ICommand> _commands;
 
     public ServerRoomSizeCalulator(HomeserverProviderService homeserverProviderService, ILogger<ServerRoomSizeCalulator> logger,
-        MRUBotConfiguration configuration, IServiceProvider services) {
+        RMUBotConfiguration configuration, IServiceProvider services) {
         logger.LogInformation("Server room size calculator hosted service instantiated!");
         _homeserverProviderService = homeserverProviderService;
         _logger = logger;

@@ -11,8 +11,8 @@
         <!-- This is dangerous, but eases development since locking the version will drift out of sync without noticing,
                 which causes build errors due to missing functions.
                 Using the NuGet version in development is annoying due to delays between pushing and being able to consume.
-                If you want to use a time-appropriate version of the library, recursively clone https://cgit.rory.gay/matrix/MatrixRoomUtils.git
-                instead, since this will be locked by the MatrixRoomUtils project, which contains both LibMatrix and ArcaneLibs as a submodule. -->
+                If you want to use a time-appropriate version of the library, recursively clone https://cgit.rory.gay/matrix/MatrixUtils.git
+                instead, since this will be locked by the MatrixUtils project, which contains both LibMatrix and ArcaneLibs as a submodule. -->
         <PackageReference Condition="!Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')" Include="ArcaneLibs" Version="*-preview*"/>
     </ItemGroup>
 

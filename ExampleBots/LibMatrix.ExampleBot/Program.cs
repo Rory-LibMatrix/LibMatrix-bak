@@ -16,7 +16,7 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
             dataStorageProvider: new FileStorageProvider("bot_data/data/")
         )
     );
-    services.AddScoped<MRUBotConfiguration>();
+    services.AddScoped<RMUBotConfiguration>();
     services.AddRoryLibMatrixServices();
     foreach (var commandClass in new ClassCollector<ICommand>().ResolveFromAllAccessibleAssemblies()) {
         Console.WriteLine($"Adding command {commandClass.Name}");
@@ -24,7 +24,7 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
     }
 
     // services.AddHostedService<ServerRoomSizeCalulator>();
-    services.AddHostedService<MRUBot>();
+    services.AddHostedService<RMUBot>();
 }).UseConsoleLifetime().Build();
 
 await host.RunAsync();
