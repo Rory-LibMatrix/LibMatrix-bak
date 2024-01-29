@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Web;
 using ArcaneLibs.Extensions;
@@ -41,25 +42,12 @@ public class GenericRoom {
         Homeserver.ClientHttpClient.GetFromJsonAsync<List<StateEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
 
     public async Task<T?> GetStateAsync<T>(string type, string stateKey = "") {
-        var url = $"/_matrix/client/v3/rooms/{RoomId}/state";
-        if (!string.IsNullOrEmpty(type)) url += $"/{type}";
+        if (string.IsNullOrEmpty(type)) throw new ArgumentNullException(nameof(type), "Event type must be specified");
+        var url = $"/_matrix/client/v3/rooms/{RoomId}/state/{type}";
         if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
         try {
-#if DEBUG && false
-            var resp = await _httpClient.GetFromJsonAsync<JsonObject>(url);
-            try {
-                _homeServer._httpClient.PostAsJsonAsync(
-                    "http://localhost:5116/validate/" + typeof(T).AssemblyQualifiedName, resp);
-            }
-            catch (Exception e) {
-                Console.WriteLine("[!!] Checking state response failed: " + e);
-            }
-
-            return resp.Deserialize<T>();
-#else
             var resp = await Homeserver.ClientHttpClient.GetFromJsonAsync<T>(url);
             return resp;
-#endif
         }
         catch (MatrixException e) {
             // if (e is not { ErrorCodode: "M_NOT_FOUND" }) {
@@ -74,6 +62,36 @@ public class GenericRoom {
     public async Task<T?> GetStateOrNullAsync<T>(string type, string stateKey = "") {
         try {
             return await GetStateAsync<T>(type, stateKey);
+        }
+        catch (MatrixException e) {
+            if (e.ErrorCode == "M_NOT_FOUND") return default;
+            throw;
+        }
+    }
+
+    public async Task<StateEventResponse> GetStateEventAsync(string type, string stateKey = "") {
+        if (string.IsNullOrEmpty(type)) throw new ArgumentNullException(nameof(type), "Event type must be specified");
+        var url = $"/_matrix/client/v3/rooms/{RoomId}/state/{type}";
+        if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
+        url += "?format=event";
+        try {
+            var resp = await Homeserver.ClientHttpClient.GetFromJsonAsync<JsonObject>(url);
+            if(resp["type"]?.GetValue<string>() != type) throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
+            return resp.Deserialize<StateEventResponse>();
+        }
+        catch (MatrixException e) {
+            // if (e is not { ErrorCodode: "M_NOT_FOUND" }) {
+            throw;
+            // }
+
+            // Console.WriteLine(e);
+            // return default;
+        }
+    }
+
+    public async Task<StateEventResponse?> GetStateEventOrNullAsync(string type, string stateKey = "") {
+        try {
+            return await GetStateEventAsync(type, stateKey);
         }
         catch (MatrixException e) {
             if (e.ErrorCode == "M_NOT_FOUND") return default;

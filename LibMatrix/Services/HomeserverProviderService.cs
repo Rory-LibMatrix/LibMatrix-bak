@@ -38,11 +38,20 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             logger.LogInformation("Homeserver {homeserver} proxied via {proxy}...", homeserver, proxy);
         logger.LogInformation("{homeserver}: {clientVersions}", homeserver, clientVersions.ToJson());
 
+        ServerVersionResponse serverVersion;
+        try {
+            serverVersion = serverVersion = await (rhs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null)!);
+        }
+        catch (Exception e) {
+            logger.LogError(e, "Failed to get server version for {homeserver}", homeserver);
+            sem.Release();
+            throw;
+        }
+        
         try {
             if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
                 hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
             else {
-                var serverVersion = await (rhs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null));
                 if (serverVersion is { Server.Name: "Synapse" })
                     hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverSynapse>(homeserver, accessToken, proxy);
                 else

@@ -45,7 +45,7 @@ public class MatrixHttpClient : HttpClient {
             request.RequestUri = request.RequestUri.AddQuery(key, value);
         }
 
-        Console.WriteLine($"Sending request to {request.RequestUri}");
+        // Console.WriteLine($"Sending request to {request.RequestUri}");
 
         try {
             var webAssemblyEnableStreamingResponseKey =
