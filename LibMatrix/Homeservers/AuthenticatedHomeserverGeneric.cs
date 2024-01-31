@@ -161,6 +161,15 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return await ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
     }
 
+    public virtual async Task<T?> GetAccountDataOrNullAsync<T>(string key) {
+        try {
+            return await GetAccountDataAsync<T>(key);
+        }
+        catch (Exception e) {
+            return default;
+        }
+    }
+
     public virtual async Task SetAccountDataAsync(string key, object data) {
         var res = await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}", data);
         if (!res.IsSuccessStatusCode) {
@@ -344,7 +353,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var filterList = await GetNamedFilterListOrNullAsync() ?? new();
         filterList[filterName] = idResp.FilterId;
         await SetAccountDataAsync("gay.rory.libmatrix.named_filters", filterList);
-        
+
         _namedFilterCache = filterList;
 
         return idResp;
@@ -381,10 +390,10 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var syncHelper = new SyncHelper(this);
         syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountDataWithRooms);
         var resp = await syncHelper.SyncAsync();
-        if(resp is null) throw new Exception("Sync failed");
+        if (resp is null) throw new Exception("Sync failed");
         var perRoomAccountData = new Dictionary<string, EventList?>();
-        
-        if(includeGlobal)
+
+        if (includeGlobal)
             perRoomAccountData[""] = resp.AccountData;
         foreach (var (roomId, room) in resp.Rooms?.Join ?? []) {
             perRoomAccountData[roomId] = room.AccountData;
@@ -397,10 +406,20 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var syncHelper = new SyncHelper(this);
         syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountData);
         var resp = await syncHelper.SyncAsync();
-        if(resp is null) throw new Exception("Sync failed");
+        if (resp is null) throw new Exception("Sync failed");
         return resp.AccountData;
     }
-    
+
     private Dictionary<string, string>? _namedFilterCache;
     private Dictionary<string, SyncFilter> _filterCache = new();
+
+    public async Task<JsonObject?> GetCapabilitiesAsync() {
+        var res = await ClientHttpClient.GetAsync("/_matrix/client/v3/capabilities");
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to get capabilities: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to get capabilities: {await res.Content.ReadAsStringAsync()}");
+        }
+
+        return await res.Content.ReadFromJsonAsync<JsonObject>();
+    }
 }

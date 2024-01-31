@@ -17,6 +17,9 @@ public class CreateRoomRequest {
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
+    /// <summary>
+    /// Room alias local name. Must be unique on the homeserver.
+    /// </summary>
     [JsonPropertyName("room_alias_name")]
     public string? RoomAliasName { get; set; }
 
