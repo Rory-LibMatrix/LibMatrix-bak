@@ -1,3 +1,12 @@
 [submodule "ArcaneLibs"]
 	path = ArcaneLibs
 	url = git@github.com:TheArcaneBrony/ArcaneLibs.git
+[submodule "ExampleBots/LibMatrix.ExampleBot"]
+	path = ExampleBots/LibMatrix.ExampleBot
+	url = https://cgit.rory.gay/matrix/LibMatrix.ExampleBot.git
+[submodule "ExampleBots/ModerationBot"]
+	path = ExampleBots/ModerationBot
+	url = https://cgit.rory.gay/matrix/ModerationBot.git
+[submodule "ExampleBots/PluralContactBotPoC"]
+	path = ExampleBots/PluralContactBotPoC
+	url = https://cgit.rory.gay/matrix/PluralContactBotPoC.git
