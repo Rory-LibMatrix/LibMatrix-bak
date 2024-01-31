@@ -11,15 +11,58 @@ using Microsoft.Extensions.Logging;
 namespace LibMatrix.Helpers;
 
 public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logger = null) {
+    private SyncFilter? _filter;
+    private string? _namedFilterName;
+    private bool _filterIsDirty = false;
+    private string? _filterId = null;
+
     public string? Since { get; set; }
     public int Timeout { get; set; } = 30000;
     public string? SetPresence { get; set; } = "online";
-    public SyncFilter? Filter { get; set; }
+
+    public string? FilterId {
+        get => _filterId;
+        set {
+            _filterId = value;
+            _namedFilterName = null;
+            _filter = null;
+        }
+    }
+    public string? NamedFilterName {
+        get => _namedFilterName;
+        set {
+            _namedFilterName = value;
+            _filterIsDirty = true;
+            _filterId = null;
+        }
+    }
+
+    public SyncFilter? Filter {
+        get => _filter;
+        set {
+            _filter = value;
+            _filterIsDirty = true;
+            _filterId = null;
+        }
+    }
+
     public bool FullState { get; set; }
 
     public bool IsInitialSync { get; set; } = true;
 
     public TimeSpan MinimumDelay { get; set; } = new(0);
+
+    private async Task updateFilterAsync() {
+        if (!string.IsNullOrWhiteSpace(NamedFilterName)) {
+            _filterId = await homeserver.GetNamedFilterIdOrNullAsync(NamedFilterName);
+            if (_filterId is null)
+                if (logger is null) Console.WriteLine($"Failed to get filter ID for named filter {NamedFilterName}");
+                else logger.LogWarning("Failed to get filter ID for named filter {NamedFilterName}", NamedFilterName);
+        }
+        else if (Filter is not null)
+            _filterId = (await homeserver.UploadFilterAsync(Filter)).FilterId;
+        else _filterId = null;
+    }
 
     public async Task<SyncResponse?> SyncAsync(CancellationToken? cancellationToken = null) {
         if (homeserver is null) {
@@ -33,12 +76,14 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         }
 
         var sw = Stopwatch.StartNew();
+        if (_filterIsDirty) await updateFilterAsync();
 
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
-        if (Filter is not null) url += $"&filter={Filter.ToJson(ignoreNull: true, indent: false)}";
-        // Console.WriteLine("Calling: " + url);
+        if (_filterId is not null) url += $"&filter={_filterId}";
+        
         logger?.LogInformation("SyncHelper: Calling: {}", url);
+        
         try {
             var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
             if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
@@ -99,14 +144,15 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
                     },
                     ToDevice: null or {
                         Events: null or { Count: 0 }
-                    } 
+                    }
                 }) {
                 emptyInitialSyncCount++;
                 if (emptyInitialSyncCount >= 2) {
                     IsInitialSync = false;
                     Timeout = oldTimeout;
                 }
-            } else if (syncCount > 15) 
+            }
+            else if (syncCount > 15)
                 Console.WriteLine(sync.ToJson(ignoreNull: true, indent: true));
 
             await RunSyncLoopCallbacksAsync(sync, IsInitialSync && skipInitialSyncEvents);

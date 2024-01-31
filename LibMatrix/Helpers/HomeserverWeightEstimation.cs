@@ -2,7 +2,7 @@ namespace LibMatrix.Helpers;
 
 public class HomeserverWeightEstimation {
     public static Dictionary<string, int> EstimatedSize = new() {
-        { "matrix.org", 84387 },
+        { "matrix.org", 843870 },
         { "anontier.nl", 44809 },
         { "nixos.org", 8195 },
         { "the-apothecary.club", 6983 },

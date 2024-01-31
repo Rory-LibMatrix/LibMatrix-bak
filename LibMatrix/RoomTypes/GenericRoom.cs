@@ -16,7 +16,7 @@ using LibMatrix.Services;
 namespace LibMatrix.RoomTypes;
 
 public class GenericRoom {
-    internal readonly AuthenticatedHomeserverGeneric Homeserver;
+    public readonly AuthenticatedHomeserverGeneric Homeserver;
 
     public GenericRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) {
         if (string.IsNullOrWhiteSpace(roomId))

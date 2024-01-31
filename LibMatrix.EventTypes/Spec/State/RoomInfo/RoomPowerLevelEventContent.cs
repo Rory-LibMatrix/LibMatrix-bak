@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 namespace LibMatrix.EventTypes.Spec.State;
 
 [MatrixEvent(EventName = EventId)]
+[JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
 public class RoomPowerLevelEventContent : EventContent {
     public const string EventId = "m.room.power_levels";
 

@@ -12,19 +12,21 @@ using LibMatrix.Helpers;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
+using LibMatrix.Utilities;
 
 namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverGeneric(string serverName, string accessToken) : RemoteHomeserver(serverName) {
     public static async Task<T> Create<T>(string serverName, string accessToken, string? proxy = null) where T : AuthenticatedHomeserverGeneric =>
         await Create(typeof(T), serverName, accessToken, proxy) as T ?? throw new InvalidOperationException($"Failed to create instance of {typeof(T).Name}");
+
     public static async Task<AuthenticatedHomeserverGeneric> Create(Type type, string serverName, string accessToken, string? proxy = null) {
         if (string.IsNullOrWhiteSpace(proxy))
             proxy = null;
-        if(!type.IsAssignableTo(typeof(AuthenticatedHomeserverGeneric))) throw new ArgumentException("Type must be a subclass of AuthenticatedHomeserverGeneric", nameof(type));
+        if (!type.IsAssignableTo(typeof(AuthenticatedHomeserverGeneric))) throw new ArgumentException("Type must be a subclass of AuthenticatedHomeserverGeneric", nameof(type));
         var instance = Activator.CreateInstance(type, serverName, accessToken) as AuthenticatedHomeserverGeneric
                        ?? throw new InvalidOperationException($"Failed to create instance of {type.Name}");
-        
+
         instance.ClientHttpClient = new() {
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
@@ -43,7 +45,6 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
 
         instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
-
 
         return instance;
     }
@@ -127,7 +128,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-    #region Utility Functions
+#region Utility Functions
 
     public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type) {
         var rooms = await GetJoinedRooms();
@@ -145,9 +146,9 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-    #endregion
+#endregion
 
-    #region Account Data
+#region Account Data
 
     public virtual async Task<T> GetAccountDataAsync<T>(string key) {
         // var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
@@ -168,7 +169,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
     }
 
-    #endregion
+#endregion
 
     public async Task UpdateProfileAsync(UserProfileResponse? newProfile, bool preserveCustomRoomProfile = true) {
         if (newProfile is null) return;
@@ -290,17 +291,116 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-    #region Room Profile Utility
+#region Room Profile Utility
 
     private async Task<KeyValuePair<string, RoomMemberEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) {
         return new KeyValuePair<string, RoomMemberEventContent>(room.RoomId, await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!));
     }
 
-    #endregion
-    
+#endregion
+
     public async Task SetImpersonate(string mxid) {
-        if(ClientHttpClient.AdditionalQueryParameters.TryGetValue("user_id", out var existingMxid) && existingMxid == mxid && WhoAmI.UserId == mxid) return;
+        if (ClientHttpClient.AdditionalQueryParameters.TryGetValue("user_id", out var existingMxid) && existingMxid == mxid && WhoAmI.UserId == mxid) return;
         ClientHttpClient.AdditionalQueryParameters["user_id"] = mxid;
         WhoAmI = await ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
     }
+
+    public async Task<FilterIdResponse> UploadFilterAsync(SyncFilter filter) {
+        var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
+        return await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
+    }
+
+    public async Task<SyncFilter> GetFilterAsync(string filterId) {
+        if (_filterCache.TryGetValue(filterId, out var filter)) return filter;
+        var resp = await ClientHttpClient.GetAsync("/_matrix/client/v3/user/" + UserId + "/filter/" + filterId);
+        return _filterCache[filterId] = await resp.Content.ReadFromJsonAsync<SyncFilter>() ?? throw new Exception("Failed to get filter?");
+    }
+
+#region Named filters
+
+    private async Task<Dictionary<string, string>?> GetNamedFilterListOrNullAsync(bool cached = true) {
+        if (cached && _namedFilterCache is not null) return _namedFilterCache;
+        try {
+            return _namedFilterCache = await GetAccountDataAsync<Dictionary<string, string>>("gay.rory.libmatrix.named_filters");
+        }
+        catch (MatrixException e) {
+            if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Utility function to allow avoiding serverside duplication
+    /// </summary>
+    /// <param name="filterName">Name of the filter (<i>please</i> properly namespace and possibly version this...)</param>
+    /// <param name="filter">The filter data</param>
+    /// <returns>Filter ID response</returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<FilterIdResponse> UploadNamedFilterAsync(string filterName, SyncFilter filter) {
+        var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
+        var idResp = await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
+
+        var filterList = await GetNamedFilterListOrNullAsync() ?? new();
+        filterList[filterName] = idResp.FilterId;
+        await SetAccountDataAsync("gay.rory.libmatrix.named_filters", filterList);
+        
+        _namedFilterCache = filterList;
+
+        return idResp;
+    }
+
+    public async Task<string?> GetNamedFilterIdOrNullAsync(string filterName) {
+        var filterList = await GetNamedFilterListOrNullAsync() ?? new();
+        return filterList.GetValueOrDefault(filterName); //todo: validate that filter exists
+    }
+
+    public async Task<SyncFilter?> GetNamedFilterOrNullAsync(string filterName) {
+        var filterId = await GetNamedFilterIdOrNullAsync(filterName);
+        if (filterId is null) return null;
+        return await GetFilterAsync(filterId);
+    }
+
+    public async Task<string?> GetOrUploadNamedFilterIdAsync(string filterName, SyncFilter? filter = null) {
+        var filterId = await GetNamedFilterIdOrNullAsync(filterName);
+        if (filterId is not null) return filterId;
+        if (filter is null && CommonSyncFilters.FilterMap.TryGetValue(filterName, out var commonFilter)) filter = commonFilter;
+        if (filter is null) throw new ArgumentException($"Filter is null and no common filter was found, filterName={filterName}", nameof(filter));
+        var idResp = await UploadNamedFilterAsync(filterName, filter);
+        return idResp.FilterId;
+    }
+
+#endregion
+
+    public class FilterIdResponse {
+        [JsonPropertyName("filter_id")]
+        public required string FilterId { get; set; }
+    }
+
+    public async Task<Dictionary<string, EventList?>> EnumerateAccountDataPerRoom(bool includeGlobal = false) {
+        var syncHelper = new SyncHelper(this);
+        syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountDataWithRooms);
+        var resp = await syncHelper.SyncAsync();
+        if(resp is null) throw new Exception("Sync failed");
+        var perRoomAccountData = new Dictionary<string, EventList?>();
+        
+        if(includeGlobal)
+            perRoomAccountData[""] = resp.AccountData;
+        foreach (var (roomId, room) in resp.Rooms?.Join ?? []) {
+            perRoomAccountData[roomId] = room.AccountData;
+        }
+
+        return perRoomAccountData;
+    }
+
+    public async Task<EventList?> EnumerateAccountData() {
+        var syncHelper = new SyncHelper(this);
+        syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountData);
+        var resp = await syncHelper.SyncAsync();
+        if(resp is null) throw new Exception("Sync failed");
+        return resp.AccountData;
+    }
+    
+    private Dictionary<string, string>? _namedFilterCache;
+    private Dictionary<string, SyncFilter> _filterCache = new();
 }

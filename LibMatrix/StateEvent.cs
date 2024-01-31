@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 using ArcaneLibs;
 using ArcaneLibs.Attributes;
 using ArcaneLibs.Extensions;
-using Castle.DynamicProxy;
 using LibMatrix.EventTypes;
 using LibMatrix.Extensions;
 
@@ -49,18 +48,6 @@ public class StateEvent {
             new JsonDecimalStringConverter()
         }
     };
-
-    private class EventContentInterceptor : IInterceptor {
-        public void Intercept(IInvocation invocation) {
-            Console.WriteLine($"Intercepting {invocation.Method.Name}");
-            // if (invocation.Method.Name == "ToString") {
-            //     invocation.ReturnValue = "EventContent";
-            //     return;
-            // }
-
-            invocation.Proceed();
-        }
-    }
     
     [JsonIgnore]
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
@@ -71,8 +58,6 @@ public class StateEvent {
             // }
             try {
                 var c= (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
-                // c = (EventContent)new ProxyGenerator().CreateClassProxyWithTarget(GetStateEventType(Type), c, new EventContentInterceptor());
-                // Console.WriteLine(c.GetType().Name + ": " + string.Join(", ", c.GetType().GetRuntimeProperties().Select(x=>x.Name)));
                 return c;
             }
             catch (JsonException e) {

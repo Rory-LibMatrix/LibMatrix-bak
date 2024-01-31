@@ -24,6 +24,15 @@ public class SyncFilter {
 
         [JsonPropertyName("timeline")]
         public StateFilter? Timeline { get; set; }
+        
+        [JsonPropertyName("rooms")]
+        public List<string>? Rooms { get; set; }
+        
+        [JsonPropertyName("not_rooms")]
+        public List<string>? NotRooms { get; set; }
+        
+        [JsonPropertyName("include_leave")]
+        public bool? IncludeLeave { get; set; }
 
         public class StateFilter(bool? containsUrl = null, bool? includeRedundantMembers = null, bool? lazyLoadMembers = null, List<string>? rooms = null,
             List<string>? notRooms = null, bool? unreadThreadNotifications = null,
@@ -66,17 +75,4 @@ public class SyncFilter {
         [JsonPropertyName("not_senders")]
         public List<string>? NotSenders { get; set; } = notSenders;
     }
-}
-
-public static class ExampleFilters {
-    public static readonly SyncFilter Limit1Filter = new() {
-        Presence = new(limit: 1),
-        Room = new() {
-            AccountData = new(limit: 1),
-            Ephemeral = new(limit: 1),
-            State = new(limit: 1),
-            Timeline = new(limit: 1),
-        },
-        AccountData = new(limit: 1)
-    };
 }

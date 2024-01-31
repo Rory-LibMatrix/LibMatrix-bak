@@ -85,7 +85,10 @@ public abstract class PolicyRuleEventContent : EventContent {
     [FriendlyName(Name = "Expires at")]
     public DateTime? ExpiryDateTime {
         get => Expiry == null ? null : DateTimeOffset.FromUnixTimeMilliseconds(Expiry.Value).DateTime;
-        set => Expiry = ((DateTimeOffset)value).ToUnixTimeMilliseconds();
+        set {
+            if(value is not null)
+                Expiry = ((DateTimeOffset)value).ToUnixTimeMilliseconds();
+        }
     }
 }
 
