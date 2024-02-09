@@ -10,6 +10,7 @@ public class ResolverTest : TestBed<TestFixture> {
     private readonly HomeserverResolverService _resolver;
     private readonly Config _config;
     private readonly HomeserverProviderService _provider;
+
     public ResolverTest(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
         _fixture = fixture;
         _resolver = _fixture.GetService<HomeserverResolverService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverResolverService)}");

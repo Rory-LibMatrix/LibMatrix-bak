@@ -36,19 +36,18 @@ public class DataFetcher(AuthenticatedHomeserverGeneric hs, ILogger<DataFetcher>
 
         var roomAliasTasks = rooms.Select(room => room.GetCanonicalAliasAsync()).ToAsyncEnumerable();
         List<Task<(string, string)>> aliasResolutionTasks = new();
-        await foreach (var @event in roomAliasTasks) {
+        await foreach (var @event in roomAliasTasks)
             if (@event?.Alias != null) {
-                await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Fetched room alias {(@event).Alias}!"));
+                await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Fetched room alias {@event.Alias}!"));
                 aliasResolutionTasks.Add(Task.Run(async () => {
                     var alias = await hs.ResolveRoomAliasAsync(@event.Alias);
                     return (@event.Alias, alias.RoomId);
                 }, cancellationToken));
             }
-        }
+
         var aliasResolutionTaskEnumerator = aliasResolutionTasks.ToAsyncEnumerable();
-        await foreach (var result in aliasResolutionTaskEnumerator) {
+        await foreach (var result in aliasResolutionTaskEnumerator)
             await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Resolved room alias {result.Item1} to {result.Item2}!"));
-        }
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>

@@ -34,6 +34,7 @@ public static class BotCommandInstaller {
             services.AddHostedService<CommandListenerHostedService>();
             // services.AddSingleton<IHostedService, CommandListenerHostedService>();
         }
+
         return services;
     }
 }

@@ -9,8 +9,8 @@ public static class HomeserverAbstraction {
         var rhs = await RemoteHomeserver.Create("https://matrixunittests.rory.gay");
         // string username = Guid.NewGuid().ToString();
         // string password = Guid.NewGuid().ToString();
-        string username = "@f1a2d2d6-1924-421b-91d0-893b347b2a49:matrixunittests.rory.gay";
-        string password = "d6d782d6-8bc9-4fac-9cd8-78e101b4298b";
+        var username = "@f1a2d2d6-1924-421b-91d0-893b347b2a49:matrixunittests.rory.gay";
+        var password = "d6d782d6-8bc9-4fac-9cd8-78e101b4298b";
         LoginResponse reg;
         try {
             reg = await rhs.LoginAsync(username, password);
@@ -46,7 +46,7 @@ public static class HomeserverAbstraction {
 
     public static async Task<AuthenticatedHomeserverGeneric> GetRandomHomeserver() {
         var rhs = await RemoteHomeserver.Create("https://matrixunittests.rory.gay");
-        LoginResponse reg = await rhs.RegisterAsync(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), "Unit tests!");
+        var reg = await rhs.RegisterAsync(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), "Unit tests!");
         var hs = await reg.GetAuthenticatedHomeserver("https://matrixunittests.rory.gay");
 
         // var rooms = await hs.GetJoinedRooms();
@@ -66,8 +66,6 @@ public static class HomeserverAbstraction {
         var createRandomUserTasks = Enumerable
             .Range(0, count)
             .Select(_ => GetRandomHomeserver()).ToAsyncEnumerable();
-        await foreach (var hs in createRandomUserTasks) {
-            yield return hs;
-        }
+        await foreach (var hs in createRandomUserTasks) yield return hs;
     }
 }

@@ -23,9 +23,7 @@ public class RoomTests : TestBed<TestFixture> {
         _provider = _fixture.GetService<HomeserverProviderService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverProviderService)}");
     }
 
-    private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() {
-        return await HomeserverAbstraction.GetHomeserver();
-    }
+    private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() => await HomeserverAbstraction.GetHomeserver();
 
     [Fact]
     public async Task GetJoinedRoomsAsync() {
@@ -43,7 +41,6 @@ public class RoomTests : TestBed<TestFixture> {
         await hs.Logout();
     }
 
-
     [Fact]
     public async Task GetMembersAsync() {
         Assert.True(StateEvent.KnownStateEventTypes is { Count: > 0 }, "StateEvent.KnownStateEventTypes is empty!");
@@ -54,7 +51,7 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.NotNull(room);
         var members = room.GetMembersEnumerableAsync();
         Assert.NotNull(members);
-        bool hitMembers = false;
+        var hitMembers = false;
         await foreach (var member in members) {
             Assert.NotNull(member);
             Assert.NotNull(member.StateKey);
@@ -211,7 +208,7 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.NotNull(room);
 
         var res = await room.SendFileAsync("test.txt", new MemoryStream(Encoding.UTF8.GetBytes("This test was written by Emma [it/its], member of the Rory& system." +
-                                                                                                            "\nIf you are reading this on matrix, it means the unit test for uploading a file works!")));
+                                                                                               "\nIf you are reading this on matrix, it means the unit test for uploading a file works!")));
         Assert.NotNull(res);
         Assert.NotNull(res.EventId);
     }
@@ -223,10 +220,8 @@ public class RoomTests : TestBed<TestFixture> {
         Assert.NotNull(space);
         var children = space.GetChildrenAsync();
         Assert.NotNull(children);
-        int found = 0;
-        await foreach (var room in children) {
-            found++;
-        }
+        var found = 0;
+        await foreach (var room in children) found++;
         Assert.Equal(2, found);
     }
 
@@ -240,12 +235,11 @@ public class RoomTests : TestBed<TestFixture> {
         // var expectedCount = 1;
 
         var tasks = new List<Task>();
-        await foreach (var otherUser in otherUsers) {
+        await foreach (var otherUser in otherUsers)
             tasks.Add(Task.Run(async () => {
                 await room.InviteUserAsync(otherUser.UserId);
                 await otherUser.GetRoom(room.RoomId).JoinAsync();
             }));
-        }
         await Task.WhenAll(tasks);
 
         var states = await room.GetMembersListAsync(false);

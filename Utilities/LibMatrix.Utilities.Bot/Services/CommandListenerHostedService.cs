@@ -18,7 +18,7 @@ public class CommandListenerHostedService : IHostedService {
 
     public CommandListenerHostedService(AuthenticatedHomeserverGeneric hs, ILogger<CommandListenerHostedService> logger, IServiceProvider services,
         LibMatrixBotConfiguration config) {
-        logger.LogInformation("{} instantiated!", this.GetType().Name);
+        logger.LogInformation("{} instantiated!", GetType().Name);
         _hs = hs;
         _logger = logger;
         _config = config;
@@ -44,7 +44,7 @@ public class CommandListenerHostedService : IHostedService {
             try {
                 var room = _hs.GetRoom(@event.RoomId);
                 // _logger.LogInformation(eventResponse.ToJson(indent: false));
-                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
+                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message })
                     if (message is { MessageType: "m.text" }) {
                         var messageContentWithoutReply =
                             message.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries).SkipWhile(x => x.StartsWith(">")).Aggregate((x, y) => $"{x}\n{y}");
@@ -52,7 +52,7 @@ public class CommandListenerHostedService : IHostedService {
                             var command = _commands.FirstOrDefault(x => x.Name == messageContentWithoutReply.Split(' ')[0][_config.Prefix.Length..]);
                             if (command == null) {
                                 await room.SendMessageEventAsync(
-                                    new RoomMessageEventContent(messageType: "m.notice", body: "Command not found!"));
+                                    new RoomMessageEventContent("m.notice", "Command not found!"));
                                 return;
                             }
 
@@ -62,7 +62,7 @@ public class CommandListenerHostedService : IHostedService {
                                 Homeserver = _hs
                             };
 
-                            if (await command.CanInvoke(ctx)) {
+                            if (await command.CanInvoke(ctx))
                                 try {
                                     await command.Invoke(ctx);
                                 }
@@ -70,14 +70,11 @@ public class CommandListenerHostedService : IHostedService {
                                     await room.SendMessageEventAsync(
                                         MessageFormatter.FormatException("An error occurred during the execution of this command", e));
                                 }
-                            }
-                            else {
+                            else
                                 await room.SendMessageEventAsync(
-                                    new RoomMessageEventContent(messageType: "m.notice", body: "You do not have permission to run this command!"));
-                            }
+                                    new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
                         }
                     }
-                }
             }
             catch (Exception e) {
                 _logger.LogError(e, "Error in command listener!");
@@ -94,6 +91,7 @@ public class CommandListenerHostedService : IHostedService {
             _logger.LogError("Could not shut down command listener task because it was null!");
             return;
         }
+
         await _listenerTask.WaitAsync(cancellationToken);
     }
 }

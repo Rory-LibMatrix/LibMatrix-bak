@@ -14,9 +14,7 @@ public class FileStorageProvider : IStorageProvider {
     public FileStorageProvider(string targetPath) {
         Console.WriteLine($"Initialised FileStorageProvider with path {targetPath}");
         TargetPath = targetPath;
-        if (!Directory.Exists(targetPath)) {
-            Directory.CreateDirectory(targetPath);
-        }
+        if (!Directory.Exists(targetPath)) Directory.CreateDirectory(targetPath);
     }
 
     public async Task SaveObjectAsync<T>(string key, T value) => await File.WriteAllTextAsync(Path.Join(TargetPath, key), value?.ToJson());

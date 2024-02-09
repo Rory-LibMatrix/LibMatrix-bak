@@ -36,23 +36,19 @@ public class ServerRoomSizeCalulator : IHostedService {
             throw;
         }
 
-        await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
+        await hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay").JoinAsync();
 
         Dictionary<string, int> totalRoomSize = new();
         foreach (var room in await hs.GetJoinedRooms()) {
             var stateList = room.GetFullStateAsync().ToBlockingEnumerable().ToList();
             var roomSize = stateList.Count;
-            if (roomSize > 10000) {
-                await File.AppendAllLinesAsync("large_rooms.txt", new[] { $"{{ \"{room.RoomId}\", {roomSize} }}," }, cancellationToken);
-            }
+            if (roomSize > 10000) await File.AppendAllLinesAsync("large_rooms.txt", new[] { $"{{ \"{room.RoomId}\", {roomSize} }}," }, cancellationToken);
 
             var roomHs = room.RoomId.Split(":")[1];
-            if (totalRoomSize.ContainsKey(roomHs)) {
+            if (totalRoomSize.ContainsKey(roomHs))
                 totalRoomSize[roomHs] += roomSize;
-            }
-            else {
+            else
                 totalRoomSize.Add(roomHs, roomSize);
-            }
 
             _logger.LogInformation($"Got room state for {room.RoomId}!");
         }

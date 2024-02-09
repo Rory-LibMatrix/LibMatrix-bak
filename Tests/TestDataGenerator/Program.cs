@@ -11,15 +11,15 @@ Console.WriteLine("Hello, World!");
 var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
     services.AddScoped<TieredStorageService>(_ =>
         new TieredStorageService(
-            cacheStorageProvider: new FileStorageProvider("bot_data/cache/"),
-            dataStorageProvider: new FileStorageProvider("bot_data/data/")
+            new FileStorageProvider("bot_data/cache/"),
+            new FileStorageProvider("bot_data/data/")
         )
     );
     // services.AddSingleton<DataFetcherConfiguration>();
     services.AddSingleton<AppServiceConfiguration>();
 
     services.AddRoryLibMatrixServices();
-    services.AddBot(withCommands: false);
+    services.AddBot(false);
 
     services.AddHostedService<DataFetcher>();
 }).UseConsoleLifetime().Build();

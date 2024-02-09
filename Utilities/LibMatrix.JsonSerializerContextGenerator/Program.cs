@@ -23,7 +23,7 @@ stream.WriteString("\n\nnamespace LibMatrix.Generated;\n\n[JsonSourceGenerationO
 //
 //                   """)));
 
-stream.WriteString(string.Join('\n', eventContentTypes//.DistinctBy(x => x.Namespace)
+stream.WriteString(string.Join('\n', eventContentTypes //.DistinctBy(x => x.Namespace)
     .Select(x => $"[JsonSerializable(typeof({x.Name}))]")));
 
 stream.WriteString("\ninternal partial class EventTypeSerializerContext : JsonSerializerContext { }");

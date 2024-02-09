@@ -8,9 +8,7 @@ public class CmdCommand : ICommand {
     public string Name => "cmd";
     public string Description => "Runs a command on the host system";
 
-    public Task<bool> CanInvoke(CommandContext ctx) {
-        return Task.FromResult(ctx.MessageEvent.Sender.EndsWith(":rory.gay") || ctx.MessageEvent.Sender.EndsWith(":conduit.rory.gay"));
-    }
+    public Task<bool> CanInvoke(CommandContext ctx) => Task.FromResult(ctx.MessageEvent.Sender.EndsWith(":rory.gay") || ctx.MessageEvent.Sender.EndsWith(":conduit.rory.gay"));
 
     public async Task Invoke(CommandContext ctx) {
         var cmd = ctx.Args.Aggregate("\"", (current, arg) => current + arg + " ");
@@ -27,7 +25,7 @@ public class CmdCommand : ICommand {
         // .Split("\n").ToList();
 
         var msg = "";
-        EventIdResponse? msgId = await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent {
+        var msgId = await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent {
             FormattedBody = $"Waiting for command output...",
             Body = msg.RemoveAnsi(),
             Format = "m.notice"

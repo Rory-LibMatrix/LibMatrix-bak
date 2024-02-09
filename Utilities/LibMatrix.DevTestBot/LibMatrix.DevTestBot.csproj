@@ -1,33 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PublishAot>false</PublishAot>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <RootNamespace>LibMatrix.ExampleBot</RootNamespace>
-<!--    <PublishTrimmed>true</PublishTrimmed>-->
-<!--    <PublishReadyToRun>true</PublishReadyToRun>-->
-<!--    <PublishSingleFile>true</PublishSingleFile>-->
-<!--    <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>-->
-<!--    <PublishTrimmedShowLinkerSizeComparison>true</PublishTrimmedShowLinkerSizeComparison>-->
-<!--    <PublishTrimmedShowLinkerSizeComparisonWarnings>true</PublishTrimmedShowLinkerSizeComparisonWarnings>-->
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>false</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <RootNamespace>LibMatrix.ExampleBot</RootNamespace>
+        <!--    <PublishTrimmed>true</PublishTrimmed>-->
+        <!--    <PublishReadyToRun>true</PublishReadyToRun>-->
+        <!--    <PublishSingleFile>true</PublishSingleFile>-->
+        <!--    <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>-->
+        <!--    <PublishTrimmedShowLinkerSizeComparison>true</PublishTrimmedShowLinkerSizeComparison>-->
+        <!--    <PublishTrimmedShowLinkerSizeComparisonWarnings>true</PublishTrimmedShowLinkerSizeComparisonWarnings>-->
+    </PropertyGroup>
 
-  <ItemGroup>
-      <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="ArcaneLibs.StringNormalisation" Version="1.0.0-preview7205256004.28c0e5a" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="appsettings*.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="ArcaneLibs.StringNormalisation" Version="1.0.0-preview7205256004.28c0e5a"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="appsettings*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

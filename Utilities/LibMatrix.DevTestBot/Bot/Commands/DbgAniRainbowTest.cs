@@ -11,26 +11,22 @@ public class DbgAniRainbowTest(IServiceProvider services, HomeserverProviderServ
     public string Name { get; } = "ani-rainbow";
     public string Description { get; } = "[Debug] animated rainbow :)";
 
-    public async Task<bool> CanInvoke(CommandContext ctx) {
-        return ctx.Room.RoomId == "!hLEefBaYvNfJwcTjmt:rory.gay";
-    }
+    public async Task<bool> CanInvoke(CommandContext ctx) => ctx.Room.RoomId == "!hLEefBaYvNfJwcTjmt:rory.gay";
 
     public async Task Invoke(CommandContext ctx) {
         //255 long string
         // var rainbow = "🟥🟧🟨🟩🟦🟪";
         var rainbow = "M";
         var chars = rainbow;
-        for (var i = 0; i < 76; i++) {
-            chars += rainbow[i % rainbow.Length];
-        }
+        for (var i = 0; i < 76; i++) chars += rainbow[i % rainbow.Length];
 
         Task.Run(async () => {
-            int i = 0;
-            var msg = new MessageBuilder(msgType: "m.notice").WithRainbowString(chars).Build();
+            var i = 0;
+            var msg = new MessageBuilder("m.notice").WithRainbowString(chars).Build();
             var msgEvent = await ctx.Room.SendMessageEventAsync(msg);
 
             while (true) {
-                msg = new MessageBuilder(msgType: "m.notice").WithRainbowString(chars, offset: i * 5).Build();
+                msg = new MessageBuilder("m.notice").WithRainbowString(chars, offset: i * 5).Build();
                 if (i % 50 == 0) {
                     msg.NewContent = null;
                     msg.RelatesTo = null;

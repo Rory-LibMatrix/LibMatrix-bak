@@ -13,9 +13,7 @@ public class HelpCommand(IServiceProvider services) : ICommand {
         var sb = new StringBuilder();
         sb.AppendLine("Available commands:");
         var commands = services.GetServices<ICommand>().ToList();
-        foreach (var command in commands) {
-            sb.AppendLine($"- {command.Name}: {command.Description}");
-        }
+        foreach (var command in commands) sb.AppendLine($"- {command.Name}: {command.Description}");
 
         await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent(body: sb.ToString()));
     }

@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj" />
-      <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj" />
+        <ProjectReference Include="..\..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj"/>
+        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj"/>
     </ItemGroup>
 
 </Project>

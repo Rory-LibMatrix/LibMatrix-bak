@@ -246,7 +246,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
             var differenceFound = false;
             if (syncCount++ >= targetSyncCount) {
                 var profiles = GetRoomProfilesAsync();
-                await foreach ((var roomId, var profile) in profiles) {
+                await foreach (var (roomId, profile) in profiles) {
                     if (!expectedRoomProfiles.ContainsKey(roomId)) {
                         Console.WriteLine($"Skipping profile check for {roomId} because its not in override list?");
                         continue;

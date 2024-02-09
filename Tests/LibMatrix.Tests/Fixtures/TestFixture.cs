@@ -11,8 +11,8 @@ public class TestFixture : TestBedFixture {
     protected override void AddServices(IServiceCollection services, IConfiguration? configuration) {
         services.AddSingleton<TieredStorageService>(x =>
             new TieredStorageService(
-                cacheStorageProvider: null,
-                dataStorageProvider: null
+                null,
+                null
             )
         );
 

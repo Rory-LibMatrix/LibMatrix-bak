@@ -14,7 +14,7 @@ public static class RoomAbstraction {
             // Visibility = CreateRoomVisibility.Public,
             RoomAliasName = Guid.NewGuid().ToString()
         };
-        crq.InitialState ??= new();
+        crq.InitialState ??= new List<StateEvent>();
         crq.InitialState.Add(new StateEvent() {
             Type = "m.room.topic",
             StateKey = "",
@@ -47,7 +47,7 @@ public static class RoomAbstraction {
         });
         var testRoom = await hs.CreateRoom(crq);
 
-        await testRoom.SendStateEventAsync("gay.rory.libmatrix.unit_test_room", new());
+        await testRoom.SendStateEventAsync("gay.rory.libmatrix.unit_test_room", new object());
 
         return testRoom;
     }
@@ -55,15 +55,14 @@ public static class RoomAbstraction {
     private static SemaphoreSlim _spaceSemaphore = null!;
 
     public static async Task<SpaceRoom> GetTestSpace(AuthenticatedHomeserverGeneric hs, int roomCount = 100, bool addSpaces = false, int spaceSizeReduction = 10) {
-        _spaceSemaphore ??= new(roomCount / spaceSizeReduction, roomCount / spaceSizeReduction);
+        _spaceSemaphore ??= new SemaphoreSlim(roomCount / spaceSizeReduction, roomCount / spaceSizeReduction);
         var crq = new CreateRoomRequest() {
             Name = $"LibMatrix Test Space ({roomCount} children)",
             // Visibility = CreateRoomVisibility.Public,
             RoomAliasName = Guid.NewGuid().ToString(),
-            InitialState = new()
+            InitialState = new List<StateEvent>()
         };
         crq.CreationContentBaseType.Type = "m.space";
-
 
         var createRoomTasks = Enumerable.Range(0, roomCount)
             .Select(_ => hs.CreateRoom(new CreateRoomRequest() {
@@ -72,36 +71,34 @@ public static class RoomAbstraction {
                 RoomAliasName = Guid.NewGuid().ToString()
             })).ToAsyncEnumerable();
 
-        await foreach (var room in createRoomTasks) {
-            crq.InitialState.Add(new() {
+        await foreach (var room in createRoomTasks)
+            crq.InitialState.Add(new StateEvent {
                 Type = "m.space.child",
                 StateKey = room.RoomId,
                 TypedContent = new SpaceChildEventContent() {
-                    Via = new() {
+                    Via = new List<string> {
                         room.RoomId.Split(":")[1]
                     }
                 }
             });
-        }
 
-        if (addSpaces) {
-            for (int i = 0; i < roomCount; i++) {
+        if (addSpaces)
+            for (var i = 0; i < roomCount; i++) {
                 var space = await GetTestSpace(hs, roomCount - spaceSizeReduction, true, spaceSizeReduction);
-                crq.InitialState.Add(new() {
+                crq.InitialState.Add(new StateEvent {
                     Type = "m.space.child",
                     StateKey = space.RoomId,
                     TypedContent = new SpaceChildEventContent() {
-                        Via = new() {
+                        Via = new List<string> {
                             space.RoomId.Split(":")[1]
                         }
                     }
                 });
             }
-        }
 
         var testSpace = (await hs.CreateRoom(crq)).AsSpace;
 
-        await testSpace.SendStateEventAsync("gay.rory.libmatrix.unit_test_room", new());
+        await testSpace.SendStateEventAsync("gay.rory.libmatrix.unit_test_room", new object());
 
         // _spaceSemaphore.Release();
         return testSpace;

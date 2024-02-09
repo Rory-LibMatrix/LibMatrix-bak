@@ -20,7 +20,7 @@ public class DevTestBot : IHostedService {
 
     public DevTestBot(HomeserverProviderService homeserverProviderService, ILogger<DevTestBot> logger,
         DevTestBotConfiguration configuration, IServiceProvider services) {
-        logger.LogInformation("{} instantiated!", this.GetType().Name);
+        logger.LogInformation("{} instantiated!", GetType().Name);
         _homeserverProviderService = homeserverProviderService;
         _logger = logger;
         _configuration = configuration;
@@ -49,7 +49,7 @@ public class DevTestBot : IHostedService {
 
         var syncHelper = new SyncHelper(hs);
 
-        await (hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay")).JoinAsync();
+        await hs.GetRoom("!DoHEdFablOLjddKWIp:rory.gay").JoinAsync();
 
         // foreach (var room in await hs.GetJoinedRooms()) {
         //     if(room.RoomId is "!OGEhHVWSdvArJzumhm:matrix.org") continue;
@@ -65,29 +65,28 @@ public class DevTestBot : IHostedService {
                     x.Type == "m.room.member" && x.StateKey == hs.UserId);
             _logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventContent).Reason}");
-            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club") {
+            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club")
                 try {
                     var senderProfile = await hs.GetProfileAsync(inviteEvent.Sender);
-                    await (hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
+                    await hs.GetRoom(args.Key).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     _logger.LogError("{}", e.ToString());
-                    await (hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
+                    await hs.GetRoom(args.Key).LeaveAsync("I was unable to join the room: " + e);
                 }
-            }
         });
         syncHelper.TimelineEventHandlers.Add(async @event => {
             _logger.LogInformation(
-                "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(indent: false, ignoreNull: true));
+                "Got timeline event in {}: {}", @event.RoomId, @event.ToJson(false, true));
 
             var room = hs.GetRoom(@event.RoomId);
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
-            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message }) {
+            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message })
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
                         await room.SendMessageEventAsync(
-                            new RoomMessageEventContent(messageType: "m.text", body: "Command not found!"));
+                            new RoomMessageEventContent("m.text", "Command not found!"));
                         return;
                     }
 
@@ -95,15 +94,12 @@ public class DevTestBot : IHostedService {
                         Room = room,
                         MessageEvent = @event
                     };
-                    if (await command.CanInvoke(ctx)) {
+                    if (await command.CanInvoke(ctx))
                         await command.Invoke(ctx);
-                    }
-                    else {
+                    else
                         await room.SendMessageEventAsync(
-                            new RoomMessageEventContent(messageType: "m.text", body: "You do not have permission to run this command!"));
-                    }
+                            new RoomMessageEventContent("m.text", "You do not have permission to run this command!"));
                 }
-            }
         });
         await syncHelper.RunSyncLoopAsync(cancellationToken: cancellationToken);
     }

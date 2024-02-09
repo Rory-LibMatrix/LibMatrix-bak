@@ -20,9 +20,7 @@ public class RoomEventTests : TestBed<TestFixture> {
         _provider = _fixture.GetService<HomeserverProviderService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverProviderService)}");
     }
 
-    private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() {
-        return await HomeserverAbstraction.GetHomeserver();
-    }
+    private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() => await HomeserverAbstraction.GetHomeserver();
 
     [Fact]
     public async Task GetNameAsync() {
@@ -153,5 +151,4 @@ public class RoomEventTests : TestBed<TestFixture> {
         Assert.NotNull(power.Users);
         // Assert.NotNull(power.Events);
     }
-
 }
