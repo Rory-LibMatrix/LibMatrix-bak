@@ -112,7 +112,7 @@ public class GenericRoom {
     /// Same as <see cref="GetMessagesAsync"/>, except keeps fetching more responses until the beginning of the room is found, or the target message limit is reached
     /// </summary>
     public async IAsyncEnumerable<MessagesResponse> GetManyMessagesAsync(string from = "", int limit = 100, string dir = "b", string filter = "", bool includeState = true,
-        bool fixForward = false) {
+        bool fixForward = false, int chunkSize = 100) {
         if (dir == "f" && fixForward) {
             var concat = new List<MessagesResponse>();
             while (true) {
@@ -144,7 +144,7 @@ public class GenericRoom {
         }
         else {
             while (limit > 0) {
-                var resp = await GetMessagesAsync(from, limit, dir, filter);
+                var resp = await GetMessagesAsync(from, Math.Min(chunkSize, limit), dir, filter);
 
                 if (!includeState)
                     resp.State.Clear();
@@ -280,21 +280,32 @@ public class GenericRoom {
             return await GetNameAsync();
         }
         catch {
-            try {
-                var members = GetMembersEnumerableAsync();
-                var memberList = new List<string>();
-                int memberCount = 0;
-                await foreach (var member in members)
-                    memberList.Add(member.RawContent?["displayname"]?.GetValue<string>() ?? "");
-                memberCount = memberList.Count;
-                memberList.RemoveAll(string.IsNullOrWhiteSpace);
-                memberList = memberList.OrderBy(x => x).ToList();
-                if (memberList.Count > maxMemberNames)
-                    return string.Join(", ", memberList.Take(maxMemberNames)) + " and " + (memberCount - maxMemberNames) + " others.";
-                return string.Join(", ", memberList);
+            try
+            {
+                var alias = await GetCanonicalAliasAsync();
+                if (alias?.Alias is not null) return alias.Alias;
+                throw new Exception("No name or alias");
             }
-            catch {
-                return RoomId;
+            catch
+            {
+                try
+                {
+                    var members = GetMembersEnumerableAsync();
+                    var memberList = new List<string>();
+                    int memberCount = 0;
+                    await foreach (var member in members)
+                        memberList.Add(member.RawContent?["displayname"]?.GetValue<string>() ?? "");
+                    memberCount = memberList.Count;
+                    memberList.RemoveAll(string.IsNullOrWhiteSpace);
+                    memberList = memberList.OrderBy(x => x).ToList();
+                    if (memberList.Count > maxMemberNames)
+                        return string.Join(", ", memberList.Take(maxMemberNames)) + " and " + (memberCount - maxMemberNames) + " others.";
+                    return string.Join(", ", memberList);
+                }
+                catch
+                {
+                    return RoomId;
+                }
             }
         }
     }
