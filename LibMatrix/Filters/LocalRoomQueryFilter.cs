@@ -22,7 +22,6 @@ public class LocalRoomQueryFilter {
     public int StateEventsGreaterThan { get; set; }
     public int StateEventsLessThan { get; set; } = int.MaxValue;
 
-
     public bool CheckFederation { get; set; }
     public bool CheckPublic { get; set; }
 }

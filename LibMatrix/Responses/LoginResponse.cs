@@ -21,11 +21,11 @@ public class LoginResponse {
     [JsonPropertyName("user_id")]
     public string UserId { get; set; } = null!;
 
-    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedHomeserver(string? proxy = null) {
+    public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedHomeserver(string? proxy = null) =>
         // var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(Homeserver);
-        return await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(Homeserver, AccessToken, proxy);
-    }
+        await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverGeneric>(Homeserver, AccessToken, proxy);
 }
+
 public class LoginRequest {
     [JsonPropertyName("type")]
     public string Type { get; set; } = "m.login.password";

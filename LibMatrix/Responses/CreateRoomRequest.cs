@@ -52,7 +52,7 @@ public class CreateRoomRequest {
     public StateEvent this[string eventType, string eventKey = ""] {
         get {
             var stateEvent = InitialState.FirstOrDefault(x => x.Type == eventType && x.StateKey == eventKey);
-            if (stateEvent == null) {
+            if (stateEvent == null)
                 InitialState.Add(stateEvent = new StateEvent {
                     Type = eventType,
                     StateKey = eventKey,
@@ -62,7 +62,6 @@ public class CreateRoomRequest {
                                 .Any(y => y.EventName == eventType) ?? false) ?? typeof(UnknownEventContent)
                     )!
                 });
-            }
 
             return stateEvent;
         }
@@ -88,8 +87,8 @@ public class CreateRoomRequest {
         var request = new CreateRoomRequest {
             Name = name ?? "New public Room",
             Visibility = "public",
-            CreationContent = new(),
-            PowerLevelContentOverride = new() {
+            CreationContent = new JsonObject(),
+            PowerLevelContentOverride = new RoomPowerLevelEventContent {
                 EventsDefault = 0,
                 UsersDefault = 0,
                 Kick = 50,
@@ -97,10 +96,10 @@ public class CreateRoomRequest {
                 Invite = 25,
                 StateDefault = 10,
                 Redact = 50,
-                NotificationsPl = new() {
+                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPL {
                     Room = 10
                 },
-                Events = new() {
+                Events = new Dictionary<string, long> {
                     { "m.room.avatar", 50 },
                     { "m.room.canonical_alias", 50 },
                     { "m.room.encryption", 100 },
@@ -110,7 +109,7 @@ public class CreateRoomRequest {
                     { "m.room.server_acl", 100 },
                     { "m.room.tombstone", 100 }
                 },
-                Users = new() {
+                Users = new Dictionary<string, long> {
                     {
                         hs.UserId,
                         101
@@ -118,17 +117,18 @@ public class CreateRoomRequest {
                 }
             },
             RoomAliasName = roomAliasName,
-            InitialState = new()
+            InitialState = new List<StateEvent>()
         };
 
         return request;
     }
+
     public static CreateRoomRequest CreatePrivate(AuthenticatedHomeserverGeneric hs, string? name = null, string? roomAliasName = null) {
         var request = new CreateRoomRequest {
             Name = name ?? "New private Room",
             Visibility = "private",
-            CreationContent = new(),
-            PowerLevelContentOverride = new() {
+            CreationContent = new JsonObject(),
+            PowerLevelContentOverride = new RoomPowerLevelEventContent {
                 EventsDefault = 0,
                 UsersDefault = 0,
                 Kick = 50,
@@ -136,10 +136,10 @@ public class CreateRoomRequest {
                 Invite = 25,
                 StateDefault = 10,
                 Redact = 50,
-                NotificationsPl = new() {
+                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPL {
                     Room = 10
                 },
-                Events = new() {
+                Events = new Dictionary<string, long> {
                     { "m.room.avatar", 50 },
                     { "m.room.canonical_alias", 50 },
                     { "m.room.encryption", 100 },
@@ -149,7 +149,7 @@ public class CreateRoomRequest {
                     { "m.room.server_acl", 100 },
                     { "m.room.tombstone", 100 }
                 },
-                Users = new() {
+                Users = new Dictionary<string, long> {
                     {
                         hs.UserId,
                         101
@@ -157,7 +157,7 @@ public class CreateRoomRequest {
                 }
             },
             RoomAliasName = roomAliasName,
-            InitialState = new()
+            InitialState = new List<StateEvent>()
         };
 
         return request;

@@ -47,9 +47,9 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             sem.Release();
             throw;
         }
-        
+
         try {
-            if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out bool a) && a)
+            if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out var a) && a)
                 hs = await AuthenticatedHomeserverGeneric.Create<AuthenticatedHomeserverMxApiExtended>(homeserver, accessToken, proxy);
             else {
                 if (serverVersion is { Server.Name: "Synapse" })
@@ -64,11 +64,13 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             throw;
         }
 
-        if(impersonatedMxid is not null)
+        if (impersonatedMxid is not null)
             await hs.SetImpersonate(impersonatedMxid);
-        
-        lock (AuthenticatedHomeserverCache)
+
+        lock (AuthenticatedHomeserverCache) {
             AuthenticatedHomeserverCache[cacheKey] = hs;
+        }
+
         sem.Release();
 
         return hs;
@@ -88,10 +90,12 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
 
         hs = await RemoteHomeserver.Create(homeserver, proxy);
 
-        lock (RemoteHomeserverCache)
+        lock (RemoteHomeserverCache) {
             RemoteHomeserverCache[cacheKey] = hs;
+        }
+
         sem.Release();
-        
+
         return hs;
     }
 

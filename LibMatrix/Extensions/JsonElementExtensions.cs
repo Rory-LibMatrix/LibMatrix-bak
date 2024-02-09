@@ -56,9 +56,7 @@ public static class JsonElementExtensions {
 
     private static bool FindExtraJsonPropertyFieldsByValueKind(this JsonProperty field, Type containerType,
         Type propertyType) {
-        if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>)) {
-            propertyType = propertyType.GetGenericArguments()[0];
-        }
+        if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>)) propertyType = propertyType.GetGenericArguments()[0];
 
         var switchResult = false;
         switch (field.Value.ValueKind) {

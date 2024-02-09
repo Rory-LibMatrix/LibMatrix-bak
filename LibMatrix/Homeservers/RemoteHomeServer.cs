@@ -26,23 +26,21 @@ public class RemoteHomeserver(string baseUrl) {
             proxy = null;
         var homeserver = new RemoteHomeserver(baseUrl);
         homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
-        if(string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
+        if (string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
             Console.WriteLine($"Failed to resolve homeserver client URI for {baseUrl}");
-        if(string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
+        if (string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
             Console.WriteLine($"Failed to resolve homeserver server URI for {baseUrl}");
-        
-        Console.WriteLine(homeserver.WellKnownUris.ToJson(ignoreNull:false));
-        
-        homeserver.ClientHttpClient = new() {
+
+        Console.WriteLine(homeserver.WellKnownUris.ToJson(ignoreNull: false));
+
+        homeserver.ClientHttpClient = new MatrixHttpClient {
             BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException($"Failed to resolve homeserver client URI for {baseUrl}")),
             Timeout = TimeSpan.FromSeconds(120)
         };
-        
+
         homeserver.FederationClient = await FederationClient.TryCreate(baseUrl, proxy);
 
-        if (proxy is not null) {
-            homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
-        }
+        if (proxy is not null) homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
 
         return homeserver;
     }

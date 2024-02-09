@@ -44,7 +44,7 @@ public class ModASRoomQueryResult {
 
     [JsonPropertyName("state_events")]
     public int StateEvents { get; set; }
-    
+
     [JsonPropertyName("type")]
     public string? Type { get; set; }
 
@@ -56,7 +56,7 @@ public class ModASRoomQueryResult {
 
     [JsonPropertyName("total_members")]
     public int TotalMembers { get; set; }
-    
+
     [JsonPropertyName("total_local_members")]
     public int TotalLocalMembers { get; set; }
 }

@@ -41,9 +41,7 @@ public class MatrixHttpClient : HttpClient {
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (!request.RequestUri.IsAbsoluteUri) request.RequestUri = new Uri(BaseAddress, request.RequestUri);
         // if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
-        foreach (var (key, value) in AdditionalQueryParameters) {
-            request.RequestUri = request.RequestUri.AddQuery(key, value);
-        }
+        foreach (var (key, value) in AdditionalQueryParameters) request.RequestUri = request.RequestUri.AddQuery(key, value);
 
         // Console.WriteLine($"Sending request to {request.RequestUri}");
 
@@ -59,16 +57,16 @@ public class MatrixHttpClient : HttpClient {
 
         HttpResponseMessage responseMessage;
         // try {
-            responseMessage = await base.SendAsync(request, cancellationToken);
+        responseMessage = await base.SendAsync(request, cancellationToken);
         // }
         // catch (Exception e) {
-            // if (requestSettings is { Retries: 0 }) throw;
-            // typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
-            // ?.SetValue(request, 0);
-            // await Task.Delay(requestSettings?.RetryDelay ?? 2500, cancellationToken);
-            // if(requestSettings is not null) requestSettings.Retries--;
-            // return await SendAsync(request, cancellationToken);
-            // throw;
+        // if (requestSettings is { Retries: 0 }) throw;
+        // typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
+        // ?.SetValue(request, 0);
+        // await Task.Delay(requestSettings?.RetryDelay ?? 2500, cancellationToken);
+        // if(requestSettings is not null) requestSettings.Retries--;
+        // return await SendAsync(request, cancellationToken);
+        // throw;
         // }
 
         if (responseMessage.IsSuccessStatusCode) return responseMessage;
@@ -95,9 +93,8 @@ public class MatrixHttpClient : HttpClient {
     }
 
     // GetAsync
-    public Task<HttpResponseMessage> GetAsync([StringSyntax("Uri")] string? requestUri, CancellationToken? cancellationToken = null) {
-        return SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), cancellationToken ?? CancellationToken.None);
-    }
+    public Task<HttpResponseMessage> GetAsync([StringSyntax("Uri")] string? requestUri, CancellationToken? cancellationToken = null) =>
+        SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), cancellationToken ?? CancellationToken.None);
 
     // GetFromJsonAsync
     public async Task<T> GetFromJsonAsync<T>(string requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
@@ -116,7 +113,7 @@ public class MatrixHttpClient : HttpClient {
             Console.WriteLine("[!!] Checking sync response failed: " + e);
         }
 #endif
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, options, cancellationToken: cancellationToken) ??
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, options, cancellationToken) ??
                throw new InvalidOperationException("Failed to deserialize response");
     }
 
@@ -144,7 +141,7 @@ public class MatrixHttpClient : HttpClient {
 
     public async Task<HttpResponseMessage> PostAsJsonAsync<T>([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, T value, JsonSerializerOptions? options = null,
         CancellationToken cancellationToken = default) where T : notnull {
-        options ??= new();
+        options ??= new JsonSerializerOptions();
         options.Converters.Add(new JsonFloatStringConverter());
         options.Converters.Add(new JsonDoubleStringConverter());
         options.Converters.Add(new JsonDecimalStringConverter());
@@ -160,9 +157,7 @@ public class MatrixHttpClient : HttpClient {
         options = GetJsonSerializerOptions(options);
         var res = await GetAsync(requestUri);
         var result = JsonSerializer.DeserializeAsyncEnumerable<T>(await res.Content.ReadAsStreamAsync(), options);
-        await foreach (var resp in result) {
-            yield return resp;
-        }
+        await foreach (var resp in result) yield return resp;
     }
 }
 

@@ -16,7 +16,7 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
 
     public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver) {
         if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        WellKnownSemaphores.TryAdd(homeserver, new(1, 1));
+        WellKnownSemaphores.TryAdd(homeserver, new SemaphoreSlim(1, 1));
         await WellKnownSemaphores[homeserver].WaitAsync();
         if (WellKnownCache.TryGetValue(homeserver, out var known)) {
             WellKnownSemaphores[homeserver].Release();
@@ -53,7 +53,7 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
         try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
             var hs = resp.GetProperty("m.server").GetString();
-            if(hs is null) throw new InvalidDataException("m.server is null");
+            if (hs is null) throw new InvalidDataException("m.server is null");
             if (!hs.StartsWithAnyOf("http://", "https://"))
                 hs = $"https://{hs}";
             return hs;

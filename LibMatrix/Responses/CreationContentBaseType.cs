@@ -5,7 +5,7 @@ namespace LibMatrix.Responses;
 public class CreationContentBaseType {
     private readonly CreateRoomRequest _createRoomRequest;
 
-    public CreationContentBaseType(CreateRoomRequest createRoomRequest) => this._createRoomRequest = createRoomRequest;
+    public CreationContentBaseType(CreateRoomRequest createRoomRequest) => _createRoomRequest = createRoomRequest;
 
     [JsonPropertyName("type")]
     public string Type {

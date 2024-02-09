@@ -15,14 +15,12 @@ namespace LibMatrix;
 
 public class StateEvent {
     public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
-    
+
     public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),
         (dict, type) => {
             var attrs = type.GetCustomAttributes<MatrixEventAttribute>();
-            foreach (var attr in attrs) {
-                dict[attr.EventName] = type;
-            }
+            foreach (var attr in attrs) dict[attr.EventName] = type;
 
             return dict;
         }).ToFrozenDictionary();
@@ -48,7 +46,7 @@ public class StateEvent {
             new JsonDecimalStringConverter()
         }
     };
-    
+
     [JsonIgnore]
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
     public EventContent? TypedContent {
@@ -57,7 +55,7 @@ public class StateEvent {
             // return null;
             // }
             try {
-                var c= (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
+                var c = (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
                 return c;
             }
             catch (JsonException e) {
@@ -68,9 +66,8 @@ public class StateEvent {
             return null;
         }
         set {
-            if (value is null) {
+            if (value is null)
                 RawContent?.Clear();
-            }
             else RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
         }
     }

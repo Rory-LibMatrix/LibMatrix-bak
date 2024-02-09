@@ -8,6 +8,7 @@ public static class EnumerableExtensions {
                 oldState.Add(stateEvent);
                 continue;
             }
+
             oldState.Remove(old);
             oldState.Add(stateEvent);
         }
@@ -20,9 +21,9 @@ public static class EnumerableExtensions {
                 oldState.Add(stateEvent);
                 continue;
             }
+
             oldState.Remove(old);
             oldState.Add(stateEvent);
         }
     }
-
 }

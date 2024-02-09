@@ -6,8 +6,10 @@ namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
     public readonly SynapseAdminApi Admin;
+
     public class SynapseAdminApi(AuthenticatedHomeserverSynapse authenticatedHomeserver) {
-        public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f", string? searchTerm = null, LocalRoomQueryFilter? localFilter = null) {
+        public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f",
+            string? searchTerm = null, LocalRoomQueryFilter? localFilter = null) {
             AdminRoomListingResult? res = null;
             var i = 0;
             int? totalRooms = null;
@@ -28,34 +30,42 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.Name?.Contains(localFilter.NameContains) == true) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.CanonicalAlias?.Contains(localFilter.CanonicalAliasContains) == true) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.Version.Contains(localFilter.VersionContains)) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.Creator.Contains(localFilter.CreatorContains)) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.Encryption?.Contains(localFilter.EncryptionContains) == true) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.JoinRules?.Contains(localFilter.JoinRulesContains) == true) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.GuestAccess?.Contains(localFilter.GuestAccessContains) == true) {
                             totalRooms--;
                             continue;
                         }
+
                         if (!room.HistoryVisibility?.Contains(localFilter.HistoryVisibilityContains) == true) {
                             totalRooms--;
                             continue;
@@ -65,6 +75,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
                             totalRooms--;
                             continue;
                         }
+
                         if (localFilter.CheckPublic && room.Public != localFilter.Public) {
                             totalRooms--;
                             continue;
@@ -74,6 +85,7 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
                             totalRooms--;
                             continue;
                         }
+
                         if (room.JoinedLocalMembers < localFilter.JoinedLocalMembersGreaterThan || room.JoinedLocalMembers > localFilter.JoinedLocalMembersLessThan) {
                             totalRooms--;
                             continue;
@@ -97,7 +109,5 @@ public class AuthenticatedHomeserverSynapse : AuthenticatedHomeserverGeneric {
         }
     }
 
-    public AuthenticatedHomeserverSynapse(string serverName, string accessToken) : base(serverName, accessToken) {
-        Admin = new(this);
-    }
+    public AuthenticatedHomeserverSynapse(string serverName, string accessToken) : base(serverName, accessToken) => Admin = new SynapseAdminApi(this);
 }

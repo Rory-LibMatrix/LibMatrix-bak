@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Web;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Helpers;
 using LibMatrix.Responses;
@@ -27,7 +28,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var instance = Activator.CreateInstance(type, serverName, accessToken) as AuthenticatedHomeserverGeneric
                        ?? throw new InvalidOperationException($"Failed to create instance of {type.Name}");
 
-        instance.ClientHttpClient = new() {
+        instance.ClientHttpClient = new MatrixHttpClient {
             Timeout = TimeSpan.FromMinutes(15),
             DefaultRequestHeaders = {
                 Authorization = new AuthenticationHeaderValue("Bearer", accessToken)
@@ -36,7 +37,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         instance.FederationClient = await FederationClient.TryCreate(serverName, proxy);
 
         if (string.IsNullOrWhiteSpace(proxy)) {
-            HomeserverResolverService.WellKnownUris? urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
+            var urls = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(serverName);
             instance.ClientHttpClient.BaseAddress = new Uri(urls?.Client ?? throw new InvalidOperationException("Failed to resolve homeserver"));
         }
         else {
@@ -91,13 +92,9 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
             var aliasRes = await ResolveRoomAliasAsync($"#{creationEvent.RoomAliasName}:{ServerName}");
             if (aliasRes?.RoomId != null) {
                 var existingRoom = GetRoom(aliasRes.RoomId);
-                if (joinIfAliasExists) {
-                    await existingRoom.JoinAsync();
-                }
+                if (joinIfAliasExists) await existingRoom.JoinAsync();
 
-                if (inviteIfAliasExists) {
-                    await existingRoom.InviteUsersAsync(creationEvent.Invite ?? new());
-                }
+                if (inviteIfAliasExists) await existingRoom.InviteUsersAsync(creationEvent.Invite ?? new List<string>());
 
                 return existingRoom;
             }
@@ -115,7 +112,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var room = GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString());
 
         if (creationEvent.Invite is not null)
-            await room.InviteUsersAsync(creationEvent.Invite ?? new());
+            await room.InviteUsersAsync(creationEvent.Invite ?? new List<string>());
 
         return room;
     }
@@ -134,23 +131,21 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var rooms = await GetJoinedRooms();
         var tasks = rooms.Select(async room => {
             var roomType = await room.GetRoomType();
-            if (roomType == type) {
-                return room;
-            }
+            if (roomType == type) return room;
 
             return null;
         }).ToAsyncEnumerable();
 
-        await foreach (var result in tasks) {
-            if (result is not null) yield return result;
-        }
+        await foreach (var result in tasks)
+            if (result is not null)
+                yield return result;
     }
 
 #endregion
 
 #region Account Data
 
-    public virtual async Task<T> GetAccountDataAsync<T>(string key) {
+    public virtual async Task<T> GetAccountDataAsync<T>(string key) =>
         // var res = await _httpClient.GetAsync($"/_matrix/client/v3/user/{UserId}/account_data/{key}");
         // if (!res.IsSuccessStatusCode) {
         //     Console.WriteLine($"Failed to get account data: {await res.Content.ReadAsStringAsync()}");
@@ -158,8 +153,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         // }
         //
         // return await res.Content.ReadFromJsonAsync<T>();
-        return await ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
-    }
+        await ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/user/{WhoAmI.UserId}/account_data/{key}");
 
     public virtual async Task<T?> GetAccountDataOrNullAsync<T>(string key) {
         try {
@@ -195,56 +189,46 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
             },
             Timeout = 250
         };
-        int targetSyncCount = 0;
+        var targetSyncCount = 0;
 
         if (preserveCustomRoomProfile) {
             var rooms = await GetJoinedRooms();
             var roomProfiles = rooms.Select(GetOwnRoomProfileWithIdAsync).ToAsyncEnumerable();
             targetSyncCount = rooms.Count;
-            await foreach (var (roomId, currentRoomProfile) in roomProfiles) {
+            await foreach (var (roomId, currentRoomProfile) in roomProfiles)
                 try {
                     // var currentRoomProfile = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!);
                     //build new profiles
+                    if (currentRoomProfile.DisplayName == oldProfile.DisplayName) currentRoomProfile.DisplayName = newProfile.DisplayName;
 
-                    if (currentRoomProfile.DisplayName == oldProfile.DisplayName) {
-                        currentRoomProfile.DisplayName = newProfile.DisplayName;
-                    }
-
-                    if (currentRoomProfile.AvatarUrl == oldProfile.AvatarUrl) {
-                        currentRoomProfile.AvatarUrl = newProfile.AvatarUrl;
-                    }
+                    if (currentRoomProfile.AvatarUrl == oldProfile.AvatarUrl) currentRoomProfile.AvatarUrl = newProfile.AvatarUrl;
 
                     currentRoomProfile.Reason = null;
 
                     expectedRoomProfiles.Add(roomId, currentRoomProfile);
                 }
                 catch (Exception e) { }
-            }
 
             Console.WriteLine($"Rooms with custom profiles: {string.Join(',', expectedRoomProfiles.Keys)}");
         }
 
-        if (oldProfile.DisplayName != newProfile.DisplayName) {
+        if (oldProfile.DisplayName != newProfile.DisplayName)
             await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/displayname", new { displayname = newProfile.DisplayName });
-        }
-        else {
+        else
             Console.WriteLine($"Not updating display name because {oldProfile.DisplayName} == {newProfile.DisplayName}");
-        }
 
-        if (oldProfile.AvatarUrl != newProfile.AvatarUrl) {
+        if (oldProfile.AvatarUrl != newProfile.AvatarUrl)
             await ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/profile/{WhoAmI.UserId}/avatar_url", new { avatar_url = newProfile.AvatarUrl });
-        }
-        else {
+        else
             Console.WriteLine($"Not updating avatar URL because {newProfile.AvatarUrl} == {newProfile.AvatarUrl}");
-        }
 
         if (!preserveCustomRoomProfile) return;
 
-        int syncCount = 0;
+        var syncCount = 0;
         await foreach (var sync in syncHelper.EnumerateSyncAsync()) {
             if (sync.Rooms is null) break;
             List<Task> tasks = new();
-            foreach (var (roomId, roomData) in sync.Rooms.Join) {
+            foreach (var (roomId, roomData) in sync.Rooms.Join)
                 if (roomData.State is { Events.Count: > 0 }) {
                     var incommingRoomProfile =
                         roomData.State?.Events?.FirstOrDefault(x => x.Type == "m.room.member" && x.StateKey == WhoAmI.UserId)?.TypedContent as RoomMemberEventContent;
@@ -255,7 +239,6 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
                     if (incommingRoomProfile.DisplayName != targetRoomProfileOverride.DisplayName || incommingRoomProfile.AvatarUrl != targetRoomProfileOverride.AvatarUrl)
                         tasks.Add(room.SendStateEventAsync("m.room.member", WhoAmI.UserId, targetRoomProfileOverride));
                 }
-            }
 
             await Task.WhenAll(tasks);
             await Task.Delay(1000);
@@ -263,7 +246,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
             var differenceFound = false;
             if (syncCount++ >= targetSyncCount) {
                 var profiles = GetRoomProfilesAsync();
-                await foreach ((string roomId, var profile) in profiles) {
+                await foreach ((var roomId, var profile) in profiles) {
                     if (!expectedRoomProfiles.ContainsKey(roomId)) {
                         Console.WriteLine($"Skipping profile check for {roomId} because its not in override list?");
                         continue;
@@ -284,15 +267,13 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     public async IAsyncEnumerable<KeyValuePair<string, RoomMemberEventContent>> GetRoomProfilesAsync() {
         var rooms = await GetJoinedRooms();
         var results = rooms.Select(GetOwnRoomProfileWithIdAsync).ToAsyncEnumerable();
-        await foreach (var res in results) {
-            yield return res;
-        }
+        await foreach (var res in results) yield return res;
     }
 
     public async Task<RoomIdResponse> JoinRoomAsync(string roomId, List<string> homeservers = null, string? reason = null) {
         var joinUrl = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(roomId)}";
         Console.WriteLine($"Calling {joinUrl} with {homeservers?.Count ?? 0} via's...");
-        if (homeservers == null || homeservers.Count == 0) homeservers = new() { roomId.Split(':')[1] };
+        if (homeservers == null || homeservers.Count == 0) homeservers = new List<string> { roomId.Split(':')[1] };
         var fullJoinUrl = $"{joinUrl}?server_name=" + string.Join("&server_name=", homeservers);
         var res = await ClientHttpClient.PostAsJsonAsync(fullJoinUrl, new {
             reason
@@ -302,9 +283,8 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
 
 #region Room Profile Utility
 
-    private async Task<KeyValuePair<string, RoomMemberEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) {
-        return new KeyValuePair<string, RoomMemberEventContent>(room.RoomId, await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!));
-    }
+    private async Task<KeyValuePair<string, RoomMemberEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) =>
+        new(room.RoomId, await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!));
 
 #endregion
 
@@ -350,7 +330,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
         var idResp = await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
 
-        var filterList = await GetNamedFilterListOrNullAsync() ?? new();
+        var filterList = await GetNamedFilterListOrNullAsync() ?? new Dictionary<string, string>();
         filterList[filterName] = idResp.FilterId;
         await SetAccountDataAsync("gay.rory.libmatrix.named_filters", filterList);
 
@@ -360,7 +340,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     public async Task<string?> GetNamedFilterIdOrNullAsync(string filterName) {
-        var filterList = await GetNamedFilterListOrNullAsync() ?? new();
+        var filterList = await GetNamedFilterListOrNullAsync() ?? new Dictionary<string, string>();
         return filterList.GetValueOrDefault(filterName); //todo: validate that filter exists
     }
 
@@ -395,9 +375,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
 
         if (includeGlobal)
             perRoomAccountData[""] = resp.AccountData;
-        foreach (var (roomId, room) in resp.Rooms?.Join ?? []) {
-            perRoomAccountData[roomId] = room.AccountData;
-        }
+        foreach (var (roomId, room) in resp.Rooms?.Join ?? []) perRoomAccountData[roomId] = room.AccountData;
 
         return perRoomAccountData;
     }

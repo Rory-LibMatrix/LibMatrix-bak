@@ -28,6 +28,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             _filter = null;
         }
     }
+
     public string? NamedFilterName {
         get => _namedFilterName;
         set {
@@ -81,11 +82,11 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         var url = $"/_matrix/client/v3/sync?timeout={Timeout}&set_presence={SetPresence}&full_state={(FullState ? "true" : "false")}";
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
         if (_filterId is not null) url += $"&filter={_filterId}";
-        
+
         logger?.LogInformation("SyncHelper: Calling: {}", url);
-        
+
         try {
-            var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
+            var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken ?? CancellationToken.None);
             if (httpResp is null) throw new NullReferenceException("Failed to send HTTP request");
             logger?.LogInformation("Got sync response: {} bytes, {} elapsed", httpResp.Content.Headers.ContentLength ?? -1, sw.Elapsed);
             var deserializeSw = Stopwatch.StartNew();
@@ -120,8 +121,8 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
 
     public async Task RunSyncLoopAsync(bool skipInitialSyncEvents = true, CancellationToken? cancellationToken = null) {
         var sw = Stopwatch.StartNew();
-        int emptyInitialSyncCount = 0;
-        int syncCount = 0;
+        var emptyInitialSyncCount = 0;
+        var syncCount = 0;
         var oldTimeout = Timeout;
         Timeout = 0;
         await foreach (var sync in EnumerateSyncAsync(cancellationToken)) {
@@ -163,27 +164,25 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         var tasks = SyncReceivedHandlers.Select(x => x(syncResponse)).ToList();
         await Task.WhenAll(tasks);
 
-        if (syncResponse.AccountData is { Events.Count: > 0 }) {
+        if (syncResponse.AccountData is { Events.Count: > 0 })
             foreach (var accountDataEvent in syncResponse.AccountData.Events) {
                 tasks = AccountDataReceivedHandlers.Select(x => x(accountDataEvent)).ToList();
                 await Task.WhenAll(tasks);
             }
-        }
 
         await RunSyncLoopRoomCallbacksAsync(syncResponse, isInitialSync);
     }
 
     private async Task RunSyncLoopRoomCallbacksAsync(SyncResponse syncResponse, bool isInitialSync) {
-        if (syncResponse.Rooms is { Invite.Count: > 0 }) {
+        if (syncResponse.Rooms is { Invite.Count: > 0 })
             foreach (var roomInvite in syncResponse.Rooms.Invite) {
                 var tasks = InviteReceivedHandlers.Select(x => x(roomInvite)).ToList();
                 await Task.WhenAll(tasks);
             }
-        }
 
         if (isInitialSync) return;
 
-        if (syncResponse.Rooms is { Join.Count: > 0 }) {
+        if (syncResponse.Rooms is { Join.Count: > 0 })
             foreach (var updatedRoom in syncResponse.Rooms.Join) {
                 if (updatedRoom.Value.Timeline is null) continue;
                 foreach (var stateEventResponse in updatedRoom.Value.Timeline.Events) {
@@ -192,7 +191,6 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
                     await Task.WhenAll(tasks);
                 }
             }
-        }
     }
 
     /// <summary>

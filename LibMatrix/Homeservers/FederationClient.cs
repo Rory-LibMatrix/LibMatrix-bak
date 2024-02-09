@@ -23,33 +23,28 @@ public class FederationClient(string baseUrl) {
     public static async Task<FederationClient> Create(string baseUrl, string? proxy = null) {
         var homeserver = new FederationClient(baseUrl);
         homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
-        if(string.IsNullOrWhiteSpace(proxy) && string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
+        if (string.IsNullOrWhiteSpace(proxy) && string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
             Console.WriteLine($"Failed to resolve homeserver client URI for {baseUrl}");
-        if(string.IsNullOrWhiteSpace(proxy) && string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
+        if (string.IsNullOrWhiteSpace(proxy) && string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
             Console.WriteLine($"Failed to resolve homeserver server URI for {baseUrl}");
 
         if (!string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
-            homeserver.HttpClient = new() {
+            homeserver.HttpClient = new MatrixHttpClient {
                 BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Server ?? throw new InvalidOperationException($"Failed to resolve homeserver server URI for {baseUrl}")),
                 Timeout = TimeSpan.FromSeconds(120)
             };
 
-        if (proxy is not null) {
-            homeserver.HttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
-        }
+        if (proxy is not null) homeserver.HttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
 
         return homeserver;
     }
-    
+
     public string BaseUrl { get; } = baseUrl;
 
     public MatrixHttpClient HttpClient { get; set; } = null!;
     public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; } = null!;
 
-    public async Task<ServerVersionResponse> GetServerVersionAsync() {
-        return await HttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
-    }
-
+    public async Task<ServerVersionResponse> GetServerVersionAsync() => await HttpClient.GetFromJsonAsync<ServerVersionResponse>("/_matrix/federation/v1/version");
 }
 
 public class ServerVersionResponse {

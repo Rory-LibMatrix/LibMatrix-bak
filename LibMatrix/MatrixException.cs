@@ -23,7 +23,6 @@ public class MatrixException : Exception {
     public object GetAsObject() => new { ErrorCode, Error, SoftLogout, RetryAfterMs };
     public string GetAsJson() => GetAsObject().ToJson(ignoreNull: true);
 
-
     public override string Message =>
         $"{ErrorCode}: {ErrorCode switch {
             // common

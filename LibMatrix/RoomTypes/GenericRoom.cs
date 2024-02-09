@@ -24,18 +24,14 @@ public class GenericRoom {
         Homeserver = homeserver;
         RoomId = roomId;
         // if (GetType() != typeof(SpaceRoom))
-        if (GetType() == typeof(GenericRoom)) {
-            AsSpace = new SpaceRoom(homeserver, RoomId);
-        }
+        if (GetType() == typeof(GenericRoom)) AsSpace = new SpaceRoom(homeserver, RoomId);
     }
 
     public string RoomId { get; set; }
 
     public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
         var result = Homeserver.ClientHttpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
-        await foreach (var resp in result) {
-            yield return resp;
-        }
+        await foreach (var resp in result) yield return resp;
     }
 
     public Task<List<StateEventResponse>> GetFullStateAsListAsync() =>
@@ -76,7 +72,8 @@ public class GenericRoom {
         url += "?format=event";
         try {
             var resp = await Homeserver.ClientHttpClient.GetFromJsonAsync<JsonObject>(url);
-            if(resp["type"]?.GetValue<string>() != type) throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
+            if (resp["type"]?.GetValue<string>() != type)
+                throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
             return resp.Deserialize<StateEventResponse>();
         }
         catch (MatrixException e) {
@@ -142,7 +139,7 @@ public class GenericRoom {
                 if (limit <= 0) yield break;
             }
         }
-        else {
+        else
             while (limit > 0) {
                 var resp = await GetMessagesAsync(from, Math.Min(chunkSize, limit), dir, filter);
 
@@ -158,7 +155,6 @@ public class GenericRoom {
 
                 from = resp.End;
             }
-        }
 
         Console.WriteLine("End of GetManyAsync");
     }
@@ -166,7 +162,7 @@ public class GenericRoom {
     public async Task<string?> GetNameAsync() => (await GetStateAsync<RoomNameEventContent>("m.room.name"))?.Name;
 
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
-        if (checkIfAlreadyMember) {
+        if (checkIfAlreadyMember)
             try {
                 _ = await GetCreateEventAsync();
                 return new RoomIdResponse {
@@ -174,7 +170,6 @@ public class GenericRoom {
                 };
             }
             catch { } //ignore
-        }
 
         var joinUrl = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
         Console.WriteLine($"Calling {joinUrl} with {homeservers?.Length ?? 0} via's...");
@@ -195,7 +190,7 @@ public class GenericRoom {
         // var resText = await res.Content.ReadAsStringAsync();
         // Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
-            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
+            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
         });
         if (sw.ElapsedMilliseconds > 100)
             Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
@@ -219,7 +214,7 @@ public class GenericRoom {
         // var resText = await res.Content.ReadAsStringAsync();
         // Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
-            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default,
+            TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
         });
         if (sw.ElapsedMilliseconds > 100)
             Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
@@ -280,19 +275,16 @@ public class GenericRoom {
             return await GetNameAsync();
         }
         catch {
-            try
-            {
+            try {
                 var alias = await GetCanonicalAliasAsync();
                 if (alias?.Alias is not null) return alias.Alias;
                 throw new Exception("No name or alias");
             }
-            catch
-            {
-                try
-                {
+            catch {
+                try {
                     var members = GetMembersEnumerableAsync();
                     var memberList = new List<string>();
-                    int memberCount = 0;
+                    var memberCount = 0;
                     await foreach (var member in members)
                         memberList.Add(member.RawContent?["displayname"]?.GetValue<string>() ?? "");
                     memberCount = memberList.Count;
@@ -302,8 +294,7 @@ public class GenericRoom {
                         return string.Join(", ", memberList.Take(maxMemberNames)) + " and " + (memberCount - maxMemberNames) + " others.";
                     return string.Join(", ", memberList);
                 }
-                catch
-                {
+                catch {
                     return RoomId;
                 }
             }
@@ -388,7 +379,7 @@ public class GenericRoom {
             Url = url,
             Body = fileName,
             FileName = fileName,
-            FileInfo = new() {
+            FileInfo = new RoomMessageEventContent.FileInfoStruct {
                 Size = fileStream.Length,
                 MimeType = contentType
             }
@@ -414,9 +405,7 @@ public class GenericRoom {
         }
     }
 
-    public Task<T> GetEventAsync<T>(string eventId) {
-        return Homeserver.ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
-    }
+    public Task<T> GetEventAsync<T>(string eventId) => Homeserver.ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
 
     public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
         var data = new { reason };
@@ -435,8 +424,8 @@ public class GenericRoom {
         Dictionary<string, List<string>> roomHomeservers = new();
         var members = GetMembersEnumerableAsync();
         await foreach (var member in members) {
-            string memberHs = member.StateKey.Split(':', 2)[1];
-            roomHomeservers.TryAdd(memberHs, new());
+            var memberHs = member.StateKey.Split(':', 2)[1];
+            roomHomeservers.TryAdd(memberHs, new List<string>());
             roomHomeservers[memberHs].Add(member.StateKey);
         }
 
@@ -454,7 +443,7 @@ public class GenericRoom {
             "m.room.join_rules",
             "m.room.history_visibility",
             "m.room.guest_access",
-            "m.room.member",
+            "m.room.member"
         };
         await foreach (var state in states) {
             if (state is null || state.RawContent is not { Count: > 0 }) continue;
@@ -467,7 +456,7 @@ public class GenericRoom {
                 }
 
             if (stateTypeIgnore.Contains(state.Type)) continue;
-            await SendStateEventAsync(state.Type, state.StateKey, new());
+            await SendStateEventAsync(state.Type, state.StateKey, new object());
         }
     }
 

@@ -8,6 +8,7 @@ public class WhoAmIResponse {
 
     [JsonPropertyName("device_id")]
     public string? DeviceId { get; set; }
+
     [JsonPropertyName("is_guest")]
     public bool? IsGuest { get; set; }
 }

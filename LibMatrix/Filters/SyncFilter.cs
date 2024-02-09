@@ -24,21 +24,30 @@ public class SyncFilter {
 
         [JsonPropertyName("timeline")]
         public StateFilter? Timeline { get; set; }
-        
+
         [JsonPropertyName("rooms")]
         public List<string>? Rooms { get; set; }
-        
+
         [JsonPropertyName("not_rooms")]
         public List<string>? NotRooms { get; set; }
-        
+
         [JsonPropertyName("include_leave")]
         public bool? IncludeLeave { get; set; }
 
-        public class StateFilter(bool? containsUrl = null, bool? includeRedundantMembers = null, bool? lazyLoadMembers = null, List<string>? rooms = null,
-            List<string>? notRooms = null, bool? unreadThreadNotifications = null,
+        public class StateFilter(
+            bool? containsUrl = null,
+            bool? includeRedundantMembers = null,
+            bool? lazyLoadMembers = null,
+            List<string>? rooms = null,
+            List<string>? notRooms = null,
+            bool? unreadThreadNotifications = null,
             //base ctor
-            int? limit = null, List<string>? types = null, List<string>? notTypes = null, List<string>? senders = null, List<string>? notSenders = null
-        ) : EventFilter(limit: limit, types: types, notTypes: notTypes, senders: senders, notSenders: notSenders) {
+            int? limit = null,
+            List<string>? types = null,
+            List<string>? notTypes = null,
+            List<string>? senders = null,
+            List<string>? notSenders = null
+        ) : EventFilter(limit, types, notTypes, senders, notSenders) {
             [JsonPropertyName("contains_url")]
             public bool? ContainsUrl { get; set; } = containsUrl;
 

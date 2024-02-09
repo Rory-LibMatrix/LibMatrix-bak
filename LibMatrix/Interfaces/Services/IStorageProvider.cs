@@ -13,7 +13,6 @@ public interface IStorageProvider {
         throw new NotImplementedException();
     }
 
-
     public Task SaveObjectAsync<T>(string key, T value) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement SaveObject<T>(key, value)!");
         throw new NotImplementedException();
@@ -36,7 +35,6 @@ public interface IStorageProvider {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement GetAllKeys()!");
         throw new NotImplementedException();
     }
-
 
     // delete
     public Task DeleteObjectAsync(string key) {

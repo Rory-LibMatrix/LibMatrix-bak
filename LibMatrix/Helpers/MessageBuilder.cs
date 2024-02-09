@@ -8,46 +8,42 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         MessageType = msgType,
         Format = format
     };
-    
+
     public RoomMessageEventContent Build() => Content;
-    
+
     public MessageBuilder WithBody(string body) {
         Content.Body += body;
         Content.FormattedBody += body;
         return this;
     }
-    
+
     public MessageBuilder WithHtmlTag(string tag, string body, Dictionary<string, string>? attributes = null) {
         Content.Body += body;
         Content.FormattedBody += $"<{tag}";
-        if (attributes != null) {
-            foreach (var (key, value) in attributes) {
+        if (attributes != null)
+            foreach (var (key, value) in attributes)
                 Content.FormattedBody += $" {key}=\"{value}\"";
-            }
-        }
         Content.FormattedBody += $">{body}</{tag}>";
         return this;
     }
-    
+
     public MessageBuilder WithHtmlTag(string tag, Action<MessageBuilder> bodyBuilder, Dictionary<string, string>? attributes = null) {
         Content.FormattedBody += $"<{tag}";
-        if (attributes != null) {
-            foreach (var (key, value) in attributes) {
+        if (attributes != null)
+            foreach (var (key, value) in attributes)
                 Content.FormattedBody += $" {key}=\"{value}\"";
-            }
-        }
         Content.FormattedBody += ">";
         bodyBuilder(this);
         Content.FormattedBody += $"</{tag}>";
         return this;
     }
-    
+
     public MessageBuilder WithColoredBody(string color, string body) {
         Content.Body += body;
         Content.FormattedBody += $"<font color=\"{color}\">{body}</font>";
         return this;
     }
-    
+
     public MessageBuilder WithColoredBody(string color, Action<MessageBuilder> bodyBuilder) {
         Content.FormattedBody += $"<font color=\"{color}\">";
         bodyBuilder(this);
@@ -55,7 +51,7 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         return this;
     }
 
-    public MessageBuilder WithRainbowString(string text, byte skip = 1, int offset = 0, double lengthFactor = 255.0, bool useLength = true) {
+    public MessageBuilder WithRainbowString(string text, byte skip = 1, int offset = 0, double lengthFactor = 255.0, bool useLength = true) =>
         // if (useLength) {
         //     lengthFactor = text.Length;
         // }
@@ -67,8 +63,5 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         //     // Console.WriteLine($"RBA: {r} {g} {b} {a}");
         //     // Content.FormattedBody += $"<font color=\"#{r:X2}{g:X2}{b:X2}\">{text[i]}</font>";
         // }
-
-        return this;
-    }
-    
+        this;
 }

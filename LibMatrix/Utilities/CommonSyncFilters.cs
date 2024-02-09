@@ -38,14 +38,14 @@ public static class CommonSyncFilters {
                     "m.room.name",
                     "m.room.avatar",
                     "org.matrix.mjolnir.shortcode",
-                    "m.room.power_levels",
+                    "m.room.power_levels"
                 },
                 LazyLoadMembers = true, IncludeRedundantMembers = false
             },
-            Timeline = new SyncFilter.RoomFilter.StateFilter(rooms: []),
+            Timeline = new SyncFilter.RoomFilter.StateFilter(rooms: [])
         }
     };
-    
+
     public static readonly SyncFilter GetSpaceRelationsFilter = new() {
         AccountData = new SyncFilter.EventFilter(notTypes: ["*"], limit: 1),
         Presence = new SyncFilter.EventFilter(notTypes: ["*"], limit: 1),
@@ -59,7 +59,7 @@ public static class CommonSyncFilters {
                 },
                 LazyLoadMembers = true, IncludeRedundantMembers = false
             },
-            Timeline = new SyncFilter.RoomFilter.StateFilter(rooms: []),
+            Timeline = new SyncFilter.RoomFilter.StateFilter(rooms: [])
         }
     };
 
