@@ -2,9 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.join_rules")]
+[MatrixEvent(EventName = EventId)]
 public class RoomJoinRulesEventContent : EventContent {
     public const string EventId = "m.room.join_rules";
+
     /// <summary>
     /// one of ["public", "invite", "knock", "restricted", "knock_restricted"]
     /// "private" is reserved without implementation!
@@ -12,7 +13,7 @@ public class RoomJoinRulesEventContent : EventContent {
     /// </summary>
     [JsonPropertyName("join_rule")]
     public string JoinRuleValue { get; set; }
-    
+
     [JsonIgnore]
     public JoinRules JoinRule {
         get => JoinRuleValue switch {

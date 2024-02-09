@@ -37,10 +37,11 @@ public class RoomMessageEventContent : TimelineEventContent {
     public class FileInfoStruct {
         [JsonPropertyName("mimetype")]
         public string? MimeType { get; set; }
+
         [JsonPropertyName("size")]
         public long Size { get; set; }
+
         [JsonPropertyName("thumbnail_url")]
         public string? ThumbnailUrl { get; set; }
     }
-
 }

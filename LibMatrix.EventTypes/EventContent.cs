@@ -25,9 +25,7 @@ public abstract class TimelineEventContent : EventContent {
         return this;
     }
 
-    public T SetReplaceRelation<T>(string eventId) where T : TimelineEventContent {
-        return SetReplaceRelation(eventId) as T ?? throw new InvalidOperationException();
-    }
+    public T SetReplaceRelation<T>(string eventId) where T : TimelineEventContent => SetReplaceRelation(eventId) as T ?? throw new InvalidOperationException();
 
     public class MessageRelatesTo {
         [JsonPropertyName("m.in_reply_to")]

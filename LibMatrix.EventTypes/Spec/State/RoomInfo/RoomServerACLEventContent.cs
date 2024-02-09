@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.server_acl")]
+[MatrixEvent(EventName = EventId)]
 public class RoomServerACLEventContent : EventContent {
     public const string EventId = "m.room.server_acl";
 

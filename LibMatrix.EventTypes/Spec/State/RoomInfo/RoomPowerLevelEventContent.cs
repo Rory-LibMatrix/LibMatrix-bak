@@ -67,13 +67,11 @@ public class RoomPowerLevelEventContent : EventContent {
         return Users.TryGetValue(userId, out var level) ? level : UsersDefault ?? UsersDefault ?? 0;
     }
 
-    public long GetEventPowerLevel(string eventType) {
-        return Events.TryGetValue(eventType, out var level) ? level : EventsDefault ?? EventsDefault ?? 0;
-    }
+    public long GetEventPowerLevel(string eventType) => Events.TryGetValue(eventType, out var level) ? level : EventsDefault ?? EventsDefault ?? 0;
 
     public void SetUserPowerLevel(string userId, long powerLevel) {
         ArgumentNullException.ThrowIfNull(userId);
-        Users ??= new();
+        Users ??= new Dictionary<string, long>();
         Users[userId] = powerLevel;
     }
 }

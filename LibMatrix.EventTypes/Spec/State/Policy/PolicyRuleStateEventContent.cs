@@ -29,9 +29,7 @@ public class RoomPolicyRuleEventContent : PolicyRuleEventContent {
 }
 
 public abstract class PolicyRuleEventContent : EventContent {
-    public PolicyRuleEventContent() {
-        Console.WriteLine($"init policy {GetType().Name}");
-    }
+    public PolicyRuleEventContent() => Console.WriteLine($"init policy {GetType().Name}");
     private string? _reason;
 
     /// <summary>
@@ -42,25 +40,23 @@ public abstract class PolicyRuleEventContent : EventContent {
     [FriendlyName(Name = "Entity")]
     public string? Entity { get; set; }
 
-
     private bool init;
+
     /// <summary>
     ///     Reason this user is banned
     /// </summary>
     [JsonPropertyName("reason")]
     [FriendlyName(Name = "Reason")]
     public virtual string? Reason {
-        get {
+        get =>
             // Console.WriteLine($"Read policy reason: {_reason}");
-            return _reason;
-        }
-        set {
+            _reason;
+        set =>
             // Console.WriteLine($"Set policy reason: {value}");
             // if(init)
-                // Console.WriteLine(string.Join('\n', Environment.StackTrace.Split('\n')[..5]));
+            // Console.WriteLine(string.Join('\n', Environment.StackTrace.Split('\n')[..5]));
             // init = true;
             _reason = value;
-        }
     }
 
     /// <summary>
@@ -86,7 +82,7 @@ public abstract class PolicyRuleEventContent : EventContent {
     public DateTime? ExpiryDateTime {
         get => Expiry == null ? null : DateTimeOffset.FromUnixTimeMilliseconds(Expiry.Value).DateTime;
         set {
-            if(value is not null)
+            if (value is not null)
                 Expiry = ((DateTimeOffset)value).ToUnixTimeMilliseconds();
         }
     }

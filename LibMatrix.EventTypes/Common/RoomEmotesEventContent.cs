@@ -2,8 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.EventTypes.Common;
 
-[MatrixEvent(EventName = "im.ponies.room_emotes")]
+[MatrixEvent(EventName = EventId)]
 public class RoomEmotesEventContent : TimelineEventContent {
+    public const string EventId = "im.ponies.room_emotes";
+
     [JsonPropertyName("emoticons")]
     public Dictionary<string, EmoticonData>? Emoticons { get; set; }
 

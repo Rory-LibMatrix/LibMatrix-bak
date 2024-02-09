@@ -2,9 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = "m.room.guest_access")]
+[MatrixEvent(EventName = EventId)]
 public class RoomGuestAccessEventContent : EventContent {
     public const string EventId = "m.room.guest_access";
+
     [JsonPropertyName("guest_access")]
     public string GuestAccess { get; set; }
 

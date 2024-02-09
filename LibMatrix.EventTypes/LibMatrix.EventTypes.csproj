@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <ProjectReference Condition="Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')" Include="..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj"/>
         <!-- This is dangerous, but eases development since locking the version will drift out of sync without noticing,
