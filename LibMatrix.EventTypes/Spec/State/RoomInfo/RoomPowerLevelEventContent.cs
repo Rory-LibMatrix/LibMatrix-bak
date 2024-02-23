@@ -59,15 +59,31 @@ public class RoomPowerLevelEventContent : EventContent {
 
     public bool UserHasStatePermission(string userId, string eventType) {
         ArgumentNullException.ThrowIfNull(userId);
-        return Users.TryGetValue(userId, out var level) && level >= Events.GetValueOrDefault(eventType, StateDefault ?? 50);
+        var userLevel = GetUserPowerLevel(userId);
+        var eventLevel = GetStateEventPowerLevel(eventType);
+        
+        Console.WriteLine($"{userId}={userLevel} >= {eventType}={eventLevel} = {userLevel >= eventLevel}");
+
+        return userLevel >= eventLevel;
     }
 
     public long GetUserPowerLevel(string userId) {
         ArgumentNullException.ThrowIfNull(userId);
-        return Users.TryGetValue(userId, out var level) ? level : UsersDefault ?? UsersDefault ?? 0;
+        if (Users is null) return UsersDefault ?? 0;
+        return Users.TryGetValue(userId, out var level) ? level : UsersDefault ?? 0;
     }
 
-    public long GetEventPowerLevel(string eventType) => Events.TryGetValue(eventType, out var level) ? level : EventsDefault ?? EventsDefault ?? 0;
+    public long GetStateEventPowerLevel(string eventType) {
+        ArgumentNullException.ThrowIfNull(eventType);
+        if (Events is null) return StateDefault ?? 0;
+        return Events.TryGetValue(eventType, out var level) ? level : StateDefault ?? 0;
+    }
+    
+    public long GetTimelineEventPowerLevel(string eventType) {
+        ArgumentNullException.ThrowIfNull(eventType);
+        if (Events is null) return EventsDefault ?? 0;
+        return Events.TryGetValue(eventType, out var level) ? level : EventsDefault ?? 0;
+    }
 
     public void SetUserPowerLevel(string userId, long powerLevel) {
         ArgumentNullException.ThrowIfNull(userId);

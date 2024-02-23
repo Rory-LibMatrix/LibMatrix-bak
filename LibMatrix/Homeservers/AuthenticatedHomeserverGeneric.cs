@@ -295,6 +295,27 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     }
 
     public async Task<FilterIdResponse> UploadFilterAsync(SyncFilter filter) {
+        List<List<string>?> senderLists = [
+            filter.AccountData?.Senders,
+            filter.AccountData?.NotSenders,
+            filter.Presence?.Senders,
+            filter.Presence?.NotSenders,
+            filter.Room?.AccountData?.Senders,
+            filter.Room?.AccountData?.NotSenders,
+            filter.Room?.Ephemeral?.Senders,
+            filter.Room?.Ephemeral?.NotSenders,
+            filter.Room?.State?.Senders,
+            filter.Room?.State?.NotSenders,
+            filter.Room?.Timeline?.Senders,
+            filter.Room?.Timeline?.NotSenders
+        ];
+        
+        foreach (var list in senderLists)
+            if (list is { Count: > 0 } && list.Contains("@me")) {
+                list.Remove("@me");
+                list.Add(UserId);
+            }
+        
         var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
         return await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
     }
@@ -327,8 +348,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     /// <returns>Filter ID response</returns>
     /// <exception cref="Exception"></exception>
     public async Task<FilterIdResponse> UploadNamedFilterAsync(string filterName, SyncFilter filter) {
-        var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
-        var idResp = await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
+        var idResp = await UploadFilterAsync(filter);
 
         var filterList = await GetNamedFilterListOrNullAsync() ?? new Dictionary<string, string>();
         filterList[filterName] = idResp.FilterId;

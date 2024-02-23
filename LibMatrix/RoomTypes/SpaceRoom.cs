@@ -1,5 +1,6 @@
 using ArcaneLibs.Extensions;
 using LibMatrix.Homeservers;
+using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.RoomTypes;
 
@@ -30,5 +31,9 @@ public class SpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomId)
                 .Take(10)
         });
         return resp;
+    }
+    
+    public async Task<EventIdResponse> AddChildByIdAsync(string id) {
+        return await AddChildAsync(Homeserver.GetRoom(id));
     }
 }

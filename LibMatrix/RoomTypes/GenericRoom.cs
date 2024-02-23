@@ -435,7 +435,7 @@ public class GenericRoom {
 
 #region Disband room
 
-    public async Task DisbandRoomAsync() {
+    public async Task PermanentlyBrickRoomAsync() {
         var states = GetFullStateAsync();
         List<string> stateTypeIgnore = new() {
             "m.room.create",

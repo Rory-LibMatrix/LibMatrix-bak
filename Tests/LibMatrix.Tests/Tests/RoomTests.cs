@@ -198,7 +198,7 @@ public class RoomTests : TestBed<TestFixture> {
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
 
-        await room.DisbandRoomAsync();
+        await room.PermanentlyBrickRoomAsync();
     }
 
     [Fact]

@@ -1,4 +1,6 @@
+using System.Reflection.Metadata;
 using LibMatrix.EventTypes.Spec;
+using LibMatrix.Filters;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Utilities.Bot.Interfaces;
@@ -37,8 +39,19 @@ public class CommandListenerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
+        var filter = await _hs.GetOrUploadNamedFilterIdAsync("gay.rory.libmatrix.utilities.bot.command_listener_syncfilter.dev2", new SyncFilter() {
+            AccountData = new SyncFilter.EventFilter(notTypes: ["*"], limit: 1),
+            Presence = new SyncFilter.EventFilter(notTypes: ["*"]),
+            Room = new SyncFilter.RoomFilter() {
+                AccountData = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                Ephemeral = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                State = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                Timeline = new SyncFilter.RoomFilter.StateFilter(types: ["m.room.message"], notSenders: [_hs.WhoAmI.UserId]),
+            }
+        });
         var syncHelper = new SyncHelper(_hs, _logger) {
-            Timeout = 300_000
+            Timeout = 300_000,
+            FilterId = filter
         };
         syncHelper.TimelineEventHandlers.Add(async @event => {
             try {

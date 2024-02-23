@@ -120,7 +120,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     }
 
     public async Task RunSyncLoopAsync(bool skipInitialSyncEvents = true, CancellationToken? cancellationToken = null) {
-        var sw = Stopwatch.StartNew();
+        // var sw = Stopwatch.StartNew();
         var emptyInitialSyncCount = 0;
         var syncCount = 0;
         var oldTimeout = Timeout;
@@ -153,7 +153,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
                     Timeout = oldTimeout;
                 }
             }
-            else if (syncCount > 15)
+            else if (syncCount > 15 && IsInitialSync)
                 Console.WriteLine(sync.ToJson(ignoreNull: true, indent: true));
 
             await RunSyncLoopCallbacksAsync(sync, IsInitialSync && skipInitialSyncEvents);
@@ -212,4 +212,9 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     /// Event fired when an account data event is received
     /// </summary>
     public List<Func<StateEventResponse, Task>> AccountDataReceivedHandlers { get; } = new();
+    
+    private void Log(string message) {
+        if (logger is null) Console.WriteLine(message);
+        else logger.LogInformation(message);
+    }
 }

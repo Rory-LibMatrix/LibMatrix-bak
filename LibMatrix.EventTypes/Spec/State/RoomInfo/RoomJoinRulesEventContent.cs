@@ -43,6 +43,10 @@ public class RoomJoinRulesEventContent : EventContent {
 
         [JsonPropertyName("room_id")]
         public required string RoomId { get; set; }
+
+        public static class Types {
+            public const string RoomMembership = "m.room_membership";
+        }
     }
 
     public enum JoinRules {

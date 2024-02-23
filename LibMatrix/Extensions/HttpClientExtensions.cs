@@ -57,7 +57,7 @@ public class MatrixHttpClient : HttpClient {
 
         HttpResponseMessage responseMessage;
         // try {
-        responseMessage = await base.SendAsync(request, cancellationToken);
+        responseMessage = await base.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         // }
         // catch (Exception e) {
         // if (requestSettings is { Retries: 0 }) throw;
