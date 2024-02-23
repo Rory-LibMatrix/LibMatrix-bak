@@ -35,7 +35,7 @@ public class RemoteHomeserver(string baseUrl) {
 
         homeserver.ClientHttpClient = new MatrixHttpClient {
             BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException($"Failed to resolve homeserver client URI for {baseUrl}")),
-            Timeout = TimeSpan.FromSeconds(120)
+            Timeout = TimeSpan.FromSeconds(300)
         };
 
         homeserver.FederationClient = await FederationClient.TryCreate(baseUrl, proxy);

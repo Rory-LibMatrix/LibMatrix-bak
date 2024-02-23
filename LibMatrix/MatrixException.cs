@@ -20,7 +20,7 @@ public class MatrixException : Exception {
 
     public string RawContent { get; set; }
 
-    public object GetAsObject() => new { ErrorCode, Error, SoftLogout, RetryAfterMs };
+    public object GetAsObject() => new { errcode = ErrorCode, error = Error, soft_logout = SoftLogout, retry_after_ms = RetryAfterMs };
     public string GetAsJson() => GetAsObject().ToJson(ignoreNull: true);
 
     public override string Message =>

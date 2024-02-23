@@ -34,7 +34,14 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
     }
 
     private async Task<string?> _tryResolveFromClientWellknown(string homeserver) {
-        if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
+        if (!homeserver.StartsWith("http")) {
+            if (await _httpClient.CheckSuccessStatus($"https://{homeserver}/.well-known/matrix/client"))
+                homeserver = "https://" + homeserver;
+            else if (await _httpClient.CheckSuccessStatus($"http://{homeserver}/.well-known/matrix/client")) {
+                homeserver = "http://" + homeserver;
+            }
+        }
+
         try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/client");
             var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
@@ -49,7 +56,14 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
     }
 
     private async Task<string?> _tryResolveFromServerWellknown(string homeserver) {
-        if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
+        if (!homeserver.StartsWith("http")) {
+            if (await _httpClient.CheckSuccessStatus($"https://{homeserver}/.well-known/matrix/server"))
+                homeserver = "https://" + homeserver;
+            else if (await _httpClient.CheckSuccessStatus($"http://{homeserver}/.well-known/matrix/server")) {
+                homeserver = "http://" + homeserver;
+            }
+        }
+
         try {
             var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
             var hs = resp.GetProperty("m.server").GetString();

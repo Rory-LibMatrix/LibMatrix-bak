@@ -1,0 +1,6 @@
+@LibMatrix.HomeserverEmulator_HostAddress = http://localhost:5298
+
+GET {{LibMatrix.HomeserverEmulator_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
