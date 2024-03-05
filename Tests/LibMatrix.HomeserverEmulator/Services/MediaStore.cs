@@ -30,18 +30,18 @@ public class MediaStore {
             Console.WriteLine("Data storage is disabled, not loading rooms from disk");
     }
 
-    public async Task<object> UploadMedia(string userId, string mimeType, Stream stream, string? filename = null) {
-        var mediaId = $"mxc://{Guid.NewGuid().ToString()}";
-        var path = Path.Combine(_config.DataStoragePath, "media", mediaId);
-        if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-        var file = Path.Combine(path, filename ?? "file");
-        await using var fs = File.Create(file);
-        await stream.CopyToAsync(fs);
-        index.Add(new() {
-            
-        });
-        return media;
-    }
+    // public async Task<object> UploadMedia(string userId, string mimeType, Stream stream, string? filename = null) {
+    //     var mediaId = $"mxc://{Guid.NewGuid().ToString()}";
+    //     var path = Path.Combine(_config.DataStoragePath, "media", mediaId);
+    //     if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+    //     var file = Path.Combine(path, filename ?? "file");
+    //     await using var fs = File.Create(file);
+    //     await stream.CopyToAsync(fs);
+    //     index.Add(new() {
+    //         
+    //     });
+    //     return media;
+    // }
 
     public class MediaInfo { }
 }
