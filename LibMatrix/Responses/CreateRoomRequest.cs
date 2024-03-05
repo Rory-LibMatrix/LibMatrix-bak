@@ -12,7 +12,9 @@ namespace LibMatrix.Responses;
 public class CreateRoomRequest {
     [JsonIgnore] public CreationContentBaseType CreationContentBaseType;
 
-    public CreateRoomRequest() => CreationContentBaseType = new CreationContentBaseType(this);
+    public CreateRoomRequest() {
+        CreationContentBaseType = new CreationContentBaseType(this);
+    }
 
     [JsonPropertyName("name")]
     public string? Name { get; set; }
@@ -37,7 +39,7 @@ public class CreateRoomRequest {
     public string? Visibility { get; set; }
 
     [JsonPropertyName("power_level_content_override")]
-    public RoomPowerLevelEventContent PowerLevelContentOverride { get; set; } = null!;
+    public RoomPowerLevelEventContent? PowerLevelContentOverride { get; set; } = null!;
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();

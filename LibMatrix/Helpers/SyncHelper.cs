@@ -55,7 +55,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
 
     private async Task updateFilterAsync() {
         if (!string.IsNullOrWhiteSpace(NamedFilterName)) {
-            _filterId = await homeserver.GetNamedFilterIdOrNullAsync(NamedFilterName);
+            _filterId = await homeserver.GetOrUploadNamedFilterIdAsync(NamedFilterName);
             if (_filterId is null)
                 if (logger is null) Console.WriteLine($"Failed to get filter ID for named filter {NamedFilterName}");
                 else logger.LogWarning("Failed to get filter ID for named filter {NamedFilterName}", NamedFilterName);

@@ -43,7 +43,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
             serverVersion = serverVersion = await (rhs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null)!);
         }
         catch (Exception e) {
-            logger.LogError(e, "Failed to get server version for {homeserver}", homeserver);
+            logger.LogWarning(e, "Failed to get server version for {homeserver}", homeserver);
             sem.Release();
             throw;
         }

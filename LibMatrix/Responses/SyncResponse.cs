@@ -83,6 +83,13 @@ public class SyncResponse {
             public SummaryDataStructure? Summary { get; set; }
 
             public class TimelineDataStructure {
+                public TimelineDataStructure() { }
+
+                public TimelineDataStructure(List<StateEventResponse>? events, bool? limited) {
+                    Events = events;
+                    Limited = limited;
+                }
+
                 [JsonPropertyName("events")]
                 public List<StateEventResponse>? Events { get; set; }
 

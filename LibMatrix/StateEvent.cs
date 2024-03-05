@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
@@ -25,7 +26,7 @@ public class StateEvent {
             return dict;
         }).ToFrozenDictionary();
 
-    public static Type GetStateEventType(string type) => KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
+    public static Type GetStateEventType(string? type) => string.IsNullOrWhiteSpace(type) ? typeof(UnknownEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
 
     [JsonIgnore]
     public Type MappedType => GetStateEventType(Type);
@@ -73,10 +74,10 @@ public class StateEvent {
     }
 
     [JsonPropertyName("state_key")]
-    public string StateKey { get; set; } = "";
+    public string StateKey { get; set; }
 
     [JsonPropertyName("type")]
-    public required string Type { get; set; }
+    public string Type { get; set; }
 
     [JsonPropertyName("replaces_state")]
     public string? ReplacesState { get; set; }
@@ -138,7 +139,7 @@ public class StateEvent {
 
 public class StateEventResponse : StateEvent {
     [JsonPropertyName("origin_server_ts")]
-    public ulong? OriginServerTs { get; set; }
+    public long? OriginServerTs { get; set; }
 
     [JsonPropertyName("room_id")]
     public string? RoomId { get; set; }
@@ -151,9 +152,6 @@ public class StateEventResponse : StateEvent {
 
     [JsonPropertyName("event_id")]
     public string? EventId { get; set; }
-
-    [JsonPropertyName("replaces_state")]
-    public new string? ReplacesState { get; set; }
 
     public class UnsignedData {
         [JsonPropertyName("age")]
@@ -181,6 +179,12 @@ public class StateEventResponse : StateEvent {
 internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializerContext;
 
 public class EventList {
+    public EventList() { }
+
+    public EventList(List<StateEventResponse>? events) {
+        Events = events;
+    }
+
     [JsonPropertyName("events")]
     public List<StateEventResponse>? Events { get; set; } = new();
 }
@@ -188,6 +192,14 @@ public class EventList {
 public class ChunkedStateEventResponse {
     [JsonPropertyName("chunk")]
     public List<StateEventResponse>? Chunk { get; set; } = new();
+}
+
+public class PaginatedChunkedStateEventResponse : ChunkedStateEventResponse {
+    [JsonPropertyName("start")]
+    public string? Start { get; set; }
+
+    [JsonPropertyName("end")]
+    public string? End { get; set; }
 }
 
 #region Unused code

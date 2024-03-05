@@ -8,16 +8,42 @@ namespace LibMatrix.HomeserverEmulator.Controllers;
 
 [ApiController]
 [Route("/_matrix/client/{version}/")]
-public class AuthController(ILogger<AuthController> logger, UserStore userStore) : ControllerBase {
+public class AuthController(ILogger<AuthController> logger, UserStore userStore, TokenService tokenService) : ControllerBase {
     [HttpPost("login")]
     public async Task<LoginResponse> Login(LoginRequest request) {
-        var user = await userStore.CreateUser($"@{Guid.NewGuid().ToString()}:{Request.Host}", Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), new Dictionary<string, object>());
-        var loginResponse = new LoginResponse {
-            AccessToken = user.AccessToken,
-            DeviceId = user.DeviceId,
-            UserId = user.UserId
-        };
+        if(!request.Identifier.User.StartsWith('@'))
+            request.Identifier.User = $"@{request.Identifier.User}:{tokenService.GenerateServerName(HttpContext)}";
+        if(request.Identifier.User.EndsWith("localhost"))
+            request.Identifier.User = request.Identifier.User.Replace("localhost", tokenService.GenerateServerName(HttpContext));
+        
+        var user = await userStore.GetUserById(request.Identifier.User);
+        if(user is null) {
+            user = await userStore.CreateUser(request.Identifier.User);
+        }
 
-        return loginResponse;
+        return user.Login();
+    }
+
+    [HttpGet("login")]
+    public async Task<LoginFlowsResponse> GetLoginFlows() {
+        return new LoginFlowsResponse {
+            Flows = ((string[]) [
+                "m.login.password",
+                "m.login.recaptcha",
+                "m.login.sso",
+                "m.login.email.identity",
+                "m.login.msisdn",
+                "m.login.dummy",
+                "m.login.registration_token",
+            ]).Select(x => new LoginFlowsResponse.LoginFlow { Type = x }).ToList()
+        };
+    }
+}
+
+public class LoginFlowsResponse {
+    public required List<LoginFlow> Flows { get; set; }
+
+    public class LoginFlow {
+        public required string Type { get; set; }
     }
 }

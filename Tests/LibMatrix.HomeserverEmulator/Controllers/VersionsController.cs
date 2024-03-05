@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.Services;
@@ -44,5 +45,48 @@ public class VersionsController(ILogger<WellKnownController> logger) : Controlle
             }
         };
         return clientVersions;
+    }
+
+    [HttpGet("client/{version}/capabilities")]
+    public async Task<CapabilitiesResponse> GetCapabilities() {
+        return new() {
+            Capabilities = new() {
+                ChangePassword = new() {
+                    Enabled = false
+                },
+                RoomVersions = new() {
+                    Default = "11",
+                    Available = new() {
+                        ["11"] = "unstable"
+                    }
+                }
+            }
+        };
+    }
+}
+
+public class CapabilitiesResponse {
+    [JsonPropertyName("capabilities")]
+    public CapabilitiesContent Capabilities { get; set; }
+
+    public class CapabilitiesContent {
+        [JsonPropertyName("m.room_versions")]
+        public RoomVersionsContent RoomVersions { get; set; }
+        
+        [JsonPropertyName("m.change_password")]
+        public ChangePasswordContent ChangePassword { get; set; }
+
+        public class ChangePasswordContent {
+            [JsonPropertyName("enabled")]
+            public bool Enabled { get; set; }
+        }
+
+        public class RoomVersionsContent {
+            [JsonPropertyName("default")]
+            public string Default { get; set; }
+
+            [JsonPropertyName("available")]
+            public Dictionary<string, string> Available { get; set; }
+        }
     }
 }

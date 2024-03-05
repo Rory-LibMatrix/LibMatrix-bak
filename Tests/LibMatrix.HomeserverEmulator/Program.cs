@@ -1,16 +1,20 @@
 using System.Net.Mime;
+using System.Text.Json.Serialization;
 using LibMatrix;
 using LibMatrix.HomeserverEmulator.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers().AddJsonOptions(options => {
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.SwaggerDoc("v1", new OpenApiInfo() {
@@ -20,10 +24,11 @@ builder.Services.AddSwaggerGen(c => {
     });
     c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "LibMatrix.HomeserverEmulator.xml"));
 });
+
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddSingleton<HSEConfiguration>();
 builder.Services.AddSingleton<UserStore>();
 builder.Services.AddSingleton<RoomStore>();
-
 
 builder.Services.AddScoped<TokenService>();
 
@@ -45,7 +50,7 @@ builder.Services.AddRequestTimeouts(x => {
 builder.Services.AddCors(options => {
     options.AddPolicy(
         "Open",
-        policy => policy.AllowAnyOrigin().AllowAnyHeader());
+        policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 var app = builder.Build();
 
@@ -62,6 +67,8 @@ app.UseExceptionHandler(exceptionHandlerApp => {
 
         var exceptionHandlerPathFeature =
             context.Features.Get<IExceptionHandlerPathFeature>();
+        if(exceptionHandlerPathFeature?.Error is not null)
+            Console.WriteLine(exceptionHandlerPathFeature.Error.ToString()!);
 
         if (exceptionHandlerPathFeature?.Error is MatrixException mxe) {
             context.Response.StatusCode = mxe.ErrorCode switch {
@@ -86,5 +93,15 @@ app.UseExceptionHandler(exceptionHandlerApp => {
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.Map("/_matrix/{*_}", (HttpContext ctx) => {
+    Console.WriteLine($"Client hit non-existing route: {ctx.Request.Method} {ctx.Request.Path}");
+    ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+    ctx.Response.ContentType = MediaTypeNames.Application.Json;
+    return ctx.Response.WriteAsJsonAsync(new MatrixException() {
+        ErrorCode = MatrixException.ErrorCodes.M_UNRECOGNISED,
+        Error = "Endpoint not implemented"
+    });
+});
 
 app.Run();

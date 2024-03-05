@@ -8,7 +8,7 @@ namespace LibMatrix.HomeserverEmulator.Controllers;
 public class HEDebugController(ILogger<HEDebugController> logger, UserStore userStore, RoomStore roomStore) : ControllerBase {
     [HttpGet("users")]
     public async Task<List<UserStore.User>> GetUsers() {
-        return userStore._users;
+        return userStore._users.ToList();
     }
     
     [HttpGet("rooms")]

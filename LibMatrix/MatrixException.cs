@@ -61,4 +61,39 @@ public class MatrixException : Exception {
             "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM" => $"Cannot leave server notice room: {Error}",
             _ => $"Unknown error: {new { ErrorCode, Error, SoftLogout, RetryAfterMs }.ToJson(ignoreNull: true)}"
         }}";
+
+    public static class ErrorCodes {
+        public const string M_FORBIDDEN = "M_FORBIDDEN";
+        public const string M_UNKNOWN_TOKEN = "M_UNKNOWN_TOKEN";
+        public const string M_MISSING_TOKEN = "M_MISSING_TOKEN";
+        public const string M_BAD_JSON = "M_BAD_JSON";
+        public const string M_NOT_JSON = "M_NOT_JSON";
+        public const string M_NOT_FOUND = "M_NOT_FOUND";
+        public const string M_LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED";
+        public const string M_UNRECOGNISED = "M_UNRECOGNISED";
+        public const string M_UNKOWN = "M_UNKOWN";
+        public const string M_UNAUTHORIZED = "M_UNAUTHORIZED";
+        public const string M_USER_DEACTIVATED = "M_USER_DEACTIVATED";
+        public const string M_USER_IN_USE = "M_USER_IN_USE";
+        public const string M_INVALID_USERNAME = "M_INVALID_USERNAME";
+        public const string M_ROOM_IN_USE = "M_ROOM_IN_USE";
+        public const string M_INVALID_ROOM_STATE = "M_INVALID_ROOM_STATE";
+        public const string M_THREEPID_IN_USE = "M_THREEPID_IN_USE";
+        public const string M_THREEPID_NOT_FOUND = "M_THREEPID_NOT_FOUND";
+        public const string M_THREEPID_AUTH_FAILED = "M_THREEPID_AUTH_FAILED";
+        public const string M_THREEPID_DENIED = "M_THREEPID_DENIED";
+        public const string M_SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
+        public const string M_UNSUPPORTED_ROOM_VERSION = "M_UNSUPPORTED_ROOM_VERSION";
+        public const string M_INCOMPATIBLE_ROOM_VERSION = "M_INCOMPATIBLE_ROOM_VERSION";
+        public const string M_BAD_STATE = "M_BAD_STATE";
+        public const string M_GUEST_ACCESS_FORBIDDEN = "M_GUEST_ACCESS_FORBIDDEN";
+        public const string M_CAPTCHA_NEEDED = "M_CAPTCHA_NEEDED";
+        public const string M_CAPTCHA_INVALID = "M_CAPTCHA_INVALID";
+        public const string M_MISSING_PARAM = "M_MISSING_PARAM";
+        public const string M_INVALID_PARAM = "M_INVALID_PARAM";
+        public const string M_TOO_LARGE = "M_TOO_LARGE";
+        public const string M_EXCLUSIVE = "M_EXCLUSIVE";
+        public const string M_RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
+        public const string M_CANNOT_LEAVE_SERVER_NOTICE_ROOM = "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM";
+    }
 }

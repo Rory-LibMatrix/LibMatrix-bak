@@ -1,5 +1,7 @@
 using System.Text.Json.Nodes;
 using ArcaneLibs.Extensions;
+using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.Filters;
 using LibMatrix.HomeserverEmulator.Services;
 using LibMatrix.Responses;
 using Microsoft.AspNetCore.Mvc;
@@ -8,17 +10,17 @@ namespace LibMatrix.HomeserverEmulator.Controllers;
 
 [ApiController]
 [Route("/_matrix/client/{version}/")]
-public class UserController(ILogger<UserController> logger, TokenService tokenService, UserStore userStore) : ControllerBase {
+public class UserController(ILogger<UserController> logger, TokenService tokenService, UserStore userStore, RoomStore roomStore) : ControllerBase {
     [HttpGet("account/whoami")]
     public async Task<WhoAmIResponse> Login() {
-        var token = tokenService.GetAccessToken();
+        var token = tokenService.GetAccessToken(HttpContext);
         if (token is null)
             throw new MatrixException() {
                 ErrorCode = "M_UNAUTHORIZED",
                 Error = "No token passed."
             };
 
-        var user = await userStore.GetUserByToken(token, Random.Shared.Next(101) <= 10, tokenService.GenerateServerName());
+        var user = await userStore.GetUserByToken(token, Random.Shared.Next(101) <= 10, tokenService.GenerateServerName(HttpContext));
         if (user is null)
             throw new MatrixException() {
                 ErrorCode = "M_UNKNOWN_TOKEN",
@@ -29,37 +31,10 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
         };
         return whoAmIResponse;
     }
-    
-    [HttpGet("profile/{userId}")]
-    public async Task<Dictionary<string, object>> GetProfile(string userId) {
-        var user = await userStore.GetUserById(userId, false);
-        if (user is null)
-            throw new MatrixException() {
-                ErrorCode = "M_NOT_FOUND",
-                Error = "User not found."
-            };
-        return user.Profile;
-    }
-    
-    [HttpGet("profile/{userId}/{key}")]
-    public async Task<object> GetProfile(string userId, string key) {
-        var user = await userStore.GetUserById(userId, false);
-        if (user is null)
-            throw new MatrixException() {
-                ErrorCode = "M_NOT_FOUND",
-                Error = "User not found."
-            };
-        if (!user.Profile.TryGetValue(key, out var value))
-            throw new MatrixException() {
-                ErrorCode = "M_NOT_FOUND",
-                Error = "Key not found."
-            };
-        return value;
-    }
-    
+
     [HttpGet("joined_rooms")]
     public async Task<object> GetJoinedRooms() {
-        var token = tokenService.GetAccessToken();
+        var token = tokenService.GetAccessToken(HttpContext);
         if (token is null)
             throw new MatrixException() {
                 ErrorCode = "M_UNAUTHORIZED",
@@ -75,7 +50,9 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
         // return user.JoinedRooms;
 
         return new {
-            joined_rooms = user.JoinedRooms
+            joined_rooms = roomStore._rooms.Where(r =>
+                r.State.Any(s => s.StateKey == user.UserId && s.Type == RoomMemberEventContent.EventId && (s.TypedContent as RoomMemberEventContent).Membership == "join")
+            ).Select(r => r.RoomId).ToList()
         };
     }
 }

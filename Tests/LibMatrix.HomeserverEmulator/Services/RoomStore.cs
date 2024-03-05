@@ -1,5 +1,13 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
+using System.Collections.ObjectModel;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using ArcaneLibs;
+using ArcaneLibs.Collections;
+using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Responses;
@@ -9,6 +17,21 @@ namespace LibMatrix.HomeserverEmulator.Services;
 public class RoomStore {
     public ConcurrentBag<Room> _rooms = new();
     private Dictionary<string, Room> _roomsById = new();
+    
+    public RoomStore(HSEConfiguration config) {
+        if(config.StoreData) {
+            var path = Path.Combine(config.DataStoragePath, "rooms");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            foreach (var file in Directory.GetFiles(path)) {
+                var room = JsonSerializer.Deserialize<Room>(File.ReadAllText(file));
+                if (room is not null) _rooms.Add(room);
+            }
+        }
+        else
+            Console.WriteLine("Data storage is disabled, not loading rooms from disk");
+        
+        RebuildIndexes();
+    }
 
     private void RebuildIndexes() {
         _roomsById = _rooms.ToDictionary(u => u.RoomId);
@@ -26,9 +49,7 @@ public class RoomStore {
     }
 
     public Room CreateRoom(CreateRoomRequest request) {
-        var room = new Room {
-            RoomId = $"!{Guid.NewGuid().ToString()}"
-        };
+        var room = new Room(roomId: $"!{Guid.NewGuid().ToString()}");
         if (!string.IsNullOrWhiteSpace(request.Name))
             room.SetStateInternal(new StateEvent() {
                 Type = RoomNameEventContent.EventId,
@@ -54,30 +75,90 @@ public class RoomStore {
         return room;
     }
 
-    public class Room {
+    public class Room : NotifyPropertyChanged {
+        private CancellationTokenSource _debounceCts = new();
+        private ObservableCollection<StateEventResponse> _timeline;
+        private ObservableDictionary<string,List<StateEventResponse>> _accountData;
+
+        public Room(string roomId) {
+            if (string.IsNullOrWhiteSpace(roomId)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(roomId));
+            if (roomId[0] != '!') throw new ArgumentException("Room ID must start with !", nameof(roomId));
+            RoomId = roomId;
+            State = FrozenSet<StateEventResponse>.Empty;
+            Timeline = new();
+            AccountData = new();
+        }
+
         public string RoomId { get; set; }
-        public List<StateEventResponse> State { get; set; } = new();
-        public Dictionary<string, EventContent> Timeline { get; set; } = new();
+
+        public FrozenSet<StateEventResponse> State { get; private set; }
+
+        public ObservableCollection<StateEventResponse> Timeline {
+            get => _timeline;
+            set {
+                if (Equals(value, _timeline)) return;
+                _timeline = new(value);
+                _timeline.CollectionChanged += (sender, args) => SaveDebounced();
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableDictionary<string, List<StateEventResponse>> AccountData { 
+            get => _accountData;
+            set {
+                if (Equals(value, _accountData)) return;
+                _accountData = new(value);
+                _accountData.CollectionChanged += (sender, args) => SaveDebounced();
+                OnPropertyChanged();
+            }
+        }
 
         internal StateEventResponse SetStateInternal(StateEvent request) {
             var state = new StateEventResponse() {
                 Type = request.Type,
                 StateKey = request.StateKey,
-                RawContent = request.RawContent,
-                EventId = Guid.NewGuid().ToString()
+                EventId = Guid.NewGuid().ToString(),
+                RoomId = RoomId,
+                OriginServerTs = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                Sender = "",
+                RawContent = request.RawContent ?? (request.TypedContent is not null ? new JsonObject() : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))  
             };
-            State.Add(state);
+            Timeline.Add(state);
+            if(state.StateKey is not null) 
+            // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
+                State = Timeline.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
+                    .OrderByDescending(s => s.OriginServerTs)
+                    .DistinctBy(x=>(x.Type, x.StateKey))
+                    .ToFrozenSet();
             return state;
         }
 
         public StateEventResponse AddUser(string userId) {
-            return SetStateInternal(new() {
+            var state = SetStateInternal(new() {
                 Type = RoomMemberEventContent.EventId,
                 StateKey = userId,
                 TypedContent = new RoomMemberEventContent() {
                     Membership = "join"
-                }
+                },
             });
+
+            state.Sender = userId;
+            return state;
+        }
+        
+        public async Task SaveDebounced() {
+            if (!HSEConfiguration.Current.StoreData) return;
+            await _debounceCts.CancelAsync();
+            _debounceCts = new CancellationTokenSource();
+            try {
+                await Task.Delay(250, _debounceCts.Token);
+                // Ensure all state events are in the timeline
+                State.Where(s=>!Timeline.Contains(s)).ToList().ForEach(s => Timeline.Add(s));
+                var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "rooms", $"{RoomId}.json");
+                Console.WriteLine($"Saving room {RoomId} to {path}!");
+                await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
+            }
+            catch (TaskCanceledException) { }
         }
     }
 }
