@@ -1,9 +1,9 @@
 # Rory&::LibMatrix
 
 An extensible C# library for the Matrix protocol. Primarily built around our own project needs, but we're open to contributions and improvements, especially around spec compliance.
-The library primarily targets .NET 7, but will update to .NET 8 once that's released. Preferably, we like to follow the latest release of .NET.
+The library currently targets .NET 8. We like to follow the latest release of .NET.
 
-ArcaneLibs can be found on [GitHub](https://github.com/TheArcaneBrony/ArcaneLibs.git). Personally we use the [MatrixRoomUtils project](https://git.rory.gay/matrix/MatrixRoomUtils.git/) as workspace, though improvements to make the library more easy to build outside of this would be appreciated.
+ArcaneLibs can be found on [GitHub](https://github.com/TheArcaneBrony/ArcaneLibs.git). Personally we use the [MatrixRoomUtils project](https://cgit.rory.gay/matrix/tools/MatrixRoomUtils.git/) as workspace, though improvements to make the library more easy to build outside of this would be appreciated.
 
 # Installation
 
