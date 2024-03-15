@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -10,6 +11,7 @@ using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Helpers;
+using LibMatrix.Homeservers.Extensions.NamedCaches;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 using LibMatrix.Services;
@@ -46,6 +48,7 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
 
         instance.WhoAmI = await instance.ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
+        instance.NamedCaches = new HsNamedCaches(instance);
 
         return instance;
     }
@@ -56,6 +59,8 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
     public string ServerName => UserId.Split(":", 2)[1];
 
     public string AccessToken { get; set; } = accessToken;
+
+    public HsNamedCaches NamedCaches { get; set; } = null!;
 
     public GenericRoom GetRoom(string roomId) {
         if (roomId is null || !roomId.StartsWith("!")) throw new ArgumentException("Room ID must start with !", nameof(roomId));
@@ -294,6 +299,12 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         WhoAmI = await ClientHttpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami");
     }
 
+    /// <summary>
+    ///   Upload a filter to the homeserver. Substitutes @me with the user's ID.
+    /// </summary>
+    /// <param name="filter"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     public async Task<FilterIdResponse> UploadFilterAsync(SyncFilter filter) {
         List<List<string>?> senderLists = [
             filter.AccountData?.Senders,
@@ -326,69 +337,21 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return _filterCache[filterId] = await resp.Content.ReadFromJsonAsync<SyncFilter>() ?? throw new Exception("Failed to get filter?");
     }
 
-#region Named filters
-
-    private async Task<Dictionary<string, string>?> GetNamedFilterListOrNullAsync(bool cached = true) {
-        if (cached && _namedFilterCache is not null) return _namedFilterCache;
-        try {
-            return _namedFilterCache = await GetAccountDataAsync<Dictionary<string, string>>("gay.rory.libmatrix.named_filters");
-        }
-        catch (MatrixException e) {
-            if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Utility function to allow avoiding serverside duplication
-    /// </summary>
-    /// <param name="filterName">Name of the filter (<i>please</i> properly namespace and possibly version this...)</param>
-    /// <param name="filter">The filter data</param>
-    /// <returns>Filter ID response</returns>
-    /// <exception cref="Exception"></exception>
-    public async Task<FilterIdResponse> UploadNamedFilterAsync(string filterName, SyncFilter filter) {
-        var idResp = await UploadFilterAsync(filter);
-
-        var filterList = await GetNamedFilterListOrNullAsync() ?? new Dictionary<string, string>();
-        filterList[filterName] = idResp.FilterId;
-        await SetAccountDataAsync("gay.rory.libmatrix.named_filters", filterList);
-
-        _namedFilterCache = filterList;
-
-        return idResp;
-    }
-
-    public async Task<string?> GetNamedFilterIdOrNullAsync(string filterName) {
-        var filterList = await GetNamedFilterListOrNullAsync() ?? new Dictionary<string, string>();
-        return filterList.GetValueOrDefault(filterName); //todo: validate that filter exists
-    }
-
-    public async Task<SyncFilter?> GetNamedFilterOrNullAsync(string filterName) {
-        var filterId = await GetNamedFilterIdOrNullAsync(filterName);
-        if (filterId is null) return null;
-        return await GetFilterAsync(filterId);
-    }
-
-    public async Task<string?> GetOrUploadNamedFilterIdAsync(string filterName, SyncFilter? filter = null) {
-        var filterId = await GetNamedFilterIdOrNullAsync(filterName);
-        if (filterId is not null) return filterId;
-        if (filter is null && CommonSyncFilters.FilterMap.TryGetValue(filterName, out var commonFilter)) filter = commonFilter;
-        if (filter is null) throw new ArgumentException($"Filter is null and no common filter was found, filterName={filterName}", nameof(filter));
-        var idResp = await UploadNamedFilterAsync(filterName, filter);
-        return idResp.FilterId;
-    }
-
-#endregion
-
     public class FilterIdResponse {
         [JsonPropertyName("filter_id")]
         public required string FilterId { get; set; }
     }
 
+    /// <summary>
+    ///   Enumerate all account data per room.
+    ///   <b>Warning</b>: This uses /sync!
+    /// </summary>
+    /// <param name="includeGlobal">Include non-room account data</param>
+    /// <returns>Dictionary of room IDs and their account data.</returns>
+    /// <exception cref="Exception"></exception>
     public async Task<Dictionary<string, EventList?>> EnumerateAccountDataPerRoom(bool includeGlobal = false) {
         var syncHelper = new SyncHelper(this);
-        syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountDataWithRooms);
+        syncHelper.FilterId = await NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetAccountDataWithRooms);
         var resp = await syncHelper.SyncAsync();
         if (resp is null) throw new Exception("Sync failed");
         var perRoomAccountData = new Dictionary<string, EventList?>();
@@ -400,9 +363,15 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return perRoomAccountData;
     }
 
+    /// <summary>
+    ///   Enumerate all non-room account data.
+    ///   <b>Warning</b>: This uses /sync!
+    /// </summary>
+    /// <returns>All account data.</returns>
+    /// <exception cref="Exception"></exception>
     public async Task<EventList?> EnumerateAccountData() {
         var syncHelper = new SyncHelper(this);
-        syncHelper.FilterId = await GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetAccountData);
+        syncHelper.FilterId = await NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetAccountData);
         var resp = await syncHelper.SyncAsync();
         if (resp is null) throw new Exception("Sync failed");
         return resp.AccountData;
@@ -419,5 +388,15 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         }
 
         return await res.Content.ReadFromJsonAsync<JsonObject>();
+    }
+
+    public class HsNamedCaches {
+        internal HsNamedCaches(AuthenticatedHomeserverGeneric hs) {
+            FileCache = new NamedFileCache(hs);
+            FilterCache = new NamedFilterCache(hs);
+        }
+
+        public NamedFilterCache FilterCache { get; init; }
+        public NamedFileCache FileCache { get; init; }
     }
 }

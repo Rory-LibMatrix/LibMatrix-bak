@@ -1,5 +1,7 @@
 using System.Reflection.Metadata;
+using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Filters;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
@@ -15,15 +17,17 @@ public class CommandListenerHostedService : IHostedService {
     private readonly ILogger<CommandListenerHostedService> _logger;
     private readonly IEnumerable<ICommand> _commands;
     private readonly LibMatrixBotConfiguration _config;
+    private readonly Func<CommandResult, Task>? _commandResultHandler;
 
     private Task? _listenerTask;
 
     public CommandListenerHostedService(AuthenticatedHomeserverGeneric hs, ILogger<CommandListenerHostedService> logger, IServiceProvider services,
-        LibMatrixBotConfiguration config) {
+        LibMatrixBotConfiguration config, Func<CommandResult, Task>? commandResultHandler = null) {
         logger.LogInformation("{} instantiated!", GetType().Name);
         _hs = hs;
         _logger = logger;
         _config = config;
+        _commandResultHandler = commandResultHandler;
         _logger.LogInformation("Getting commands...");
         _commands = services.GetServices<ICommand>();
         _logger.LogInformation("Got {} commands!", _commands.Count());
@@ -39,7 +43,7 @@ public class CommandListenerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting command listener!");
-        var filter = await _hs.GetOrUploadNamedFilterIdAsync("gay.rory.libmatrix.utilities.bot.command_listener_syncfilter.dev2", new SyncFilter() {
+        var filter = await _hs.NamedCaches.FilterCache.GetOrSetValueAsync("gay.rory.libmatrix.utilities.bot.command_listener_syncfilter.dev2", new SyncFilter() {
             AccountData = new SyncFilter.EventFilter(notTypes: ["*"], limit: 1),
             Presence = new SyncFilter.EventFilter(notTypes: ["*"]),
             Room = new SyncFilter.RoomFilter() {
@@ -49,44 +53,22 @@ public class CommandListenerHostedService : IHostedService {
                 Timeline = new SyncFilter.RoomFilter.StateFilter(types: ["m.room.message"], notSenders: [_hs.WhoAmI.UserId]),
             }
         });
+
         var syncHelper = new SyncHelper(_hs, _logger) {
             Timeout = 300_000,
             FilterId = filter
         };
+
         syncHelper.TimelineEventHandlers.Add(async @event => {
             try {
                 var room = _hs.GetRoom(@event.RoomId);
                 // _logger.LogInformation(eventResponse.ToJson(indent: false));
                 if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message })
                     if (message is { MessageType: "m.text" }) {
-                        var messageContentWithoutReply =
-                            message.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries).SkipWhile(x => x.StartsWith(">")).Aggregate((x, y) => $"{x}\n{y}");
-                        if (messageContentWithoutReply.StartsWith(_config.Prefix)) {
-                            var command = _commands.FirstOrDefault(x => x.Name == messageContentWithoutReply.Split(' ')[0][_config.Prefix.Length..]);
-                            if (command == null) {
-                                await room.SendMessageEventAsync(
-                                    new RoomMessageEventContent("m.notice", "Command not found!"));
-                                return;
-                            }
-
-                            var ctx = new CommandContext {
-                                Room = room,
-                                MessageEvent = @event,
-                                Homeserver = _hs
-                            };
-
-                            if (await command.CanInvoke(ctx))
-                                try {
-                                    await command.Invoke(ctx);
-                                }
-                                catch (Exception e) {
-                                    await room.SendMessageEventAsync(
-                                        MessageFormatter.FormatException("An error occurred during the execution of this command", e));
-                                }
-                            else
-                                await room.SendMessageEventAsync(
-                                    new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
-                        }
+                        var usedPrefix = await GetUsedPrefix(@event);
+                        if (usedPrefix is null) return;
+                        var res = await InvokeCommand(@event, usedPrefix);
+                        await (_commandResultHandler?.Invoke(res) ?? HandleResult(res));
                     }
             }
             catch (Exception e) {
@@ -106,5 +88,91 @@ public class CommandListenerHostedService : IHostedService {
         }
 
         await _listenerTask.WaitAsync(cancellationToken);
+    }
+
+    private async Task<string?> GetUsedPrefix(StateEventResponse evt) {
+        var messageContent = evt.TypedContent as RoomMessageEventContent;
+        var message = messageContent!.BodyWithoutReplyFallback;
+        var prefix = _config.Prefixes.OrderByDescending(x => x.Length).FirstOrDefault(message.StartsWith);
+        if (prefix is null && _config.MentionPrefix) {
+            var profile = await _hs.GetProfileAsync(_hs.WhoAmI.UserId);
+            var roomProfile = await _hs.GetRoom(evt.RoomId!).GetStateAsync<RoomMemberEventContent>(RoomMemberEventContent.EventId, _hs.WhoAmI.UserId);
+            if(message.StartsWith(_hs.WhoAmI.UserId + ": ")) prefix = profile.DisplayName + ": "; // `@bot:server.xyz: `
+            else if (message.StartsWith(_hs.WhoAmI.UserId + " ")) prefix = profile.DisplayName + " "; // `@bot:server.xyz `
+            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + ": ")) prefix = roomProfile.DisplayName + ": "; // `local bot: `
+            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + " ")) prefix = roomProfile.DisplayName + " "; // `local bot `
+            else if (!string.IsNullOrWhiteSpace(profile.DisplayName) && message.StartsWith(profile.DisplayName + ": ")) prefix = profile.DisplayName + ": "; // `bot: `
+            else if (!string.IsNullOrWhiteSpace(profile.DisplayName) && message.StartsWith(profile.DisplayName + " ")) prefix = profile.DisplayName + " "; // `bot `
+        }
+
+        return prefix;
+    }
+    
+    private async Task<CommandResult> InvokeCommand(StateEventResponse evt, string usedPrefix) {
+        var message = evt.TypedContent as RoomMessageEventContent;
+        var room = _hs.GetRoom(evt.RoomId!);
+        
+        var ctx = new CommandContext {
+            Room = room,
+            MessageEvent = @evt,
+            Homeserver = _hs
+        };
+        
+        var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..];
+        var command = _commands.OrderByDescending(x => x.Name.Length).FirstOrDefault(x => commandWithoutPrefix.StartsWith(x.Name));
+        if (commandWithoutPrefix.Length != command.Name.Length && commandWithoutPrefix[command.Name.Length] != ' ') command = null;
+
+        if (command == null) {
+            await room.SendMessageEventAsync(
+                new RoomMessageEventContent("m.notice", $"Command \"{commandWithoutPrefix.Split(' ')[0]}\" not found!"));
+            return new() {
+                Success = false,
+                Result = CommandResult.CommandResultType.Failure_InvalidCommand,
+                Context = ctx
+            };
+        }
+
+
+        if (await command.CanInvoke(ctx))
+            try {
+                await command.Invoke(ctx);
+            }
+            catch (Exception e) {
+                return new CommandResult() {
+                    Context = ctx,
+                    Result = CommandResult.CommandResultType.Failure_Exception,
+                    Success = false,
+                    Exception = e
+                };
+                // await room.SendMessageEventAsync(
+                    // MessageFormatter.FormatException("An error occurred during the execution of this command", e));
+            }
+        else
+            return new CommandResult() {
+                Context = ctx,
+                Result = CommandResult.CommandResultType.Failure_NoPermission,
+                Success = false
+            };
+            // await room.SendMessageEventAsync(
+                // new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
+
+        return new CommandResult() {
+            Context = ctx,
+            Success = true,
+            Result = CommandResult.CommandResultType.Success
+        };
+    }
+
+    private async Task HandleResult(CommandResult res) {
+        if (res.Success) return;
+        var room = res.Context.Room;
+        var msg = res.Result switch {
+            CommandResult.CommandResultType.Failure_Exception => MessageFormatter.FormatException("An error occurred during the execution of this command", res.Exception!),
+            CommandResult.CommandResultType.Failure_NoPermission => new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"),
+            CommandResult.CommandResultType.Failure_InvalidCommand => new RoomMessageEventContent("m.notice", $"Command \"{res.Context.CommandName}\" not found!"),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        
+        await room.SendMessageEventAsync(msg);
     }
 }

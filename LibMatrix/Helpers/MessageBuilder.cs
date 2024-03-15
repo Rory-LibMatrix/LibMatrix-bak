@@ -50,11 +50,18 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         Content.FormattedBody += "</font>";
         return this;
     }
+    
+    public MessageBuilder WithCustomEmoji(string mxcUri, string name) {
+        Content.Body += $"{{{name}}}";
+        Content.FormattedBody += $"<img data-mx-emoticon height=\"32\" src=\"{mxcUri}\" alt=\"{name}\" title=\"{name}\" />";
+        return this;
+    }
 
-    public MessageBuilder WithRainbowString(string text, byte skip = 1, int offset = 0, double lengthFactor = 255.0, bool useLength = true) =>
-        // if (useLength) {
-        //     lengthFactor = text.Length;
-        // }
+    public MessageBuilder WithRainbowString(string text, byte skip = 1, int offset = 0, double lengthFactor = 255.0, bool useLength = true) {
+        if (useLength) {
+            lengthFactor = text.Length;
+        }
+
         // HslaColorInterpolator interpolator = new((0, 255, 128, 255), (255, 255, 128, 255));
         // // RainbowEnumerator enumerator = new(skip, offset, lengthFactor);
         // for (int i = 0; i < text.Length; i++) {
@@ -63,5 +70,12 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         //     // Console.WriteLine($"RBA: {r} {g} {b} {a}");
         //     // Content.FormattedBody += $"<font color=\"#{r:X2}{g:X2}{b:X2}\">{text[i]}</font>";
         // }
-        this;
+        return this;
+    }
+    
+    public MessageBuilder WithCodeBlock(string code, string language = "plaintext") {
+        Content.Body += code;
+        Content.FormattedBody += $"<pre><code class=\"language-{language}\">{code}</code></pre>";
+        return this;
+    }
 }

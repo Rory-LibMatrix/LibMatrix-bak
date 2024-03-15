@@ -20,3 +20,17 @@ public class CommandContext {
 
     public async Task<EventIdResponse> Reply(RoomMessageEventContent content) => await Room.SendMessageEventAsync(content);
 }
+
+public class CommandResult {
+    public required bool Success { get; set; }
+    public Exception? Exception { get; set; }
+    public required CommandResultType Result { get; set; }
+    public required CommandContext Context { get; set; }
+
+    public enum CommandResultType {
+        Success,
+        Failure_Exception,
+        Failure_NoPermission,
+        Failure_InvalidCommand
+    }
+}

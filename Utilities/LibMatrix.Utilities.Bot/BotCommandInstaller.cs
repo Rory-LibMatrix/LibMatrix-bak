@@ -1,5 +1,7 @@
 using ArcaneLibs;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
+using LibMatrix.Responses;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
 using LibMatrix.Utilities.Bot.Services;
@@ -8,16 +10,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace LibMatrix.Utilities.Bot;
 
 public static class BotCommandInstaller {
-    public static IServiceCollection AddBotCommands(this IServiceCollection services) {
-        foreach (var commandClass in new ClassCollector<ICommand>().ResolveFromAllAccessibleAssemblies()) {
-            Console.WriteLine($"Adding command {commandClass.Name}");
-            services.AddScoped(typeof(ICommand), commandClass);
-        }
-
-        return services;
+    public static BotInstaller AddMatrixBot(this IServiceCollection services) {
+        return new BotInstaller(services).AddMatrixBot();
     }
+}
 
-    public static IServiceCollection AddBot(this IServiceCollection services, bool withCommands = true, bool isAppservice = false) {
+public class BotInstaller(IServiceCollection services) {
+    public BotInstaller AddMatrixBot() {
         services.AddSingleton<LibMatrixBotConfiguration>();
 
         services.AddScoped<AuthenticatedHomeserverGeneric>(x => {
@@ -28,13 +27,42 @@ public static class BotCommandInstaller {
             return hs;
         });
 
-        if (withCommands) {
-            Console.WriteLine("Adding command handler...");
-            services.AddBotCommands();
-            services.AddHostedService<CommandListenerHostedService>();
-            // services.AddSingleton<IHostedService, CommandListenerHostedService>();
+        return this;
+    }
+
+    public BotInstaller AddCommandHandler() {
+        Console.WriteLine("Adding command handler...");
+        services.AddHostedService<CommandListenerHostedService>();
+        return this;
+    }
+
+    public BotInstaller DiscoverAllCommands() {
+        foreach (var commandClass in new ClassCollector<ICommand>().ResolveFromAllAccessibleAssemblies()) {
+            Console.WriteLine($"Adding command {commandClass.Name}");
+            services.AddScoped(typeof(ICommand), commandClass);
         }
 
-        return services;
+        return this;
+    }
+    public BotInstaller AddCommands(IEnumerable<Type> commandClasses) {
+        foreach (var commandClass in commandClasses) {
+            if(!commandClass.IsAssignableTo(typeof(ICommand)))
+                throw new Exception($"Type {commandClass.Name} is not assignable to ICommand!");
+            Console.WriteLine($"Adding command {commandClass.Name}");
+            services.AddScoped(typeof(ICommand), commandClass);
+        }
+
+        return this;
+    }
+    
+    public BotInstaller WithInviteHandler(Func<InviteHandlerHostedService.InviteEventArgs, Task> inviteHandler) {
+        services.AddSingleton(inviteHandler);
+        services.AddHostedService<InviteHandlerHostedService>();
+        return this;
+    }
+    
+    public BotInstaller WithCommandResultHandler(Func<CommandResult, Task> commandResultHandler) {
+        services.AddSingleton(commandResultHandler);
+        return this;
     }
 }

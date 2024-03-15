@@ -33,6 +33,9 @@ public class RoomMessageEventContent : TimelineEventContent {
 
     [JsonPropertyName("info")]
     public FileInfoStruct? FileInfo { get; set; }
+    
+    [JsonIgnore]
+    public string BodyWithoutReplyFallback => Body.Split('\n').SkipWhile(x => x.StartsWith(">")).SkipWhile(x=>x.Trim().Length == 0).Aggregate((x, y) => $"{x}\n{y}");
 
     public class FileInfoStruct {
         [JsonPropertyName("mimetype")]
