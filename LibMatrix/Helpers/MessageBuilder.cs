@@ -78,4 +78,17 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         Content.FormattedBody += $"<pre><code class=\"language-{language}\">{code}</code></pre>";
         return this;
     }
+    
+    public MessageBuilder WithCollapsibleSection(string title, string body) {
+        Content.Body += body;
+        Content.FormattedBody += $"<details><summary>{title}</summary>{body}</details>";
+        return this;
+    }
+    
+    public MessageBuilder WithCollapsibleSection(string title, Action<MessageBuilder> bodyBuilder) {
+        Content.FormattedBody += $"<details><summary>{title}</summary>";
+        bodyBuilder(this);
+        Content.FormattedBody += "</details>";
+        return this;
+    }
 }
