@@ -76,6 +76,15 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
         return rooms;
     }
 
+    public virtual async Task<string> UploadFile(string fileName, IEnumerable<byte> data, string contentType = "application/octet-stream") {
+        return await UploadFile(fileName, data.ToArray(), contentType);
+    }
+
+    public virtual async Task<string> UploadFile(string fileName, byte[] data, string contentType = "application/octet-stream") {
+        await using var ms = new MemoryStream(data);
+        return await UploadFile(fileName, ms, contentType);
+    }
+
     public virtual async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
         var req = new HttpRequestMessage(HttpMethod.Post, $"/_matrix/media/v3/upload?filename={fileName}");
         req.Content = new StreamContent(fileStream);
@@ -320,13 +329,13 @@ public class AuthenticatedHomeserverGeneric(string serverName, string accessToke
             filter.Room?.Timeline?.Senders,
             filter.Room?.Timeline?.NotSenders
         ];
-        
+
         foreach (var list in senderLists)
             if (list is { Count: > 0 } && list.Contains("@me")) {
                 list.Remove("@me");
                 list.Add(UserId);
             }
-        
+
         var resp = await ClientHttpClient.PostAsJsonAsync("/_matrix/client/v3/user/" + UserId + "/filter", filter);
         return await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
     }

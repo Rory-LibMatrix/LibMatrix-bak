@@ -46,5 +46,11 @@ public class RoomMessageEventContent : TimelineEventContent {
 
         [JsonPropertyName("thumbnail_url")]
         public string? ThumbnailUrl { get; set; }
+        
+        [JsonPropertyName("w")]
+        public int? Width { get; set; }
+        
+        [JsonPropertyName("h")]
+        public int? Height { get; set; }
     }
 }

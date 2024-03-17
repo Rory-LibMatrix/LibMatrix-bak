@@ -14,8 +14,8 @@ public class CommandContext {
         .SkipWhile(x => x.StartsWith(">"))
         .Aggregate((x, y) => $"{x}\n{y}");
 
-    public string CommandName => MessageContentWithoutReply.Split(' ')[0][1..];
-    public string[] Args => MessageContentWithoutReply.Split(' ')[1..];
+    public required string CommandName;
+    public required string[] Args;
     public required AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
     public async Task<EventIdResponse> Reply(RoomMessageEventContent content) => await Room.SendMessageEventAsync(content);

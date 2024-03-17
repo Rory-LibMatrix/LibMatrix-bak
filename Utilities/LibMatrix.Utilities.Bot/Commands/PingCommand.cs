@@ -5,7 +5,7 @@ namespace LibMatrix.Utilities.Bot.Commands;
 
 public class PingCommand : ICommand {
     public string Name { get; } = "ping";
-    public string[]? Aliases { get; }
+    public string[]? Aliases { get; } = [ "?" ];
     public string Description { get; } = "Pong!";
     public bool Unlisted { get; }
 

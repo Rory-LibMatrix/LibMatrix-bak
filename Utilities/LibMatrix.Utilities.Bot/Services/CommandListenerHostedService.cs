@@ -112,19 +112,21 @@ public class CommandListenerHostedService : IHostedService {
         var message = evt.TypedContent as RoomMessageEventContent;
         var room = _hs.GetRoom(evt.RoomId!);
         
-        var ctx = new CommandContext {
-            Room = room,
-            MessageEvent = @evt,
-            Homeserver = _hs
-        };
         
         var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..];
         var command = _commands.OrderByDescending(x => x.Name.Length).FirstOrDefault(x => commandWithoutPrefix.StartsWith(x.Name));
         if (commandWithoutPrefix.Length != command.Name.Length && commandWithoutPrefix[command.Name.Length] != ' ') command = null;
 
+        var ctx = new CommandContext {
+            Room = room,
+            MessageEvent = @evt,
+            Homeserver = _hs,
+            Args = commandWithoutPrefix.Split(' ').Length == 1 ? [] : commandWithoutPrefix.Split(' ')[1..],
+            CommandName = commandWithoutPrefix.Split(' ')[0]
+        };
         if (command == null) {
             await room.SendMessageEventAsync(
-                new RoomMessageEventContent("m.notice", $"Command \"{commandWithoutPrefix.Split(' ')[0]}\" not found!"));
+                new RoomMessageEventContent("m.notice", $"Command \"{ctx.CommandName}\" not found!"));
             return new() {
                 Success = false,
                 Result = CommandResult.CommandResultType.Failure_InvalidCommand,
