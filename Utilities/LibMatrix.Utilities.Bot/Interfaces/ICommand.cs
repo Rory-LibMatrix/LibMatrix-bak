@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LibMatrix.Utilities.Bot.Interfaces;
 
@@ -14,7 +15,8 @@ public interface ICommand {
     public Task Invoke(CommandContext ctx);
 }
 
+public interface ICommand<T> : ICommand where T : ICommandGroup { }
 
-public interface ICommandGroup : ICommand {
-    public IImmutableList<ICommand> SubCommands { get; }
-}
+public interface ICommandGroup : ICommand { }
+
+public interface ICommandGroup<T> : ICommandGroup where T : ICommandGroup { }

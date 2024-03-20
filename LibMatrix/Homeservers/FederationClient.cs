@@ -1,10 +1,5 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Web;
-using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
-using LibMatrix.Responses;
 using LibMatrix.Services;
 
 namespace LibMatrix.Homeservers;

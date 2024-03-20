@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Text;
 using LibMatrix.EventTypes.Spec;
+using LibMatrix.Helpers;
 using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,27 +14,47 @@ public class HelpCommand(IServiceProvider services) : ICommand {
     public bool Unlisted { get; }
 
     public async Task Invoke(CommandContext ctx) {
-        var sb = new StringBuilder();
-        sb.AppendLine("Available commands:");
-        var commands = services.GetServices<ICommand>().Where(x => !x.Unlisted).ToList();
-        foreach (var command in commands) sb.AppendLine($"- {command.Name}: {command.Description}");
+        var commands = services.GetServices<ICommand>()
+            .Where(x => !x.Unlisted
+                        && !x.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommand<>))
+            ).ToList();
 
-        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent("m.notice", sb.ToString()));
+        var msb = GenerateCommandList(commands);
+        
+        await ctx.Room.SendMessageEventAsync(msb.Build());
     }
-}
 
-public class HelpCommandWithSubCommands<T>(T command) where T : ICommandGroup {
-    public string Name { get; } = "help";
-    public string[]? Aliases { get; } = new[] { "?" };
-    public string Description { get; } = "Displays this help message";
+    public static MessageBuilder GenerateCommandList(List<ICommand> commands, MessageBuilder? msb = null) {
+        msb ??= new MessageBuilder("m.notice");
+        msb.WithTable(tb => {
+            tb.WithTitle("Available commands", 2);
+            tb.WithRow(rb => {
+                rb.WithCell("Command");
+                rb.WithCell("Description");
+            });
 
-    public async Task Invoke(CommandContext ctx) {
-        var sb = new StringBuilder();
-        sb.AppendLine("Available subcommands:");
-        var commands = command.SubCommands;
-
-        foreach (var command in commands) sb.AppendLine($"- {command.Name}: {command.Description}");
-
-        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent("m.notice", sb.ToString()));
+            foreach (var command in commands) {
+                tb.WithRow(rb => {
+                    rb.WithCell(command.Name);
+                    rb.WithCell(command.Description);
+                });
+            }
+        });
+        // msb.WithHtmlTag("table", tb => {
+            // tb.WithHtmlTag("thead",
+                // th => { th.WithHtmlTag("tr", tr => { tr.WithHtmlTag("th", th => th.WithBody("Available commands"), new Dictionary<string, string> { ["colspan"] = "2" }); }); });
+            // tb.WithHtmlTag("tr", tr => {
+                // tr.WithHtmlTag("th", th => th.WithBody("Command"));
+                // tr.WithHtmlTag("th", th => th.WithBody("Description"));
+            // });
+            // foreach (var command in commands) {
+                // tb.WithHtmlTag("tr", tr => {
+                    // tr.WithHtmlTag("td", td => td.WithBody(command.Name));
+                    // tr.WithHtmlTag("td", td => td.WithBody(command.Description));
+                // });
+            // }
+        // });
+        
+        return msb;
     }
 }

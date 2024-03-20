@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Homeservers;

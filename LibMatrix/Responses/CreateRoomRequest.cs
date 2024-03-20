@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using LibMatrix.EventTypes;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
-using LibMatrix.Interfaces;
 
 namespace LibMatrix.Responses;
 

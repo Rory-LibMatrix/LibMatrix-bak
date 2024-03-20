@@ -112,11 +112,7 @@ public class CommandListenerHostedService : IHostedService {
         var message = evt.TypedContent as RoomMessageEventContent;
         var room = _hs.GetRoom(evt.RoomId!);
         
-        
-        var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..];
-        var command = _commands.OrderByDescending(x => x.Name.Length).FirstOrDefault(x => commandWithoutPrefix.StartsWith(x.Name));
-        if (commandWithoutPrefix.Length != command.Name.Length && commandWithoutPrefix[command.Name.Length] != ' ') command = null;
-
+        var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..].Trim();
         var ctx = new CommandContext {
             Room = room,
             MessageEvent = @evt,
@@ -124,45 +120,56 @@ public class CommandListenerHostedService : IHostedService {
             Args = commandWithoutPrefix.Split(' ').Length == 1 ? [] : commandWithoutPrefix.Split(' ')[1..],
             CommandName = commandWithoutPrefix.Split(' ')[0]
         };
-        if (command == null) {
-            await room.SendMessageEventAsync(
-                new RoomMessageEventContent("m.notice", $"Command \"{ctx.CommandName}\" not found!"));
-            return new() {
-                Success = false,
-                Result = CommandResult.CommandResultType.Failure_InvalidCommand,
-                Context = ctx
-            };
-        }
-
-
-        if (await command.CanInvoke(ctx))
-            try {
-                await command.Invoke(ctx);
+        try {
+            var command = _commands.SingleOrDefault(x => x.Name == commandWithoutPrefix.Split(' ')[0] || x.Aliases?.Contains(commandWithoutPrefix.Split(' ')[0]) == true);
+            if (command == null) {
+                await room.SendMessageEventAsync(
+                    new RoomMessageEventContent("m.notice", $"Command \"{ctx.CommandName}\" not found!"));
+                return new() {
+                    Success = false,
+                    Result = CommandResult.CommandResultType.Failure_InvalidCommand,
+                    Context = ctx
+                };
             }
-            catch (Exception e) {
+
+
+            if (await command.CanInvoke(ctx))
+                try {
+                    await command.Invoke(ctx);
+                }
+                catch (Exception e) {
+                    return new CommandResult() {
+                        Context = ctx,
+                        Result = CommandResult.CommandResultType.Failure_Exception,
+                        Success = false,
+                        Exception = e
+                    };
+                    // await room.SendMessageEventAsync(
+                    // MessageFormatter.FormatException("An error occurred during the execution of this command", e));
+                }
+            else
                 return new CommandResult() {
                     Context = ctx,
-                    Result = CommandResult.CommandResultType.Failure_Exception,
-                    Success = false,
-                    Exception = e
+                    Result = CommandResult.CommandResultType.Failure_NoPermission,
+                    Success = false
                 };
-                // await room.SendMessageEventAsync(
-                    // MessageFormatter.FormatException("An error occurred during the execution of this command", e));
-            }
-        else
+            // await room.SendMessageEventAsync(
+            // new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
+
             return new CommandResult() {
                 Context = ctx,
-                Result = CommandResult.CommandResultType.Failure_NoPermission,
-                Success = false
+                Success = true,
+                Result = CommandResult.CommandResultType.Success
             };
-            // await room.SendMessageEventAsync(
-                // new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
-
-        return new CommandResult() {
-            Context = ctx,
-            Success = true,
-            Result = CommandResult.CommandResultType.Success
-        };
+        }
+        catch (Exception e) {
+            return new CommandResult() {
+                Context = ctx,
+                Result = CommandResult.CommandResultType.Failure_Exception,
+                Success = false,
+                Exception = e
+            };
+        }
     }
 
     private async Task HandleResult(CommandResult res) {
