@@ -112,7 +112,7 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
                 ["creator"] = user.UserId
             }
         });
-        
+
         oldRoom.State.Where(x => eventTypesToTransfer.Contains(x.Type)).ToList().ForEach(x => room.SetStateInternal(x));
 
         room.AddUser(user.UserId);
@@ -120,6 +120,38 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
         // user.Rooms.Add(room.RoomId, room);
         return new {
             replacement_room = room.RoomId
+        };
+    }
+    
+    [HttpPost("rooms/{roomId}/leave")] // TODO: implement
+    public async Task<object> LeaveRoom(string roomId) {
+        var token = tokenService.GetAccessToken(HttpContext);
+        if (token == null)
+            throw new MatrixException() {
+                ErrorCode = "M_MISSING_TOKEN",
+                Error = "Missing token"
+            };
+
+        var user = await userStore.GetUserByToken(token);
+        if (user == null)
+            throw new MatrixException() {
+                ErrorCode = "M_UNKNOWN_TOKEN",
+                Error = "No such user"
+            };
+
+        var room = roomStore.GetRoomById(roomId);
+        if (room == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Room not found"
+            };
+
+        // room.RemoveUser(user.UserId);
+
+        // room.SetStateInternal(new StateEventResponse() { });
+
+        return new {
+            room_id = room.RoomId
         };
     }
 }

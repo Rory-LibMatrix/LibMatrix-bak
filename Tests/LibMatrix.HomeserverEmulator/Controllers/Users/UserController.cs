@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Filters;
@@ -54,5 +55,44 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
                 r.State.Any(s => s.StateKey == user.UserId && s.Type == RoomMemberEventContent.EventId && (s.TypedContent as RoomMemberEventContent).Membership == "join")
             ).Select(r => r.RoomId).ToList()
         };
+    }
+    
+    [HttpGet("devices")]
+    public async Task<DevicesResponse> GetDevices() {
+        var token = tokenService.GetAccessToken(HttpContext);
+        if (token is null)
+            throw new MatrixException() {
+                ErrorCode = "M_UNAUTHORIZED",
+                Error = "No token passed."
+            };
+
+        var user = await userStore.GetUserByToken(token, false);
+        if (user is null)
+            throw new MatrixException() {
+                ErrorCode = "M_UNAUTHORIZED",
+                Error = "Invalid token."
+            };
+        return new() {
+            Devices = user.AccessTokens.Select(x=>new DevicesResponse.Device() {
+                DeviceId = x.Value.DeviceId,
+                DisplayName = x.Value.DeviceId
+            }).ToList()
+        };
+    }
+
+    public class DevicesResponse {
+        [JsonPropertyName("devices")]
+        public List<Device> Devices { get; set; }
+        
+        public class Device {
+            [JsonPropertyName("device_id")]
+            public string DeviceId { get; set; }
+            [JsonPropertyName("display_name")]
+            public string DisplayName { get; set; }
+            [JsonPropertyName("last_seen_ip")]
+            public string LastSeenIp { get; set; }
+            [JsonPropertyName("last_seen_ts")]
+            public long LastSeenTs { get; set; }
+        }
     }
 }

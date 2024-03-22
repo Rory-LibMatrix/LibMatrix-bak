@@ -1,11 +1,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
-using System.Text.Json.Nodes;
 using ArcaneLibs.Extensions;
 using LibMatrix.HomeserverEmulator.Services;
 using LibMatrix.Responses;
-using LibMatrix.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibMatrix.HomeserverEmulator.Controllers;
@@ -51,7 +48,6 @@ public class SyncController(ILogger<SyncController> logger, TokenService tokenSe
 
         session.SyncStates.Add(response.NextBatch, new() {
             RoomPositions = syncState.RoomPositions.ToDictionary(x => x.Key, x => new UserStore.User.SessionInfo.UserSyncState.SyncRoomPosition() {
-                StatePosition = roomStore._rooms.First(y => y.RoomId == x.Key).State.Count,
                 TimelinePosition = roomStore._rooms.First(y => y.RoomId == x.Key).Timeline.Count,
                 AccountDataPosition = roomStore._rooms.First(y => y.RoomId == x.Key).AccountData[user.UserId].Count
             })
@@ -67,19 +63,19 @@ public class SyncController(ILogger<SyncController> logger, TokenService tokenSe
                     response.Rooms ??= new();
                     response.Rooms.Join ??= new();
                     response.Rooms.Join[room.RoomId] = new() {
-                        State = new(room.State.Skip(roomPositions.StatePosition).ToList()),
                         Timeline = new(events: room.Timeline.Skip(roomPositions.TimelinePosition).ToList(), limited: false),
                         AccountData = new(room.AccountData.GetOrCreate(user.UserId, _ => []).Skip(roomPositions.AccountDataPosition).ToList())
                     };
+                    if (response.Rooms.Join[room.RoomId].Timeline?.Events?.Count > 0)
+                        response.Rooms.Join[room.RoomId].State = new(response.Rooms.Join[room.RoomId].Timeline!.Events.Where(x => x.StateKey != null).ToList());
                     session.SyncStates[response.NextBatch].RoomPositions[room.RoomId] = new() {
-                        StatePosition = room.State.Count,
                         TimelinePosition = room.Timeline.Count,
                         AccountDataPosition = room.AccountData[user.UserId].Count
                     };
 
-                    if (response.Rooms.Join[room.RoomId].State.Events.Count == 0 &&
-                        response.Rooms.Join[room.RoomId].Timeline.Events.Count == 0 &&
-                        response.Rooms.Join[room.RoomId].AccountData.Events.Count == 0
+                    if (response.Rooms.Join[room.RoomId].State?.Events?.Count == 0 &&
+                        response.Rooms.Join[room.RoomId].Timeline?.Events?.Count == 0 &&
+                        response.Rooms.Join[room.RoomId].AccountData?.Events?.Count == 0
                        )
                         response.Rooms.Join.Remove(room.RoomId);
                 }
@@ -108,7 +104,6 @@ public class SyncController(ILogger<SyncController> logger, TokenService tokenSe
                 AccountData = new(room.AccountData.GetOrCreate(user.UserId, _ => []).ToList())
             };
             session.SyncStates[response.NextBatch].RoomPositions[room.RoomId] = new() {
-                StatePosition = room.State.Count,
                 TimelinePosition = room.Timeline.Count,
                 AccountDataPosition = room.AccountData[user.UserId].Count
             };

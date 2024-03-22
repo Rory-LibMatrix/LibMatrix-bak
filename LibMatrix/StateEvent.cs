@@ -72,7 +72,7 @@ public class StateEvent {
     }
 
     [JsonPropertyName("state_key")]
-    public string StateKey { get; set; }
+    public string? StateKey { get; set; }
 
     [JsonPropertyName("type")]
     public string Type { get; set; }

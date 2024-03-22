@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -17,9 +19,9 @@ namespace LibMatrix.HomeserverEmulator.Services;
 public class RoomStore {
     public ConcurrentBag<Room> _rooms = new();
     private Dictionary<string, Room> _roomsById = new();
-    
+
     public RoomStore(HSEConfiguration config) {
-        if(config.StoreData) {
+        if (config.StoreData) {
             var path = Path.Combine(config.DataStoragePath, "rooms");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             foreach (var file in Directory.GetFiles(path)) {
@@ -29,7 +31,7 @@ public class RoomStore {
         }
         else
             Console.WriteLine("Data storage is disabled, not loading rooms from disk");
-        
+
         RebuildIndexes();
     }
 
@@ -78,7 +80,7 @@ public class RoomStore {
     public class Room : NotifyPropertyChanged {
         private CancellationTokenSource _debounceCts = new();
         private ObservableCollection<StateEventResponse> _timeline;
-        private ObservableDictionary<string,List<StateEventResponse>> _accountData;
+        private ObservableDictionary<string, List<StateEventResponse>> _accountData;
 
         public Room(string roomId) {
             if (string.IsNullOrWhiteSpace(roomId)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(roomId));
@@ -98,12 +100,23 @@ public class RoomStore {
             set {
                 if (Equals(value, _timeline)) return;
                 _timeline = new(value);
-                _timeline.CollectionChanged += (sender, args) => SaveDebounced();
+                _timeline.CollectionChanged += (sender, args) => {
+                    if (args.Action == NotifyCollectionChangedAction.Add) {
+                        foreach (StateEventResponse state in args.NewItems) {
+                            if (state.StateKey is not null)
+                                // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
+                                RebuildState();
+                        }
+                    }
+
+                    SaveDebounced();
+                };
+                RebuildState();
                 OnPropertyChanged();
             }
         }
 
-        public ObservableDictionary<string, List<StateEventResponse>> AccountData { 
+        public ObservableDictionary<string, List<StateEventResponse>> AccountData {
             get => _accountData;
             set {
                 if (Equals(value, _accountData)) return;
@@ -113,6 +126,9 @@ public class RoomStore {
             }
         }
 
+        public ImmutableList<StateEventResponse> JoinedMembers =>
+            State.Where(s => s is { Type: RoomMemberEventContent.EventId, TypedContent: RoomMemberEventContent { Membership: "join" } }).ToImmutableList();
+
         internal StateEventResponse SetStateInternal(StateEvent request) {
             var state = new StateEventResponse() {
                 Type = request.Type,
@@ -121,14 +137,16 @@ public class RoomStore {
                 RoomId = RoomId,
                 OriginServerTs = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
                 Sender = "",
-                RawContent = request.RawContent ?? (request.TypedContent is not null ? new JsonObject() : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))  
+                RawContent = request.RawContent ?? (request.TypedContent is not null
+                    ? new JsonObject()
+                    : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))
             };
             Timeline.Add(state);
-            if(state.StateKey is not null) 
-            // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
-                State = Timeline.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
+            if (state.StateKey is not null)
+                // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
+                State = Timeline.Where(s => s.StateKey != null)
                     .OrderByDescending(s => s.OriginServerTs)
-                    .DistinctBy(x=>(x.Type, x.StateKey))
+                    .DistinctBy(x => (x.Type, x.StateKey))
                     .ToFrozenSet();
             return state;
         }
@@ -145,7 +163,7 @@ public class RoomStore {
             state.Sender = userId;
             return state;
         }
-        
+
         public async Task SaveDebounced() {
             if (!HSEConfiguration.Current.StoreData) return;
             await _debounceCts.CancelAsync();
@@ -153,12 +171,20 @@ public class RoomStore {
             try {
                 await Task.Delay(250, _debounceCts.Token);
                 // Ensure all state events are in the timeline
-                State.Where(s=>!Timeline.Contains(s)).ToList().ForEach(s => Timeline.Add(s));
+                State.Where(s => !Timeline.Contains(s)).ToList().ForEach(s => Timeline.Add(s));
                 var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "rooms", $"{RoomId}.json");
                 Console.WriteLine($"Saving room {RoomId} to {path}!");
                 await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
             }
             catch (TaskCanceledException) { }
+        }
+
+        private void RebuildState() {
+            State = Timeline //.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
+                .Where(x => x.StateKey != null)
+                .OrderByDescending(s => s.OriginServerTs)
+                .DistinctBy(x => (x.Type, x.StateKey))
+                .ToFrozenSet();
         }
     }
 }

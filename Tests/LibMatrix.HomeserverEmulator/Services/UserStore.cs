@@ -187,7 +187,6 @@ public class UserStore {
 
                 public class SyncRoomPosition {
                     public int TimelinePosition { get; set; }
-                    public int StatePosition { get; set; }
                     public int AccountDataPosition { get; set; }
                 }
             }

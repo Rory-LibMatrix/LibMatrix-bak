@@ -101,6 +101,8 @@ public class RoomStateController(ILogger<RoomStateController> logger, TokenServi
         var evt = room.SetStateInternal(request.ToStateEvent(user, room));
         evt.Type = eventType;
         evt.StateKey = stateKey;
-        return new EventIdResponse(evt);
+        return new EventIdResponse(){
+            EventId = evt.EventId
+        };
     }
 }

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix;
 
-public class EventIdResponse(string eventId) {
+public class EventIdResponse {
     [JsonPropertyName("event_id")]
-    public string EventId { get; set; } = eventId;
+    public string EventId { get; set; }
 }
