@@ -19,7 +19,7 @@ var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
     services.AddSingleton<AppServiceConfiguration>();
 
     services.AddRoryLibMatrixServices();
-    services.AddBot(false);
+    services.AddMatrixBot();//.AddCommandHandler().AddCommands([typeof()]);
 
     services.AddHostedService<DataFetcher>();
 }).UseConsoleLifetime().Build();

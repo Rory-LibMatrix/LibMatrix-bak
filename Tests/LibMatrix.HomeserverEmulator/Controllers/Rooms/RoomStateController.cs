@@ -102,7 +102,7 @@ public class RoomStateController(ILogger<RoomStateController> logger, TokenServi
         evt.Type = eventType;
         evt.StateKey = stateKey;
         return new EventIdResponse(){
-            EventId = evt.EventId
+            EventId = evt.EventId ?? throw new InvalidOperationException("EventId is null")
         };
     }
 }
