@@ -24,7 +24,8 @@ public class StateEvent {
             return dict;
         }).ToFrozenDictionary();
 
-    public static Type GetStateEventType(string? type) => string.IsNullOrWhiteSpace(type) ? typeof(UnknownEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
+    public static Type GetStateEventType(string? type) =>
+        string.IsNullOrWhiteSpace(type) ? typeof(UnknownEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
 
     [JsonIgnore]
     public Type MappedType => GetStateEventType(Type);
@@ -67,7 +68,9 @@ public class StateEvent {
         set {
             if (value is null)
                 RawContent?.Clear();
-            else RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType()));
+            else
+                RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value, value.GetType(),
+                    new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }));
         }
     }
 

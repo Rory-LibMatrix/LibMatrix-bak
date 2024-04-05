@@ -97,21 +97,23 @@ public class CommandListenerHostedService : IHostedService {
         if (prefix is null && _config.MentionPrefix) {
             var profile = await _hs.GetProfileAsync(_hs.WhoAmI.UserId);
             var roomProfile = await _hs.GetRoom(evt.RoomId!).GetStateAsync<RoomMemberEventContent>(RoomMemberEventContent.EventId, _hs.WhoAmI.UserId);
-            if(message.StartsWith(_hs.WhoAmI.UserId + ": ")) prefix = profile.DisplayName + ": "; // `@bot:server.xyz: `
+            if (message.StartsWith(_hs.WhoAmI.UserId + ": ")) prefix = profile.DisplayName + ": ";    // `@bot:server.xyz: `
             else if (message.StartsWith(_hs.WhoAmI.UserId + " ")) prefix = profile.DisplayName + " "; // `@bot:server.xyz `
-            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + ": ")) prefix = roomProfile.DisplayName + ": "; // `local bot: `
-            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + " ")) prefix = roomProfile.DisplayName + " "; // `local bot `
+            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + ": "))
+                prefix = roomProfile.DisplayName + ": "; // `local bot: `
+            else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + " "))
+                prefix = roomProfile.DisplayName + " ";                                                                                                      // `local bot `
             else if (!string.IsNullOrWhiteSpace(profile.DisplayName) && message.StartsWith(profile.DisplayName + ": ")) prefix = profile.DisplayName + ": "; // `bot: `
-            else if (!string.IsNullOrWhiteSpace(profile.DisplayName) && message.StartsWith(profile.DisplayName + " ")) prefix = profile.DisplayName + " "; // `bot `
+            else if (!string.IsNullOrWhiteSpace(profile.DisplayName) && message.StartsWith(profile.DisplayName + " ")) prefix = profile.DisplayName + " ";   // `bot `
         }
 
         return prefix;
     }
-    
+
     private async Task<CommandResult> InvokeCommand(StateEventResponse evt, string usedPrefix) {
         var message = evt.TypedContent as RoomMessageEventContent;
         var room = _hs.GetRoom(evt.RoomId!);
-        
+
         var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..].Trim();
         var ctx = new CommandContext {
             Room = room,
@@ -131,7 +133,6 @@ public class CommandListenerHostedService : IHostedService {
                     Context = ctx
                 };
             }
-
 
             if (await command.CanInvoke(ctx))
                 try {
@@ -181,7 +182,7 @@ public class CommandListenerHostedService : IHostedService {
             CommandResult.CommandResultType.Failure_InvalidCommand => new RoomMessageEventContent("m.notice", $"Command \"{res.Context.CommandName}\" not found!"),
             _ => throw new ArgumentOutOfRangeException()
         };
-        
+
         await room.SendMessageEventAsync(msg);
     }
 }

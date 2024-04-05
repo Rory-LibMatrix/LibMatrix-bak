@@ -1,7 +1,7 @@
 namespace LibMatrix.HomeserverEmulator.Services;
 
 public class TokenService{
-    public string? GetAccessToken(HttpContext ctx) {
+    public string? GetAccessTokenOrNull(HttpContext ctx) {
         //qry
         if (ctx.Request.Query.TryGetValue("access_token", out var token)) {
             return token;
@@ -14,6 +14,13 @@ public class TokenService{
             }
         }
         return null;
+    }
+
+    public string GetAccessToken(HttpContext ctx) {
+        return GetAccessTokenOrNull(ctx) ?? throw new MatrixException() {
+            ErrorCode = MatrixException.ErrorCodes.M_UNKNOWN_TOKEN,
+            Error = "Missing token"
+        };
     }
 
     public string? GenerateServerName(HttpContext ctx) {

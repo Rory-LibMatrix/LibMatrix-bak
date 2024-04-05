@@ -14,5 +14,11 @@ public static class EventExtensions {
             OriginServerTs = DateTimeOffset.Now.ToUnixTimeMilliseconds()
         };
     }
-    
+
+    public static List<StateEventResponse> GetCalculatedState(this IEnumerable<StateEventResponse> events) {
+        return events.Where(s => s.StateKey != null)
+            .OrderByDescending(s => s.OriginServerTs)
+            .DistinctBy(x => (x.Type, x.StateKey))
+            .ToList();
+    }
 }

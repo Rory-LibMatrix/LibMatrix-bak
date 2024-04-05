@@ -14,12 +14,6 @@ public class FilterController(ILogger<FilterController> logger, TokenService tok
     [HttpPost("user/{mxid}/filter")]
     public async Task<object> CreateFilter(string mxid, [FromBody] SyncFilter filter) {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {
@@ -36,12 +30,6 @@ public class FilterController(ILogger<FilterController> logger, TokenService tok
     [HttpGet("user/{mxid}/filter/{filterId}")]
     public async Task<SyncFilter> GetFilter(string mxid, string filterId) {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {

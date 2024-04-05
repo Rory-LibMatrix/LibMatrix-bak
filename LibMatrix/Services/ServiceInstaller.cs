@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace LibMatrix.Services;
 
@@ -11,7 +12,7 @@ public static class ServiceInstaller {
         services.AddSingleton(config ?? new RoryLibMatrixConfiguration());
 
         //Add services
-        services.AddSingleton<HomeserverResolverService>();
+        services.AddSingleton<HomeserverResolverService>(sp => new HomeserverResolverService(sp.GetRequiredService<ILogger<HomeserverResolverService>>()));
 
         // if (services.First(x => x.ServiceType == typeof(TieredStorageService)).Lifetime == ServiceLifetime.Singleton) {
         services.AddSingleton<HomeserverProviderService>();

@@ -14,7 +14,7 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
     //createRoom
     [HttpPost("createRoom")]
     public async Task<RoomIdResponse> CreateRoom([FromBody] CreateRoomRequest request) {
-        var token = tokenService.GetAccessToken(HttpContext);
+        var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
                 ErrorCode = "M_MISSING_TOKEN",
@@ -71,7 +71,7 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
 
     [HttpPost("rooms/{roomId}/upgrade")]
     public async Task<object> UpgradeRoom(string roomId, [FromBody] UpgradeRoomRequest request) {
-        var token = tokenService.GetAccessToken(HttpContext);
+        var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
                 ErrorCode = "M_MISSING_TOKEN",
@@ -125,7 +125,7 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
     
     [HttpPost("rooms/{roomId}/leave")] // TODO: implement
     public async Task<object> LeaveRoom(string roomId) {
-        var token = tokenService.GetAccessToken(HttpContext);
+        var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
                 ErrorCode = "M_MISSING_TOKEN",

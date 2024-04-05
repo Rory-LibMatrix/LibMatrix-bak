@@ -11,13 +11,13 @@ namespace LibMatrix.HomeserverEmulator.Controllers;
 public class AuthController(ILogger<AuthController> logger, UserStore userStore, TokenService tokenService) : ControllerBase {
     [HttpPost("login")]
     public async Task<LoginResponse> Login(LoginRequest request) {
-        if(!request.Identifier.User.StartsWith('@'))
+        if (!request.Identifier.User.StartsWith('@'))
             request.Identifier.User = $"@{request.Identifier.User}:{tokenService.GenerateServerName(HttpContext)}";
-        if(request.Identifier.User.EndsWith("localhost"))
+        if (request.Identifier.User.EndsWith("localhost"))
             request.Identifier.User = request.Identifier.User.Replace("localhost", tokenService.GenerateServerName(HttpContext));
-        
+
         var user = await userStore.GetUserById(request.Identifier.User);
-        if(user is null) {
+        if (user is null) {
             user = await userStore.CreateUser(request.Identifier.User);
         }
 
@@ -37,6 +37,26 @@ public class AuthController(ILogger<AuthController> logger, UserStore userStore,
                 "m.login.registration_token",
             ]).Select(x => new LoginFlowsResponse.LoginFlow { Type = x }).ToList()
         };
+    }
+
+    [HttpPost("logout")]
+    public async Task<object> Logout() {
+        var token = tokenService.GetAccessToken(HttpContext);
+        var user = await userStore.GetUserByToken(token);
+        if (user == null)
+            throw new MatrixException() {
+                ErrorCode = "M_UNKNOWN_TOKEN",
+                Error = "No such user"
+            };
+
+        if (!user.AccessTokens.ContainsKey(token))
+            throw new MatrixException() {
+                ErrorCode = MatrixException.ErrorCodes.M_NOT_FOUND,
+                Error = "Token not found"
+            };
+
+        user.AccessTokens.Remove(token);
+        return new { };
     }
 }
 

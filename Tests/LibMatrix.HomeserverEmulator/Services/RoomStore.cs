@@ -3,24 +3,24 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using ArcaneLibs;
 using ArcaneLibs.Collections;
 using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.HomeserverEmulator.Controllers.Rooms;
 using LibMatrix.Responses;
 
 namespace LibMatrix.HomeserverEmulator.Services;
 
 public class RoomStore {
+    private readonly ILogger<RoomStore> _logger;
     public ConcurrentBag<Room> _rooms = new();
     private Dictionary<string, Room> _roomsById = new();
 
-    public RoomStore(HSEConfiguration config) {
+    public RoomStore(ILogger<RoomStore> logger, HSEConfiguration config) {
+        _logger = logger;
         if (config.StoreData) {
             var path = Path.Combine(config.DataStoragePath, "rooms");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
@@ -50,8 +50,19 @@ public class RoomStore {
         return CreateRoom(new() { });
     }
 
-    public Room CreateRoom(CreateRoomRequest request) {
+    public Room CreateRoom(CreateRoomRequest request, UserStore.User? user = null) {
         var room = new Room(roomId: $"!{Guid.NewGuid().ToString()}");
+        var newCreateEvent = new StateEvent() {
+            Type = RoomCreateEventContent.EventId,
+            RawContent = new() { }
+        };
+        foreach (var (key, value) in request.CreationContent) {
+            newCreateEvent.RawContent[key] = value.DeepClone();
+        }
+
+        if (user != null) newCreateEvent.RawContent["creator"] = user.UserId;
+        var createEvent = room.SetStateInternal(newCreateEvent);
+
         if (!string.IsNullOrWhiteSpace(request.Name))
             room.SetStateInternal(new StateEvent() {
                 Type = RoomNameEventContent.EventId,
@@ -77,23 +88,33 @@ public class RoomStore {
         return room;
     }
 
+    public Room AddRoom(Room room) {
+        _rooms.Add(room);
+        RebuildIndexes();
+
+        return room;
+    }
+
     public class Room : NotifyPropertyChanged {
         private CancellationTokenSource _debounceCts = new();
         private ObservableCollection<StateEventResponse> _timeline;
         private ObservableDictionary<string, List<StateEventResponse>> _accountData;
+        private ObservableDictionary<string, ReadMarkersData> _readMarkers;
+        private FrozenSet<StateEventResponse> _stateCache;
+        private int _timelineHash;
 
         public Room(string roomId) {
             if (string.IsNullOrWhiteSpace(roomId)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(roomId));
             if (roomId[0] != '!') throw new ArgumentException("Room ID must start with !", nameof(roomId));
             RoomId = roomId;
-            State = FrozenSet<StateEventResponse>.Empty;
             Timeline = new();
             AccountData = new();
+            ReadMarkers = new();
         }
 
         public string RoomId { get; set; }
 
-        public FrozenSet<StateEventResponse> State { get; private set; }
+        public FrozenSet<StateEventResponse> State => _timelineHash == _timeline.GetHashCode() ? _stateCache : RebuildState();
 
         public ObservableCollection<StateEventResponse> Timeline {
             get => _timeline;
@@ -129,11 +150,21 @@ public class RoomStore {
         public ImmutableList<StateEventResponse> JoinedMembers =>
             State.Where(s => s is { Type: RoomMemberEventContent.EventId, TypedContent: RoomMemberEventContent { Membership: "join" } }).ToImmutableList();
 
+        public ObservableDictionary<string, ReadMarkersData> ReadMarkers {
+            get => _readMarkers;
+            set {
+                if (Equals(value, _readMarkers)) return;
+                _readMarkers = new(value);
+                _readMarkers.CollectionChanged += (sender, args) => SaveDebounced();
+                OnPropertyChanged();
+            }
+        }
+
         internal StateEventResponse SetStateInternal(StateEvent request) {
             var state = new StateEventResponse() {
                 Type = request.Type,
-                StateKey = request.StateKey,
-                EventId = Guid.NewGuid().ToString(),
+                StateKey = request.StateKey ?? "",
+                EventId = "$" + Guid.NewGuid().ToString(),
                 RoomId = RoomId,
                 OriginServerTs = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
                 Sender = "",
@@ -142,12 +173,12 @@ public class RoomStore {
                     : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))
             };
             Timeline.Add(state);
-            if (state.StateKey is not null)
-                // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
-                State = Timeline.Where(s => s.StateKey != null)
-                    .OrderByDescending(s => s.OriginServerTs)
-                    .DistinctBy(x => (x.Type, x.StateKey))
-                    .ToFrozenSet();
+            // if (state.StateKey is not null)
+            // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
+            // State = Timeline.Where(s => s.StateKey != null)
+            // .OrderByDescending(s => s.OriginServerTs)
+            // .DistinctBy(x => (x.Type, x.StateKey))
+            // .ToFrozenSet();
             return state;
         }
 
@@ -179,12 +210,32 @@ public class RoomStore {
             catch (TaskCanceledException) { }
         }
 
-        private void RebuildState() {
-            State = Timeline //.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
+        private FrozenSet<StateEventResponse> RebuildState() {
+            foreach (var evt in Timeline) {
+                if (evt.EventId == null)
+                    evt.EventId = "$" + Guid.NewGuid();
+                else if (!evt.EventId.StartsWith('$')) {
+                    evt.EventId = "$" + evt.EventId;
+                    Console.WriteLine($"Sanitised invalid event ID {evt.EventId}");
+                }
+            }
+
+            _stateCache = Timeline //.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
                 .Where(x => x.StateKey != null)
                 .OrderByDescending(s => s.OriginServerTs)
                 .DistinctBy(x => (x.Type, x.StateKey))
                 .ToFrozenSet();
+
+            return _stateCache;
         }
+    }
+
+    public List<StateEventResponse> GetRoomsByMember(string userId) {
+        // return _rooms
+        // // .Where(r => r.State.Any(s => s.Type == RoomMemberEventContent.EventId && s.StateKey == userId))
+        // .Select(r => (Room: r, MemberEvent: r.State.SingleOrDefault(s => s.Type == RoomMemberEventContent.EventId && s.StateKey == userId)))
+        // .Where(r => r.MemberEvent != null)
+        // .ToDictionary(x => x.Room, x => x.MemberEvent!);
+        return _rooms.SelectMany(r => r.State.Where(s => s.Type == RoomMemberEventContent.EventId && s.StateKey == userId)).ToList();
     }
 }

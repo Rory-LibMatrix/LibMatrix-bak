@@ -1,29 +1,20 @@
-using System.Collections.Concurrent;
-using System.Collections.Frozen;
-using System.Collections.ObjectModel;
-using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using ArcaneLibs;
-using ArcaneLibs.Collections;
-using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes;
-using LibMatrix.EventTypes.Spec.State;
-using LibMatrix.Responses;
+using LibMatrix.Services;
 
 namespace LibMatrix.HomeserverEmulator.Services;
 
 public class MediaStore {
     private readonly HSEConfiguration _config;
+    private readonly HomeserverResolverService _hsResolver;
     private List<MediaInfo> index = new();
 
-    public MediaStore(HSEConfiguration config) {
+    public MediaStore(HSEConfiguration config, HomeserverResolverService hsResolver) {
         _config = config;
+        _hsResolver = hsResolver;
         if (config.StoreData) {
             var path = Path.Combine(config.DataStoragePath, "media");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            if(File.Exists(Path.Combine(path, "index.json")))
+            if (File.Exists(Path.Combine(path, "index.json")))
                 index = JsonSerializer.Deserialize<List<MediaInfo>>(File.ReadAllText(Path.Combine(path, "index.json")));
         }
         else
@@ -31,17 +22,43 @@ public class MediaStore {
     }
 
     // public async Task<object> UploadMedia(string userId, string mimeType, Stream stream, string? filename = null) {
-    //     var mediaId = $"mxc://{Guid.NewGuid().ToString()}";
-    //     var path = Path.Combine(_config.DataStoragePath, "media", mediaId);
-    //     if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-    //     var file = Path.Combine(path, filename ?? "file");
-    //     await using var fs = File.Create(file);
-    //     await stream.CopyToAsync(fs);
-    //     index.Add(new() {
-    //         
-    //     });
-    //     return media;
+        // var mediaId = $"mxc://{Guid.NewGuid().ToString()}";
+        // var path = Path.Combine(_config.DataStoragePath, "media", mediaId);
+        // if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+        // var file = Path.Combine(path, filename ?? "file");
+        // await using var fs = File.Create(file);
+        // await stream.CopyToAsync(fs);
+        // index.Add(new() { });
+        // return media;
     // }
 
+    public async Task<Stream> GetRemoteMedia(string serverName, string mediaId) {
+        if (_config.StoreData) {
+            var path = Path.Combine(_config.DataStoragePath, "media", serverName, mediaId);
+            if (!File.Exists(path)) {
+                var mediaUrl = await _hsResolver.ResolveMediaUri(serverName, $"mxc://{serverName}/{mediaId}");
+                if (mediaUrl is null)
+                    throw new MatrixException() {
+                        ErrorCode = "M_NOT_FOUND",
+                        Error = "Media not found"
+                    };
+                using var client = new HttpClient();
+                var stream = await client.GetStreamAsync(mediaUrl);
+                await using var fs = File.Create(path);
+                await stream.CopyToAsync(fs);
+            }
+            return new FileStream(path, FileMode.Open);
+        }
+        else {
+            var mediaUrl = await _hsResolver.ResolveMediaUri(serverName, $"mxc://{serverName}/{mediaId}");
+            if (mediaUrl is null)
+                throw new MatrixException() {
+                    ErrorCode = "M_NOT_FOUND",
+                    Error = "Media not found"
+                };
+            using var client = new HttpClient();
+            return await client.GetStreamAsync(mediaUrl);
+        }
+    }
     public class MediaInfo { }
 }

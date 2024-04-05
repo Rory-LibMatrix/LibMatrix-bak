@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ArcaneLibs;
 using ArcaneLibs.Extensions;
 
 namespace LibMatrix.Extensions;
@@ -38,6 +39,7 @@ public class MatrixHttpClient : HttpClient {
     }
 
     public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+        Console.WriteLine($"Sending {request.Method} {BaseAddress}{request.RequestUri} ({Util.BytesToString(request.Content?.Headers.ContentLength ?? 0)})");
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (!request.RequestUri.IsAbsoluteUri) request.RequestUri = new Uri(BaseAddress, request.RequestUri);
         // if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
@@ -97,6 +99,16 @@ public class MatrixHttpClient : HttpClient {
         SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), cancellationToken ?? CancellationToken.None);
 
     // GetFromJsonAsync
+    public async Task<T?> TryGetFromJsonAsync<T>(string requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
+        try {
+            return await GetFromJsonAsync<T>(requestUri, options, cancellationToken);
+        }
+        catch (HttpRequestException e) {
+            Console.WriteLine($"Failed to get {requestUri}: {e.Message}");
+            return default;
+        }
+    }
+
     public async Task<T> GetFromJsonAsync<T>(string requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default) {
         options = GetJsonSerializerOptions(options);
         // Console.WriteLine($"GetFromJsonAsync called for {requestUri} with json options {options?.ToJson(ignoreNull:true)} and cancellation token {cancellationToken}");

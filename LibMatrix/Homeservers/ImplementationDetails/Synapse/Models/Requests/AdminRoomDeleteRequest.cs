@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace LibMatrix.Responses.Admin;
+namespace LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests;
 
 public class AdminRoomDeleteRequest {
     [JsonPropertyName("new_room_user_id")]

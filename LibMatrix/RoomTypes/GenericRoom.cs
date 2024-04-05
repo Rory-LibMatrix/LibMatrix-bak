@@ -12,6 +12,7 @@ using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibMatrix.RoomTypes;
 
@@ -313,7 +314,7 @@ public class GenericRoom {
         if (useOriginHomeserver)
             try {
                 var hs = avatar.Url.Split('/', 3)[1];
-                return await new HomeserverResolverService().ResolveMediaUri(hs, avatar.Url);
+                return await new HomeserverResolverService(NullLogger<HomeserverResolverService>.Instance).ResolveMediaUri(hs, avatar.Url);
             }
             catch (Exception e) {
                 Console.WriteLine(e);

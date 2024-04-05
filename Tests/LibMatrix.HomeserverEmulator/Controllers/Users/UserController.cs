@@ -15,12 +15,6 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
     [HttpGet("account/whoami")]
     public async Task<WhoAmIResponse> Login() {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, Random.Shared.Next(101) <= 10, tokenService.GenerateServerName(HttpContext));
         if (user is null)
             throw new MatrixException() {
@@ -36,12 +30,6 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
     [HttpGet("joined_rooms")]
     public async Task<object> GetJoinedRooms() {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {
@@ -60,12 +48,6 @@ public class UserController(ILogger<UserController> logger, TokenService tokenSe
     [HttpGet("devices")]
     public async Task<DevicesResponse> GetDevices() {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {

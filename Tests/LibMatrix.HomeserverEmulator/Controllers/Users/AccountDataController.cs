@@ -14,19 +14,14 @@ public class AccountDataController(ILogger<AccountDataController> logger, TokenS
     [HttpGet("user/{mxid}/account_data/{type}")]
     public async Task<object> GetAccountData(string type) {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {
                 ErrorCode = "M_UNAUTHORIZED",
                 Error = "Invalid token."
             };
-        var value = user.AccountData.FirstOrDefault(x=>x.Type == type);
+
+        var value = user.AccountData.FirstOrDefault(x => x.Type == type);
         if (value is null)
             throw new MatrixException() {
                 ErrorCode = "M_NOT_FOUND",
@@ -34,32 +29,24 @@ public class AccountDataController(ILogger<AccountDataController> logger, TokenS
             };
         return value;
     }
-    
+
     [HttpPut("user/{mxid}/account_data/{type}")]
     public async Task<object> SetAccountData(string type, [FromBody] JsonObject data) {
         var token = tokenService.GetAccessToken(HttpContext);
-        if (token is null)
-            throw new MatrixException() {
-                ErrorCode = "M_UNAUTHORIZED",
-                Error = "No token passed."
-            };
-
         var user = await userStore.GetUserByToken(token, false);
         if (user is null)
             throw new MatrixException() {
                 ErrorCode = "M_UNAUTHORIZED",
                 Error = "Invalid token."
             };
-        
-        user.AccountData.Where(x=>x.Type == type).ToList().ForEach(response => user.AccountData.Remove(response));
-        
+
         user.AccountData.Add(new() {
             Type = type,
             RawContent = data
         });
         return data;
     }
-    
+
     // specialised account data...
     [HttpGet("pushrules")]
     public async Task<object> GetPushRules() {

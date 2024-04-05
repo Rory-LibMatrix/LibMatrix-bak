@@ -6,50 +6,32 @@ using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 using LibMatrix.Responses;
 using LibMatrix.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibMatrix.Homeservers;
 
-public class RemoteHomeserver(string baseUrl) {
-    public static async Task<RemoteHomeserver?> TryCreate(string baseUrl, string? proxy = null) {
-        try {
-            return await Create(baseUrl, proxy);
-        }
-        catch (Exception e) {
-            Console.WriteLine($"Failed to create homeserver {baseUrl}: {e.Message}");
-            return null;
-        }
-    }
-
-    public static async Task<RemoteHomeserver> Create(string baseUrl, string? proxy = null) {
+public class RemoteHomeserver {
+    public RemoteHomeserver(string baseUrl, HomeserverResolverService.WellKnownUris wellKnownUris, ref string? proxy) {
         if (string.IsNullOrWhiteSpace(proxy))
             proxy = null;
-        var homeserver = new RemoteHomeserver(baseUrl);
-        homeserver.WellKnownUris = await new HomeserverResolverService().ResolveHomeserverFromWellKnown(baseUrl);
-        if (string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Client))
-            Console.WriteLine($"Failed to resolve homeserver client URI for {baseUrl}");
-        if (string.IsNullOrWhiteSpace(homeserver.WellKnownUris.Server))
-            Console.WriteLine($"Failed to resolve homeserver server URI for {baseUrl}");
-
-        Console.WriteLine(homeserver.WellKnownUris.ToJson(ignoreNull: false));
-
-        homeserver.ClientHttpClient = new MatrixHttpClient {
-            BaseAddress = new Uri(proxy ?? homeserver.WellKnownUris.Client ?? throw new InvalidOperationException($"Failed to resolve homeserver client URI for {baseUrl}")),
+        BaseUrl = baseUrl;
+        WellKnownUris = wellKnownUris;
+        ClientHttpClient = new MatrixHttpClient {
+            BaseAddress = new Uri(proxy?.TrimEnd('/') ?? wellKnownUris.Client?.TrimEnd('/') ?? throw new InvalidOperationException($"No client URI for {baseUrl}!")),
             Timeout = TimeSpan.FromSeconds(300)
         };
 
-        homeserver.FederationClient = await FederationClient.TryCreate(baseUrl, proxy);
-
-        if (proxy is not null) homeserver.ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
-
-        return homeserver;
+        if (proxy is not null) ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
+        if (!string.IsNullOrWhiteSpace(wellKnownUris.Server))
+            FederationClient = new FederationClient(WellKnownUris.Server!, proxy);
     }
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
-    public string BaseUrl { get; } = baseUrl;
+    public string BaseUrl { get; }
 
-    public MatrixHttpClient ClientHttpClient { get; set; } = null!;
+    public MatrixHttpClient ClientHttpClient { get; set; }
     public FederationClient? FederationClient { get; set; }
-    public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; } = null!;
+    public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; }
 
     public async Task<UserProfileResponse> GetProfileAsync(string mxid, bool useCache = false) {
         if (mxid is null) throw new ArgumentNullException(nameof(mxid));

@@ -49,19 +49,23 @@ public class VersionsController(ILogger<WellKnownController> logger) : Controlle
 
     [HttpGet("client/{version}/capabilities")]
     public async Task<CapabilitiesResponse> GetCapabilities() {
-        return new() {
+        var caps = new CapabilitiesResponse() {
             Capabilities = new() {
                 ChangePassword = new() {
                     Enabled = false
                 },
                 RoomVersions = new() {
                     Default = "11",
-                    Available = new() {
-                        ["11"] = "unstable"
-                    }
+                    Available = []
                 }
             }
         };
+
+        for (int i = 0; i < 15; i++) {
+            caps.Capabilities.RoomVersions.Available.Add(i.ToString(), "stable");
+        }
+
+        return caps;
     }
 }
 
@@ -72,7 +76,7 @@ public class CapabilitiesResponse {
     public class CapabilitiesContent {
         [JsonPropertyName("m.room_versions")]
         public RoomVersionsContent RoomVersions { get; set; }
-        
+
         [JsonPropertyName("m.change_password")]
         public ChangePasswordContent ChangePassword { get; set; }
 

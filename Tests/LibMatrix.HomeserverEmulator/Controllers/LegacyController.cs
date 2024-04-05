@@ -18,7 +18,7 @@ public class LegacyController(ILogger<LegacyController> logger, TokenService tok
     [SuppressMessage("ReSharper.DPA", "DPA0011: High execution time of MVC action", Justification = "Endpoint is expected to wait until data is available or timeout.")]
     public async Task<object> Sync([FromRoute] string roomId, [FromQuery] int limit = 20) {
         var sw = Stopwatch.StartNew();
-        var token = tokenService.GetAccessToken(HttpContext);
+        var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
                 ErrorCode = "M_MISSING_TOKEN",

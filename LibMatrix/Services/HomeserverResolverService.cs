@@ -1,87 +1,135 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using ArcaneLibs.Collections;
 using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibMatrix.Services;
 
-public class HomeserverResolverService(ILogger<HomeserverResolverService>? logger = null) {
+public class HomeserverResolverService {
     private readonly MatrixHttpClient _httpClient = new() {
         Timeout = TimeSpan.FromMilliseconds(10000)
     };
 
-    private static readonly ConcurrentDictionary<string, WellKnownUris> WellKnownCache = new();
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> WellKnownSemaphores = new();
+    private static readonly SemaphoreCache<WellKnownUris> WellKnownCache = new();
 
-    public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver) {
-        if (homeserver is null) throw new ArgumentNullException(nameof(homeserver));
-        WellKnownSemaphores.TryAdd(homeserver, new SemaphoreSlim(1, 1));
-        await WellKnownSemaphores[homeserver].WaitAsync();
-        if (WellKnownCache.TryGetValue(homeserver, out var known)) {
-            WellKnownSemaphores[homeserver].Release();
-            return known;
+    private readonly ILogger<HomeserverResolverService> _logger;
+
+    public HomeserverResolverService(ILogger<HomeserverResolverService> logger) {
+        _logger = logger;
+        if (logger is NullLogger<HomeserverResolverService>) {
+            var stackFrame = new StackTrace(true).GetFrame(1);
+            Console.WriteLine(
+                $"WARN | Null logger provided to HomeserverResolverService!\n{stackFrame.GetMethod().DeclaringType} at {stackFrame.GetFileName()}:{stackFrame.GetFileLineNumber()}");
         }
-
-        logger?.LogInformation("Resolving homeserver: {}", homeserver);
-        var res = new WellKnownUris {
-            Client = await _tryResolveFromClientWellknown(homeserver),
-            Server = await _tryResolveFromServerWellknown(homeserver)
-        };
-        WellKnownCache.TryAdd(homeserver, res);
-        WellKnownSemaphores[homeserver].Release();
-        return res;
     }
 
-    private async Task<string?> _tryResolveFromClientWellknown(string homeserver) {
-        if (!homeserver.StartsWith("http")) {
-            if (await _httpClient.CheckSuccessStatus($"https://{homeserver}/.well-known/matrix/client"))
-                homeserver = "https://" + homeserver;
-            else if (await _httpClient.CheckSuccessStatus($"http://{homeserver}/.well-known/matrix/client")) {
-                homeserver = "http://" + homeserver;
+    private static SemaphoreSlim _wellKnownSemaphore = new(1, 1);
+
+    public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver) {
+        ArgumentNullException.ThrowIfNull(homeserver);
+
+        return await WellKnownCache.GetOrAdd(homeserver, async () => {
+            await _wellKnownSemaphore.WaitAsync();
+            _logger.LogTrace($"Resolving homeserver well-knowns: {homeserver}");
+            var client = _tryResolveClientEndpoint(homeserver);
+
+            var res = new WellKnownUris();
+
+            // try {
+            res.Client = await client ?? throw new Exception("Could not resolve client URL.");
+            // }
+            // catch (Exception e) {
+            // _logger.LogError(e, "Error resolving client well-known for {hs}", homeserver);
+            // }
+
+            var server = _tryResolveServerEndpoint(homeserver);
+
+            // try {
+            res.Server = await server ?? throw new Exception("Could not resolve server URL.");
+            // }
+            // catch (Exception e) {
+            // _logger.LogError(e, "Error resolving server well-known for {hs}", homeserver);
+            // }
+
+            _logger.LogInformation("Resolved well-knowns for {hs}: {json}", homeserver, res.ToJson(indent: false));
+            _wellKnownSemaphore.Release();
+            return res;
+        });
+    }
+
+    private async Task<string?> _tryResolveClientEndpoint(string homeserver) {
+        ArgumentNullException.ThrowIfNull(homeserver);
+        _logger.LogTrace("Resolving client well-known: {homeserver}", homeserver);
+        ClientWellKnown? clientWellKnown = null;
+        // check if homeserver has a client well-known
+        if (homeserver.StartsWith("https://")) {
+            clientWellKnown = await _httpClient.TryGetFromJsonAsync<ClientWellKnown>($"{homeserver}/.well-known/matrix/client");
+        }
+        else if (homeserver.StartsWith("http://")) {
+            clientWellKnown = await _httpClient.TryGetFromJsonAsync<ClientWellKnown>($"{homeserver}/.well-known/matrix/client");
+        }
+        else {
+            clientWellKnown ??= await _httpClient.TryGetFromJsonAsync<ClientWellKnown>($"https://{homeserver}/.well-known/matrix/client");
+            clientWellKnown ??= await _httpClient.TryGetFromJsonAsync<ClientWellKnown>($"http://{homeserver}/.well-known/matrix/client");
+
+            if (clientWellKnown is null) {
+                if (await _httpClient.CheckSuccessStatus($"https://{homeserver}/_matrix/client/versions"))
+                    return $"https://{homeserver}";
+                if (await _httpClient.CheckSuccessStatus($"http://{homeserver}/_matrix/client/versions"))
+                    return $"http://{homeserver}";
             }
         }
 
-        try {
-            var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/client");
-            var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
-            return hs;
-        }
-        catch {
-            // ignored
-        }
+        if (!string.IsNullOrWhiteSpace(clientWellKnown?.Homeserver.BaseUrl))
+            return clientWellKnown.Homeserver.BaseUrl;
 
-        logger?.LogInformation("No client well-known...");
+        _logger.LogInformation("No client well-known...");
         return null;
     }
 
-    private async Task<string?> _tryResolveFromServerWellknown(string homeserver) {
-        if (!homeserver.StartsWith("http")) {
-            if (await _httpClient.CheckSuccessStatus($"https://{homeserver}/.well-known/matrix/server"))
-                homeserver = "https://" + homeserver;
-            else if (await _httpClient.CheckSuccessStatus($"http://{homeserver}/.well-known/matrix/server")) {
-                homeserver = "http://" + homeserver;
-            }
+    private async Task<string?> _tryResolveServerEndpoint(string homeserver) {
+        // TODO: implement SRV delegation via DoH: https://developers.google.com/speed/public-dns/docs/doh/json
+        ArgumentNullException.ThrowIfNull(homeserver);
+        _logger.LogTrace($"Resolving server well-known: {homeserver}");
+        ServerWellKnown? serverWellKnown = null;
+        // check if homeserver has a server well-known
+        if (homeserver.StartsWith("https://")) {
+            serverWellKnown = await _httpClient.TryGetFromJsonAsync<ServerWellKnown>($"{homeserver}/.well-known/matrix/server");
+        }
+        else if (homeserver.StartsWith("http://")) {
+            serverWellKnown = await _httpClient.TryGetFromJsonAsync<ServerWellKnown>($"{homeserver}/.well-known/matrix/server");
+        }
+        else {
+            serverWellKnown ??= await _httpClient.TryGetFromJsonAsync<ServerWellKnown>($"https://{homeserver}/.well-known/matrix/server");
+            serverWellKnown ??= await _httpClient.TryGetFromJsonAsync<ServerWellKnown>($"http://{homeserver}/.well-known/matrix/server");
         }
 
-        try {
-            var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
-            var hs = resp.GetProperty("m.server").GetString();
-            if (hs is null) throw new InvalidDataException("m.server is null");
-            if (!hs.StartsWithAnyOf("http://", "https://"))
-                hs = $"https://{hs}";
-            return hs;
-        }
-        catch {
-            // ignored
+        _logger.LogInformation("Server well-known for {hs}: {json}", homeserver, serverWellKnown?.ToJson() ?? "null");
+
+        if (!string.IsNullOrWhiteSpace(serverWellKnown?.Homeserver)) {
+            var resolved = serverWellKnown.Homeserver;
+            if (resolved.StartsWith("https://") || resolved.StartsWith("http://"))
+                return resolved;
+            if (await _httpClient.CheckSuccessStatus($"https://{resolved}/_matrix/federation/v1/version"))
+                return $"https://{resolved}";
+            if (await _httpClient.CheckSuccessStatus($"http://{resolved}/_matrix/federation/v1/version"))
+                return $"http://{resolved}";
+            _logger.LogWarning("Server well-known points to invalid server: {resolved}", resolved);
         }
 
-        // fallback: most servers host these on the same location
-        var clientUrl = await _tryResolveFromClientWellknown(homeserver);
+        // fallback: most servers host C2S and S2S on the same domain
+        var clientUrl = await _tryResolveClientEndpoint(homeserver);
         if (clientUrl is not null && await _httpClient.CheckSuccessStatus($"{clientUrl}/_matrix/federation/v1/version"))
             return clientUrl;
 
-        logger?.LogInformation("No server well-known...");
+        _logger.LogInformation("No server well-known...");
         return null;
     }
 
@@ -96,5 +144,20 @@ public class HomeserverResolverService(ILogger<HomeserverResolverService>? logge
     public class WellKnownUris {
         public string? Client { get; set; }
         public string? Server { get; set; }
+    }
+
+    public class ClientWellKnown {
+        [JsonPropertyName("m.homeserver")]
+        public WellKnownHomeserver Homeserver { get; set; }
+
+        public class WellKnownHomeserver {
+            [JsonPropertyName("base_url")]
+            public string BaseUrl { get; set; }
+        }
+    }
+
+    public class ServerWellKnown {
+        [JsonPropertyName("m.server")]
+        public string Homeserver { get; set; }
     }
 }

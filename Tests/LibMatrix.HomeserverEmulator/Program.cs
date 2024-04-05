@@ -2,6 +2,7 @@ using System.Net.Mime;
 using System.Text.Json.Serialization;
 using LibMatrix;
 using LibMatrix.HomeserverEmulator.Services;
+using LibMatrix.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -10,17 +11,14 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
-builder.Services.AddControllers().AddJsonOptions(options => {
-    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-});
+builder.Services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.SwaggerDoc("v1", new OpenApiInfo() {
         Version = "v1",
         Title = "Rory&::LibMatrix.HomeserverEmulator",
-        Description = "Partial Matrix implementation"
+        Description = "Partial Matrix homeserver implementation"
     });
     c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "LibMatrix.HomeserverEmulator.xml"));
 });
@@ -29,8 +27,13 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<HSEConfiguration>();
 builder.Services.AddSingleton<UserStore>();
 builder.Services.AddSingleton<RoomStore>();
+builder.Services.AddSingleton<MediaStore>();
 
 builder.Services.AddScoped<TokenService>();
+
+builder.Services.AddSingleton<HomeserverProviderService>();
+builder.Services.AddSingleton<HomeserverResolverService>();
+builder.Services.AddSingleton<PaginationTokenResolverService>();
 
 builder.Services.AddRequestTimeouts(x => {
     x.DefaultPolicy = new RequestTimeoutPolicy {
@@ -55,8 +58,7 @@ builder.Services.AddCors(options => {
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment() || true)
-{
+if (app.Environment.IsDevelopment() || true) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -64,10 +66,9 @@ if (app.Environment.IsDevelopment() || true)
 app.UseCors("Open");
 app.UseExceptionHandler(exceptionHandlerApp => {
     exceptionHandlerApp.Run(async context => {
-
         var exceptionHandlerPathFeature =
             context.Features.Get<IExceptionHandlerPathFeature>();
-        if(exceptionHandlerPathFeature?.Error is not null)
+        if (exceptionHandlerPathFeature?.Error is not null)
             Console.WriteLine(exceptionHandlerPathFeature.Error.ToString()!);
 
         if (exceptionHandlerPathFeature?.Error is MatrixException mxe) {
@@ -94,8 +95,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Map("/_matrix/{*_}", (HttpContext ctx) => {
-    Console.WriteLine($"Client hit non-existing route: {ctx.Request.Method} {ctx.Request.Path}");
+app.Map("/_matrix/{*_}", (HttpContext ctx, ILogger<Program> logger) => {
+    logger.LogWarning("Client hit non-existing route: {Method} {Path}{Query}", ctx.Request.Method, ctx.Request.Path, ctx.Request.Query);
+    // Console.WriteLine($"Client hit non-existing route: {ctx.Request.Method} {ctx.Request.Path}");
     ctx.Response.StatusCode = StatusCodes.Status404NotFound;
     ctx.Response.ContentType = MediaTypeNames.Application.Json;
     return ctx.Response.WriteAsJsonAsync(new MatrixException() {

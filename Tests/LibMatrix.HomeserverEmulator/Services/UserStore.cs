@@ -18,11 +18,15 @@ public class UserStore {
     public UserStore(HSEConfiguration config, RoomStore roomStore) {
         _roomStore = roomStore;
         if (config.StoreData) {
-            var path = Path.Combine(config.DataStoragePath, "users");
-            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            foreach (var file in Directory.GetFiles(path)) {
-                var user = JsonSerializer.Deserialize<User>(File.ReadAllText(file));
-                if (user is not null) _users.Add(user);
+            var dataDir = Path.Combine(HSEConfiguration.Current.DataStoragePath, "users");
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+            foreach (var userId in Directory.GetDirectories(dataDir)) {
+                var tokensDir = Path.Combine(dataDir, userId, "tokens.json");
+                var path = Path.Combine(dataDir, userId, $"user.json");
+
+                var user = JsonSerializer.Deserialize<User>(File.ReadAllText(path));
+                user!.AccessTokens = JsonSerializer.Deserialize<ObservableDictionary<string, User.SessionInfo>>(File.ReadAllText(tokensDir))!;
+                _users.Add(user);
             }
 
             Console.WriteLine($"Loaded {_users.Count} users from disk");
@@ -42,7 +46,7 @@ public class UserStore {
         return await CreateUser(userId);
     }
 
-    public async Task<User?> GetUserByToken(string token, bool createIfNotExists = false, string? serverName = null) {
+    public async Task<User?> GetUserByTokenOrNull(string token, bool createIfNotExists = false, string? serverName = null) {
         if (_users.Any(x => x.AccessTokens.ContainsKey(token)))
             return _users.First(x => x.AccessTokens.ContainsKey(token));
 
@@ -51,6 +55,13 @@ public class UserStore {
         if (string.IsNullOrWhiteSpace(serverName)) throw new NullReferenceException("Server name was not passed");
         var uid = $"@{Guid.NewGuid().ToString()}:{serverName}";
         return await CreateUser(uid);
+    }
+
+    public async Task<User> GetUserByToken(string token, bool createIfNotExists = false, string? serverName = null) {
+        return await GetUserByTokenOrNull(token, createIfNotExists, serverName) ?? throw new MatrixException() {
+            ErrorCode = MatrixException.ErrorCodes.M_UNKNOWN_TOKEN,
+            Error = "Invalid token."
+        };
     }
 
     public async Task<User> CreateUser(string userId, Dictionary<string, object>? profile = null) {
@@ -97,6 +108,7 @@ public class UserStore {
             Profile = new();
             AccountData = new();
             RoomKeys = new();
+            AuthorizedSessions = new();
         }
 
         private CancellationTokenSource _debounceCts = new();
@@ -106,6 +118,7 @@ public class UserStore {
         private ObservableDictionary<string, object> _profile;
         private ObservableCollection<StateEventResponse> _accountData;
         private ObservableDictionary<string, RoomKeysResponse> _roomKeys;
+        private ObservableDictionary<string, AuthorizedSession> _authorizedSessions;
 
         public string UserId {
             get => _userId;
@@ -162,15 +175,29 @@ public class UserStore {
             }
         }
 
+        public ObservableDictionary<string, AuthorizedSession> AuthorizedSessions {
+            get => _authorizedSessions;
+            set {
+                if (value == _authorizedSessions) return;
+                _authorizedSessions = new(value);
+                _authorizedSessions.CollectionChanged += async (sender, args) => await SaveDebounced();
+                OnPropertyChanged();
+            }
+        }
+
         public async Task SaveDebounced() {
             if (!HSEConfiguration.Current.StoreData) return;
-            _debounceCts.Cancel();
+            await _debounceCts.CancelAsync();
             _debounceCts = new CancellationTokenSource();
             try {
                 await Task.Delay(250, _debounceCts.Token);
-                var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "users", $"{_userId}.json");
+                var dataDir = Path.Combine(HSEConfiguration.Current.DataStoragePath, "users", _userId);
+                if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+                var tokensDir = Path.Combine(dataDir, "tokens.json");
+                var path = Path.Combine(dataDir, $"user.json");
                 Console.WriteLine($"Saving user {_userId} to {path}!");
                 await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
+                await File.WriteAllTextAsync(tokensDir, AccessTokens.ToJson(ignoreNull: true));
             }
             catch (TaskCanceledException) { }
             catch (InvalidOperationException) { } // We don't care about 100% data safety, this usually happens when something is updated while serialising
@@ -187,7 +214,19 @@ public class UserStore {
 
                 public class SyncRoomPosition {
                     public int TimelinePosition { get; set; }
+                    public string LastTimelineEventId { get; set; }
                     public int AccountDataPosition { get; set; }
+                    public bool Joined { get; set; }
+                }
+
+                public UserSyncState Clone() {
+                    return new() {
+                        FilterId = FilterId,
+                        RoomPositions = RoomPositions.ToDictionary(x => x.Key, x => new SyncRoomPosition() {
+                            TimelinePosition = x.Value.TimelinePosition,
+                            AccountDataPosition = x.Value.AccountDataPosition
+                        })
+                    };
                 }
             }
         }
@@ -201,6 +240,11 @@ public class UserStore {
                 DeviceId = session.DeviceId,
                 UserId = UserId
             };
+        }
+
+        public class AuthorizedSession {
+            public string Homeserver { get; set; }
+            public string AccessToken { get; set; }
         }
     }
 }
