@@ -128,10 +128,20 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
     public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type) {
         var rooms = await GetJoinedRooms();
         var tasks = rooms.Select(async room => {
-            var roomType = await room.GetRoomType();
-            if (roomType == type) return room;
-
-            return null;
+            while (true) {
+                try {
+                    var roomType = await room.GetRoomType();
+                    if (roomType == type) return room;
+                    return null;
+                }
+                catch (MatrixException e) {
+                    throw;
+                }
+                catch (Exception e) {
+                    Console.WriteLine($"Failed to get room type for {room.RoomId}: {e.Message}");
+                    await Task.Delay(1000);
+                }
+            }
         }).ToAsyncEnumerable();
 
         await foreach (var result in tasks)

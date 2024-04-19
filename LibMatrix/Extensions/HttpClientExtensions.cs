@@ -38,7 +38,7 @@ public class MatrixHttpClient : HttpClient {
         return options;
     }
 
-    public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+    public async Task<HttpResponseMessage> SendUnhandledAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         Console.WriteLine($"Sending {request.Method} {BaseAddress}{request.RequestUri} ({Util.BytesToString(request.Content?.Headers.ContentLength ?? 0)})");
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (!request.RequestUri.IsAbsoluteUri) request.RequestUri = new Uri(BaseAddress, request.RequestUri);
@@ -57,20 +57,13 @@ public class MatrixHttpClient : HttpClient {
             Console.WriteLine(e);
         }
 
-        HttpResponseMessage responseMessage;
-        // try {
-        responseMessage = await base.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        // }
-        // catch (Exception e) {
-        // if (requestSettings is { Retries: 0 }) throw;
-        // typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
-        // ?.SetValue(request, 0);
-        // await Task.Delay(requestSettings?.RetryDelay ?? 2500, cancellationToken);
-        // if(requestSettings is not null) requestSettings.Retries--;
-        // return await SendAsync(request, cancellationToken);
-        // throw;
-        // }
+        var responseMessage = await base.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+        return responseMessage;
+    }
+
+    public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+        var responseMessage = await SendUnhandledAsync(request, cancellationToken);
         if (responseMessage.IsSuccessStatusCode) return responseMessage;
 
         //error handling

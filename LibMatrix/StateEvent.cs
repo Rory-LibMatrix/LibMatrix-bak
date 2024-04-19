@@ -203,6 +203,19 @@ public class PaginatedChunkedStateEventResponse : ChunkedStateEventResponse {
     public string? End { get; set; }
 }
 
+public class BatchedChunkedStateEventResponse : ChunkedStateEventResponse {
+    [JsonPropertyName("next_batch")]
+    public string? NextBatch { get; set; }
+    
+    [JsonPropertyName("prev_batch")]
+    public string? PrevBatch { get; set; }
+}
+
+public class RecursedBatchedChunkedStateEventResponse : BatchedChunkedStateEventResponse {
+    [JsonPropertyName("recursion_depth")]
+    public int? RecursionDepth { get; set; }
+}
+
 #region Unused code
 
 /*

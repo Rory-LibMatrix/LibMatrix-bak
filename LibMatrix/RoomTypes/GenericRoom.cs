@@ -160,7 +160,7 @@ public class GenericRoom {
         Console.WriteLine("End of GetManyAsync");
     }
 
-    public async Task<string?> GetNameAsync() => (await GetStateAsync<RoomNameEventContent>("m.room.name"))?.Name;
+    public async Task<string?> GetNameAsync() => (await GetStateOrNullAsync<RoomNameEventContent>("m.room.name"))?.Name;
 
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
         if (checkIfAlreadyMember)
@@ -406,7 +406,7 @@ public class GenericRoom {
         }
     }
 
-    public Task<T> GetEventAsync<T>(string eventId) => Homeserver.ClientHttpClient.GetFromJsonAsync<T>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+    public Task<StateEventResponse> GetEventAsync(string eventId) => Homeserver.ClientHttpClient.GetFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
 
     public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
         var data = new { reason };
@@ -464,6 +464,30 @@ public class GenericRoom {
 #endregion
 
 #endregion
+
+    public async IAsyncEnumerable<StateEventResponse> GetRelatedEventsAsync(string eventId, string? relationType = null, string? eventType = null, string? dir = "f",
+        string? from = null, int? chunkLimit = 100, bool? recurse = false, string? to = null) {
+        var path = $"/_matrix/client/v3/rooms/{RoomId}/relations/{eventId}";
+        if (!string.IsNullOrEmpty(relationType)) path += $"/{relationType}";
+        if (!string.IsNullOrEmpty(eventType)) path += $"/{eventType}";
+
+        var uri = new Uri(path, UriKind.Relative);
+        if (dir == "b" || dir == "f") uri = uri.AddQuery("dir", dir);
+        if (!string.IsNullOrEmpty(from)) uri = uri.AddQuery("from", from);
+        if (chunkLimit is not null) uri = uri.AddQuery("limit", chunkLimit.Value.ToString());
+        if (recurse is not null) uri = uri.AddQuery("recurse", recurse.Value.ToString());
+        if (!string.IsNullOrEmpty(to)) uri = uri.AddQuery("to", to);
+
+        var result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri);
+        while (result!.Chunk.Count > 0) {
+            foreach (var resp in result.Chunk) {
+                yield return resp;
+            }
+
+            if (result.NextBatch is null) break;
+            result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri.AddQuery("from", result.NextBatch));
+        }
+    }
 
     public readonly SpaceRoom AsSpace;
 }

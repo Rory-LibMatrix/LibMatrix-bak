@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Web;
 using ArcaneLibs.Extensions;
@@ -24,6 +25,7 @@ public class RemoteHomeserver {
         if (proxy is not null) ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
         if (!string.IsNullOrWhiteSpace(wellKnownUris.Server))
             FederationClient = new FederationClient(WellKnownUris.Server!, proxy);
+        Auth = new(this);
     }
 
     private Dictionary<string, object> _profileCache { get; set; } = new();
@@ -106,6 +108,8 @@ public class RemoteHomeserver {
         if (mxcUri.StartsWith("https://")) return mxcUri;
         return $"{ClientHttpClient.BaseAddress}/_matrix/media/v3/download/{mxcUri.Replace("mxc://", "")}".Replace("//_matrix", "/_matrix");
     }
+
+    public UserInteractiveAuthClient Auth;
 }
 
 public class AliasResult {
