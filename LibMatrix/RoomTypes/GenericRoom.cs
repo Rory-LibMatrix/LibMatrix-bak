@@ -10,6 +10,8 @@ using LibMatrix.EventTypes;
 using LibMatrix.EventTypes.Spec;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
+using LibMatrix.Filters;
+using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -74,7 +76,11 @@ public class GenericRoom {
         try {
             var resp = await Homeserver.ClientHttpClient.GetFromJsonAsync<JsonObject>(url);
             if (resp["type"]?.GetValue<string>() != type)
-                throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
+                throw new LibMatrixException() {
+                    Error = "Homeserver returned event type does not match requested type, or server does not support passing `format`.",
+                    ErrorCode = LibMatrixException.ErrorCodes.M_UNSUPPORTED
+                };
+            // throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
             return resp.Deserialize<StateEventResponse>();
         }
         catch (MatrixException e) {
@@ -84,6 +90,45 @@ public class GenericRoom {
 
             // Console.WriteLine(e);
             // return default;
+        }
+    }
+
+    public async Task<string?> GetStateEventIdAsync(string type, string stateKey = "", bool fallbackToSync = true) {
+        try {
+            return (await GetStateEventAsync(type, stateKey)).EventId ?? throw new LibMatrixException() {
+                ErrorCode = LibMatrixException.ErrorCodes.M_UNSUPPORTED,
+                Error = "Homeserver does not include event ID in state events."
+            };
+        }
+        catch (LibMatrixException e) {
+            if (e.ErrorCode == LibMatrixException.ErrorCodes.M_UNSUPPORTED) {
+                if (!fallbackToSync) throw;
+                Console.WriteLine("WARNING: Homeserver does not support getting event ID from state events, falling back to sync");
+                var sh = new SyncHelper(Homeserver);
+                var emptyFilter = new SyncFilter.EventFilter(types: [], limit: 1, senders: [], notTypes: ["*"]);
+                var emptyStateFilter = new SyncFilter.RoomFilter.StateFilter(types: [], limit: 1, senders: [], notTypes: ["*"], rooms:[]);
+                sh.Filter = new() {
+                    Presence = emptyFilter,
+                    AccountData = emptyFilter,
+                    Room = new SyncFilter.RoomFilter() {
+                        AccountData = emptyStateFilter,
+                        Timeline = emptyStateFilter,
+                        Ephemeral = emptyStateFilter,
+                        State = new SyncFilter.RoomFilter.StateFilter(),
+                        Rooms = [RoomId]
+                    }
+                };
+                var sync = await sh.SyncAsync();
+                var state = sync.Rooms.Join[RoomId].State.Events;
+                var stateEvent = state.FirstOrDefault(x => x.Type == type && x.StateKey == stateKey);
+                if (stateEvent is null) throw new LibMatrixException() {
+                    ErrorCode = LibMatrixException.ErrorCodes.M_NOT_FOUND,
+                    Error = "State event not found in sync response"
+                };
+                return stateEvent.EventId;
+            }
+
+            return null;
         }
     }
 
@@ -174,7 +219,7 @@ public class GenericRoom {
 
         var joinUrl = $"/_matrix/client/v3/join/{HttpUtility.UrlEncode(RoomId)}";
         Console.WriteLine($"Calling {joinUrl} with {homeservers?.Length ?? 0} via's...");
-        if (homeservers == null || homeservers.Length == 0) homeservers = new[] { RoomId.Split(':')[1] };
+        if (homeservers == null || homeservers.Length == 0) homeservers = new[] { RoomId.Split(':', 2)[1] };
         var fullJoinUrl = $"{joinUrl}?server_name=" + string.Join("&server_name=", homeservers);
         var res = await Homeserver.ClientHttpClient.PostAsJsonAsync(fullJoinUrl, new {
             reason
@@ -406,7 +451,8 @@ public class GenericRoom {
         }
     }
 
-    public Task<StateEventResponse> GetEventAsync(string eventId) => Homeserver.ClientHttpClient.GetFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+    public Task<StateEventResponse> GetEventAsync(string eventId) =>
+        Homeserver.ClientHttpClient.GetFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
 
     public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
         var data = new { reason };
@@ -457,8 +503,13 @@ public class GenericRoom {
                 }
 
             if (stateTypeIgnore.Contains(state.Type)) continue;
-            await SendStateEventAsync(state.Type, state.StateKey, new object());
+            try {
+                await SendStateEventAsync(state.Type, state.StateKey, new object());
+            }
+            catch { }
         }
+
+        await LeaveAsync("Disbanded room");
     }
 
 #endregion

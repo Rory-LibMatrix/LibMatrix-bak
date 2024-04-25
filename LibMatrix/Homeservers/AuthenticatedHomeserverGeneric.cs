@@ -125,12 +125,15 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
 
 #region Utility Functions
 
-    public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type) {
+    public virtual async IAsyncEnumerable<GenericRoom> GetJoinedRoomsByType(string type, int? semaphoreCount = null) {
         var rooms = await GetJoinedRooms();
+        SemaphoreSlim? semaphoreSlim = semaphoreCount is null ? null : new(semaphoreCount.Value, semaphoreCount.Value);
         var tasks = rooms.Select(async room => {
             while (true) {
+                if (semaphoreSlim is not null) await semaphoreSlim.WaitAsync();
                 try {
                     var roomType = await room.GetRoomType();
+                    if (semaphoreSlim is not null) semaphoreSlim.Release();
                     if (roomType == type) return room;
                     return null;
                 }
