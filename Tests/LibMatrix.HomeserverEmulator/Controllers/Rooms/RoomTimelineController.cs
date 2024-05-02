@@ -124,6 +124,122 @@ public class RoomTimelineController(
 
         return evt;
     }
+    
+    [HttpGet("relations/{eventId}")]
+    public async Task<RecursedBatchedChunkedStateEventResponse> GetRelations(string roomId, string eventId, [FromQuery] string? dir = "b", [FromQuery] string? from = null, [FromQuery] int? limit = 100, [FromQuery] bool? recurse = false, [FromQuery] string? to = null) {
+        var token = tokenService.GetAccessToken(HttpContext);
+        var user = await userStore.GetUserByToken(token);
+
+        var room = roomStore.GetRoomById(roomId);
+        if (room == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Room not found"
+            };
+
+        if (!room.JoinedMembers.Any(x => x.StateKey == user.UserId))
+            throw new MatrixException() {
+                ErrorCode = "M_FORBIDDEN",
+                Error = "User is not in the room"
+            };
+
+        var evt = room.Timeline.SingleOrDefault(x => x.EventId == eventId);
+        if (evt == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Event not found"
+            };
+
+        var matchingEvents = await GetRelationsInternal(roomId, eventId, dir, from, limit, recurse, to);
+
+        return new() {
+            Chunk = matchingEvents.ToList()
+        };
+    }
+    
+    [HttpGet("relations/{eventId}/{relationType}")]
+    public async Task<RecursedBatchedChunkedStateEventResponse> GetRelations(string roomId, string eventId, string relationType, [FromQuery] string? dir = "b", [FromQuery] string? from = null, [FromQuery] int? limit = 100, [FromQuery] bool? recurse = false, [FromQuery] string? to = null) {
+        var token = tokenService.GetAccessToken(HttpContext);
+        var user = await userStore.GetUserByToken(token);
+
+        var room = roomStore.GetRoomById(roomId);
+        if (room == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Room not found"
+            };
+
+        if (!room.JoinedMembers.Any(x => x.StateKey == user.UserId))
+            throw new MatrixException() {
+                ErrorCode = "M_FORBIDDEN",
+                Error = "User is not in the room"
+            };
+
+        var evt = room.Timeline.SingleOrDefault(x => x.EventId == eventId);
+        if (evt == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Event not found"
+            };
+
+        var matchingEvents = await GetRelationsInternal(roomId, eventId, dir, from, limit, recurse, to);
+
+        return new() {
+            Chunk = matchingEvents.ToList()
+        };
+    }
+    
+    [HttpGet("relations/{eventId}/{relationType}/{eventType}")]
+    public async Task<RecursedBatchedChunkedStateEventResponse> GetRelations(string roomId, string eventId, string relationType, string eventType, [FromQuery] string? dir = "b", [FromQuery] string? from = null, [FromQuery] int? limit = 100, [FromQuery] bool? recurse = false, [FromQuery] string? to = null) {
+        var token = tokenService.GetAccessToken(HttpContext);
+        var user = await userStore.GetUserByToken(token);
+
+        var room = roomStore.GetRoomById(roomId);
+        if (room == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Room not found"
+            };
+
+        if (!room.JoinedMembers.Any(x => x.StateKey == user.UserId))
+            throw new MatrixException() {
+                ErrorCode = "M_FORBIDDEN",
+                Error = "User is not in the room"
+            };
+
+        var evt = room.Timeline.SingleOrDefault(x => x.EventId == eventId);
+        if (evt == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Event not found"
+            };
+
+        var matchingEvents = await GetRelationsInternal(roomId, eventId, dir, from, limit, recurse, to);
+
+        return new() {
+            Chunk = matchingEvents.ToList()
+        };
+    }
+    
+    private async Task<IEnumerable<StateEventResponse>> GetRelationsInternal(string roomId, string eventId, string dir, string? from, int? limit, bool? recurse, string? to) {
+        var room = roomStore.GetRoomById(roomId);
+        var evt = room.Timeline.SingleOrDefault(x => x.EventId == eventId);
+        if (evt == null)
+            throw new MatrixException() {
+                ErrorCode = "M_NOT_FOUND",
+                Error = "Event not found"
+            };
+
+        var relatedEvents = room.Timeline.Where(x => x.RawContent?["m.relates_to"]?["event_id"]?.GetValue<string>() == eventId);
+        if (dir == "b") {
+            relatedEvents = relatedEvents.TakeLast(limit ?? 100);
+        }
+        else if (dir == "f") {
+            relatedEvents = relatedEvents.Take(limit ?? 100);
+        }
+        
+        return relatedEvents;
+    }
 
 #region Commands
 

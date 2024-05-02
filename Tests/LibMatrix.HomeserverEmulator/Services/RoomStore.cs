@@ -17,7 +17,7 @@ namespace LibMatrix.HomeserverEmulator.Services;
 public class RoomStore {
     private readonly ILogger<RoomStore> _logger;
     public ConcurrentBag<Room> _rooms = new();
-    private Dictionary<string, Room> _roomsById = new();
+    private FrozenDictionary<string, Room> _roomsById = FrozenDictionary<string, Room>.Empty;
 
     public RoomStore(ILogger<RoomStore> logger, HSEConfiguration config) {
         _logger = logger;
@@ -35,13 +35,30 @@ public class RoomStore {
         RebuildIndexes();
     }
 
+    private SemaphoreSlim a = new(1, 1);
     private void RebuildIndexes() {
-        _roomsById = _rooms.ToDictionary(u => u.RoomId);
+        // a.Wait();
+        // lock (_roomsById)
+        // _roomsById = new ConcurrentDictionary<string, Room>(_rooms.ToDictionary(u => u.RoomId));
+        // foreach (var room in _rooms) {
+        //     _roomsById.AddOrUpdate(room.RoomId, room, (key, old) => room);
+        // }
+        //
+        // var roomsArr = _rooms.ToArray();
+        // foreach (var (id, room) in _roomsById) {
+        //     if (!roomsArr.Any(x => x.RoomId == id))
+        //         _roomsById.TryRemove(id, out _);
+        // }
+        
+        // _roomsById = new ConcurrentDictionary<string, Room>(_rooms.ToDictionary(u => u.RoomId));
+        _roomsById = _rooms.ToFrozenDictionary(u => u.RoomId);
+
+        // a.Release();
     }
 
     public Room? GetRoomById(string roomId, bool createIfNotExists = false) {
-        if (_roomsById.TryGetValue(roomId, out var user)) {
-            return user;
+        if (_roomsById.TryGetValue(roomId, out var room)) {
+            return room;
         }
 
         if (!createIfNotExists)
@@ -56,12 +73,26 @@ public class RoomStore {
             Type = RoomCreateEventContent.EventId,
             RawContent = new() { }
         };
+
         foreach (var (key, value) in request.CreationContent) {
             newCreateEvent.RawContent[key] = value.DeepClone();
         }
 
-        if (user != null) newCreateEvent.RawContent["creator"] = user.UserId;
-        var createEvent = room.SetStateInternal(newCreateEvent);
+        if (user != null) {
+            newCreateEvent.RawContent["creator"] = user.UserId;
+            var createEvent = room.SetStateInternal(newCreateEvent, user: user);
+            createEvent.Sender = user.UserId;
+
+            room.SetStateInternal(new() {
+                Type = RoomMemberEventContent.EventId,
+                StateKey = user.UserId,
+                TypedContent = new RoomMemberEventContent() {
+                    Membership = "join",
+                    AvatarUrl = (user.Profile.GetOrNull("avatar_url") as JsonObject)?.GetOrNull("avatar_url")?.GetValue<string>(),
+                    DisplayName = (user.Profile.GetOrNull("displayname") as string)
+                }
+            }, user: user);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Name))
             room.SetStateInternal(new StateEvent() {
@@ -84,6 +115,7 @@ public class RoomStore {
         }
 
         _rooms.Add(room);
+        // _roomsById.TryAdd(room.RoomId, room);
         RebuildIndexes();
         return room;
     }
@@ -122,17 +154,19 @@ public class RoomStore {
                 if (Equals(value, _timeline)) return;
                 _timeline = new(value);
                 _timeline.CollectionChanged += (sender, args) => {
-                    if (args.Action == NotifyCollectionChangedAction.Add) {
-                        foreach (StateEventResponse state in args.NewItems) {
-                            if (state.StateKey is not null)
-                                // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
-                                RebuildState();
-                        }
-                    }
+                    // we dont want to do this as it's rebuilt when the state is accessed
+
+                    // if (args.Action == NotifyCollectionChangedAction.Add) {
+                    //     foreach (StateEventResponse state in args.NewItems) {
+                    //         if (state.StateKey is not null)
+                    //             // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
+                    //             RebuildState();
+                    //     }
+                    // }
 
                     SaveDebounced();
                 };
-                RebuildState();
+                // RebuildState();
                 OnPropertyChanged();
             }
         }
@@ -160,25 +194,21 @@ public class RoomStore {
             }
         }
 
-        internal StateEventResponse SetStateInternal(StateEvent request) {
+        internal StateEventResponse SetStateInternal(StateEvent request, string? senderId = null, UserStore.User? user = null) {
             var state = new StateEventResponse() {
                 Type = request.Type,
                 StateKey = request.StateKey ?? "",
                 EventId = "$" + Guid.NewGuid().ToString(),
                 RoomId = RoomId,
                 OriginServerTs = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-                Sender = "",
+                Sender = user?.UserId ?? senderId ?? "",
                 RawContent = request.RawContent ?? (request.TypedContent is not null
                     ? new JsonObject()
                     : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))
             };
             Timeline.Add(state);
-            // if (state.StateKey is not null)
-            // we want state to be deduplicated by type and key, and we want the latest state to be the one that is returned
-            // State = Timeline.Where(s => s.StateKey != null)
-            // .OrderByDescending(s => s.OriginServerTs)
-            // .DistinctBy(x => (x.Type, x.StateKey))
-            // .ToFrozenSet();
+            // if(state.StateKey != null)
+            // RebuildState();
             return state;
         }
 
@@ -210,23 +240,43 @@ public class RoomStore {
             catch (TaskCanceledException) { }
         }
 
+        private SemaphoreSlim stateRebuildSemaphore = new(1, 1);
+
         private FrozenSet<StateEventResponse> RebuildState() {
-            foreach (var evt in Timeline) {
-                if (evt.EventId == null)
-                    evt.EventId = "$" + Guid.NewGuid();
-                else if (!evt.EventId.StartsWith('$')) {
-                    evt.EventId = "$" + evt.EventId;
-                    Console.WriteLine($"Sanitised invalid event ID {evt.EventId}");
+            stateRebuildSemaphore.Wait();
+            while (true)
+                try {
+                    // ReSharper disable once RedundantEnumerableCastCall - This sometimes happens when the collection is modified during enumeration
+                    List<StateEventResponse>? timeline = null;
+                    lock (_timeline) {
+                        timeline = Timeline.OfType<StateEventResponse>().ToList();
+                    }
+
+                    foreach (var evt in timeline) {
+                        if (evt == null) {
+                            throw new InvalidOperationException("Event is null");
+                        }
+
+                        if (evt.EventId == null) {
+                            evt.EventId = "$" + Guid.NewGuid();
+                        }
+                        else if (!evt.EventId.StartsWith('$')) {
+                            evt.EventId = "$" + evt.EventId;
+                            Console.WriteLine($"Sanitised invalid event ID {evt.EventId}");
+                        }
+                    }
+
+                    _stateCache = timeline //.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
+                        .Where(x => x.StateKey != null)
+                        .OrderByDescending(s => s.OriginServerTs)
+                        .DistinctBy(x => (x.Type, x.StateKey))
+                        .ToFrozenSet();
+
+                    _timelineHash = _timeline.GetHashCode();
+                    stateRebuildSemaphore.Release();
+                    return _stateCache;
                 }
-            }
-
-            _stateCache = Timeline //.Where(s => s.Type == state.Type && s.StateKey == state.StateKey)
-                .Where(x => x.StateKey != null)
-                .OrderByDescending(s => s.OriginServerTs)
-                .DistinctBy(x => (x.Type, x.StateKey))
-                .ToFrozenSet();
-
-            return _stateCache;
+                finally { }
         }
     }
 

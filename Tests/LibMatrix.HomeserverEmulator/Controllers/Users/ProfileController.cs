@@ -46,7 +46,7 @@ public class ProfileController(ILogger<ProfileController> logger, TokenService t
                 ErrorCode = "M_NOT_FOUND",
                 Error = "User not found."
             };
-        user.Profile[key] = value[key];
+        user.Profile[key] = value[key]?.AsObject();
         return value;
     }
 }

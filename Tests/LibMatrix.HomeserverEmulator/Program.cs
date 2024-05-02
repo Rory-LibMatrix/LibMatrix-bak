@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using System.Text.Json.Serialization;
 using LibMatrix;
+using LibMatrix.HomeserverEmulator.Extensions;
 using LibMatrix.HomeserverEmulator.Services;
 using LibMatrix.Services;
 using Microsoft.AspNetCore.Diagnostics;
@@ -10,8 +11,15 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; });
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+
+builder.Services.AddControllers(options => {
+    options.MaxValidationDepth = null;
+    options.MaxIAsyncEnumerableBufferLimit = 100;
+}).AddJsonOptions(options => { options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {

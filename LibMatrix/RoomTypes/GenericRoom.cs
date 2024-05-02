@@ -517,18 +517,20 @@ public class GenericRoom {
 #endregion
 
     public async IAsyncEnumerable<StateEventResponse> GetRelatedEventsAsync(string eventId, string? relationType = null, string? eventType = null, string? dir = "f",
-        string? from = null, int? chunkLimit = 100, bool? recurse = false, string? to = null) {
-        var path = $"/_matrix/client/v3/rooms/{RoomId}/relations/{eventId}";
+        string? from = null, int? chunkLimit = 100, bool? recurse = null, string? to = null) {
+        var path = $"/_matrix/client/v1/rooms/{RoomId}/relations/{HttpUtility.UrlEncode(eventId)}";
         if (!string.IsNullOrEmpty(relationType)) path += $"/{relationType}";
         if (!string.IsNullOrEmpty(eventType)) path += $"/{eventType}";
 
         var uri = new Uri(path, UriKind.Relative);
         if (dir == "b" || dir == "f") uri = uri.AddQuery("dir", dir);
+        else if(!string.IsNullOrWhiteSpace(dir)) throw new ArgumentException("Invalid direction", nameof(dir));
         if (!string.IsNullOrEmpty(from)) uri = uri.AddQuery("from", from);
         if (chunkLimit is not null) uri = uri.AddQuery("limit", chunkLimit.Value.ToString());
         if (recurse is not null) uri = uri.AddQuery("recurse", recurse.Value.ToString());
         if (!string.IsNullOrEmpty(to)) uri = uri.AddQuery("to", to);
 
+        // Console.WriteLine($"Getting related events from {uri}");
         var result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri);
         while (result!.Chunk.Count > 0) {
             foreach (var resp in result.Chunk) {

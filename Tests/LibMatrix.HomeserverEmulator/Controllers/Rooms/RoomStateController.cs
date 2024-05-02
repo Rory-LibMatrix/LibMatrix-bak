@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Text.Json.Nodes;
 using LibMatrix.HomeserverEmulator.Extensions;
 using LibMatrix.HomeserverEmulator.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -73,12 +74,12 @@ public class RoomStateController(ILogger<RoomStateController> logger, TokenServi
     }
 
     [HttpPut("{eventType}")]
-    public async Task<EventIdResponse> SetState(string roomId, string eventType, [FromBody] StateEvent request) {
+    public async Task<EventIdResponse> SetState(string roomId, string eventType, [FromBody] JsonObject? request) {
         return await SetState(roomId, eventType, "", request);
     }
 
     [HttpPut("{eventType}/{stateKey}")]
-    public async Task<EventIdResponse> SetState(string roomId, string eventType, string stateKey, [FromBody] StateEvent request) {
+    public async Task<EventIdResponse> SetState(string roomId, string eventType, string stateKey, [FromBody] JsonObject? request) {
         var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
@@ -99,7 +100,7 @@ public class RoomStateController(ILogger<RoomStateController> logger, TokenServi
                 ErrorCode = "M_NOT_FOUND",
                 Error = "Room not found"
             };
-        var evt = room.SetStateInternal(request.ToStateEvent(user, room));
+        var evt = room.SetStateInternal(new StateEvent() { Type = eventType, StateKey = stateKey, RawContent = request }.ToStateEvent(user, room));
         evt.Type = eventType;
         evt.StateKey = stateKey;
         return new EventIdResponse() {

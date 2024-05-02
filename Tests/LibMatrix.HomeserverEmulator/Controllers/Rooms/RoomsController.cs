@@ -28,42 +28,9 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
                 Error = "No such user"
             };
 
-        var room = new RoomStore.Room($"!{Guid.NewGuid()}:{tokenService.GenerateServerName(HttpContext)}");
-        var createEvent = room.SetStateInternal(new() {
-            Type = RoomCreateEventContent.EventId,
-            RawContent = new() {
-                ["creator"] = user.UserId
-            }
-        });
-        foreach (var (key, value) in request.CreationContent) {
-            createEvent.RawContent[key] = value.DeepClone();
-        }
+        // var room = new RoomStore.Room($"!{Guid.NewGuid()}:{tokenService.GenerateServerName(HttpContext)}");
+        var room = roomStore.CreateRoom(request, user);
 
-        if (!string.IsNullOrWhiteSpace(request.Name))
-            room.SetStateInternal(new StateEvent() {
-                Type = RoomNameEventContent.EventId,
-                TypedContent = new RoomNameEventContent() {
-                    Name = request.Name
-                }
-            });
-
-        if (!string.IsNullOrWhiteSpace(request.RoomAliasName))
-            room.SetStateInternal(new StateEvent() {
-                Type = RoomCanonicalAliasEventContent.EventId,
-                TypedContent = new RoomCanonicalAliasEventContent() {
-                    Alias = $"#{request.RoomAliasName}:localhost"
-                }
-            });
-
-        if (request.InitialState is { Count: > 0 }) {
-            foreach (var stateEvent in request.InitialState) {
-                room.SetStateInternal(stateEvent);
-            }
-        }
-
-        room.AddUser(user.UserId);
-
-        // user.Rooms.Add(room.RoomId, room);
         return new() {
             RoomId = room.RoomId
         };
@@ -122,9 +89,13 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
             replacement_room = room.RoomId
         };
     }
-    
+
+    public class ReasonBody {
+        [JsonPropertyName("reason")]
+        public string? Reason { get; set; }
+    }
     [HttpPost("rooms/{roomId}/leave")] // TODO: implement
-    public async Task<object> LeaveRoom(string roomId) {
+    public async Task<object> LeaveRoom(string roomId, [FromBody] ReasonBody body) {
         var token = tokenService.GetAccessTokenOrNull(HttpContext);
         if (token == null)
             throw new MatrixException() {
@@ -145,11 +116,17 @@ public class RoomsController(ILogger<RoomsController> logger, TokenService token
                 ErrorCode = "M_NOT_FOUND",
                 Error = "Room not found"
             };
+        
+        room.SetStateInternal(new() {
+            Type = RoomMemberEventContent.EventId,
+            TypedContent = new RoomMemberEventContent() {
+                Membership = "leave",
+                Reason = body.Reason
+            },
+            StateKey = user.UserId
+        });
 
-        // room.RemoveUser(user.UserId);
-
-        // room.SetStateInternal(new StateEventResponse() { });
-
+        logger.LogTrace($"User {user.UserId} left room {room.RoomId}");
         return new {
             room_id = room.RoomId
         };

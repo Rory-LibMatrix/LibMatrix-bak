@@ -29,6 +29,10 @@ public class MatrixHttpClient : HttpClient {
     public Dictionary<string, string> AdditionalQueryParameters { get; set; } = new();
     internal string? AssertedUserId { get; set; }
 
+    internal SemaphoreSlim _rateLimitSemaphore { get; } = new(1, 1);
+    
+    internal const bool debug = false;
+
     private JsonSerializerOptions GetJsonSerializerOptions(JsonSerializerOptions? options = null) {
         options ??= new JsonSerializerOptions();
         options.Converters.Add(new JsonFloatStringConverter());
@@ -39,7 +43,8 @@ public class MatrixHttpClient : HttpClient {
     }
 
     public async Task<HttpResponseMessage> SendUnhandledAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-        Console.WriteLine($"Sending {request.Method} {BaseAddress}{request.RequestUri} ({Util.BytesToString(request.Content?.Headers.ContentLength ?? 0)})");
+        if(debug) await _rateLimitSemaphore.WaitAsync(cancellationToken);
+        // Console.WriteLine($"Sending {request.Method} {BaseAddress}{request.RequestUri} ({Util.BytesToString(request.Content?.Headers.ContentLength ?? 0)})");
         if (request.RequestUri is null) throw new NullReferenceException("RequestUri is null");
         if (!request.RequestUri.IsAbsoluteUri) request.RequestUri = new Uri(BaseAddress, request.RequestUri);
         // if (AssertedUserId is not null) request.RequestUri = request.RequestUri.AddQuery("user_id", AssertedUserId);
@@ -57,7 +62,17 @@ public class MatrixHttpClient : HttpClient {
             Console.WriteLine(e);
         }
 
-        var responseMessage = await base.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        HttpResponseMessage? responseMessage;
+        try {
+            responseMessage = await base.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to send request {request.Method} {BaseAddress}{request.RequestUri} ({Util.BytesToString(request.Content?.Headers.ContentLength ?? 0)}):\n{e}");
+            throw;
+        }
+        finally {
+            if(debug) _rateLimitSemaphore.Release();
+        }
 
         return responseMessage;
     }
@@ -75,7 +90,18 @@ public class MatrixHttpClient : HttpClient {
             };
         if (!content.StartsWith('{')) throw new InvalidDataException("Encountered invalid data:\n" + content);
         //we have a matrix error
-        var ex = JsonSerializer.Deserialize<MatrixException>(content);
+
+        MatrixException? ex = null;
+        try {
+            ex = JsonSerializer.Deserialize<MatrixException>(content);
+        }
+        catch (JsonException e) {
+            throw new LibMatrixException() {
+                ErrorCode = "M_INVALID_JSON",
+                Error = e.Message + "\nBody:\n" + await responseMessage.Content.ReadAsStringAsync(cancellationToken)
+            };
+        }
+
         Debug.Assert(ex != null, nameof(ex) + " != null");
         ex.RawContent = content;
         // Console.WriteLine($"Failed to send request: {ex}");
@@ -136,7 +162,7 @@ public class MatrixHttpClient : HttpClient {
         options = GetJsonSerializerOptions(options);
         var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        Console.WriteLine($"Sending PUT {requestUri}");
+        // Console.WriteLine($"Sending PUT {requestUri}");
         // Console.WriteLine($"Content: {JsonSerializer.Serialize(value, value.GetType(), options)}");
         // Console.WriteLine($"Type: {value.GetType().FullName}");
         request.Content = new StringContent(JsonSerializer.Serialize(value, value.GetType(), options),
