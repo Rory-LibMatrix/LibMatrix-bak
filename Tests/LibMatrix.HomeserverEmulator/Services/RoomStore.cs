@@ -195,7 +195,7 @@ public class RoomStore {
         }
 
         internal StateEventResponse SetStateInternal(StateEvent request, string? senderId = null, UserStore.User? user = null) {
-            var state = new StateEventResponse() {
+            var state = request as StateEventResponse ?? new StateEventResponse() {
                 Type = request.Type,
                 StateKey = request.StateKey ?? "",
                 EventId = "$" + Guid.NewGuid().ToString(),
@@ -207,8 +207,8 @@ public class RoomStore {
                     : JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(request.TypedContent)))
             };
             Timeline.Add(state);
-            // if(state.StateKey != null)
-            // RebuildState();
+            if(state.StateKey != null)
+                RebuildState();
             return state;
         }
 
@@ -225,19 +225,35 @@ public class RoomStore {
             return state;
         }
 
+        // public async Task SaveDebounced() {
+            // if (!HSEConfiguration.Current.StoreData) return;
+            // await _debounceCts.CancelAsync();
+            // _debounceCts = new CancellationTokenSource();
+            // try {
+                // await Task.Delay(250, _debounceCts.Token);
+                // // Ensure all state events are in the timeline
+                // State.Where(s => !Timeline.Contains(s)).ToList().ForEach(s => Timeline.Add(s));
+                // var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "rooms", $"{RoomId}.json");
+                // Console.WriteLine($"Saving room {RoomId} to {path}!");
+                // await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
+            // }
+            // catch (TaskCanceledException) { }
+        // }
+
+        private SemaphoreSlim saveSemaphore = new(1, 1);
+
         public async Task SaveDebounced() {
-            if (!HSEConfiguration.Current.StoreData) return;
-            await _debounceCts.CancelAsync();
-            _debounceCts = new CancellationTokenSource();
-            try {
-                await Task.Delay(250, _debounceCts.Token);
-                // Ensure all state events are in the timeline
-                State.Where(s => !Timeline.Contains(s)).ToList().ForEach(s => Timeline.Add(s));
-                var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "rooms", $"{RoomId}.json");
-                Console.WriteLine($"Saving room {RoomId} to {path}!");
-                await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
-            }
-            catch (TaskCanceledException) { }
+            Task.Run(async () => {
+                await saveSemaphore.WaitAsync();
+                try {
+                    var path = Path.Combine(HSEConfiguration.Current.DataStoragePath, "rooms", $"{RoomId}.json");
+                    Console.WriteLine($"Saving room {RoomId} to {path}!");
+                    await File.WriteAllTextAsync(path, this.ToJson(ignoreNull: true));
+                }
+                finally {
+                    saveSemaphore.Release();
+                }
+            });
         }
 
         private SemaphoreSlim stateRebuildSemaphore = new(1, 1);
@@ -246,6 +262,7 @@ public class RoomStore {
             stateRebuildSemaphore.Wait();
             while (true)
                 try {
+                    Console.WriteLine($"Rebuilding state for room {RoomId}");
                     // ReSharper disable once RedundantEnumerableCastCall - This sometimes happens when the collection is modified during enumeration
                     List<StateEventResponse>? timeline = null;
                     lock (_timeline) {

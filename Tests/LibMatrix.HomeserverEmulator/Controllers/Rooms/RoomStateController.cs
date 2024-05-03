@@ -64,11 +64,14 @@ public class RoomStateController(ILogger<RoomStateController> logger, TokenServi
             };
 
         var stateEvent = room.State.FirstOrDefault(x => x.Type == eventType && x.StateKey == stateKey);
-        if (stateEvent == null)
+        if (stateEvent == null) {
+            Console.WriteLine($"Event not found in room {roomId} matching {eventType}/{stateKey}");
             throw new MatrixException() {
                 ErrorCode = "M_NOT_FOUND",
                 Error = "Event not found"
             };
+        }
+
         // return stateEvent;
         return format == "event" ? stateEvent : stateEvent.RawContent;
     }
