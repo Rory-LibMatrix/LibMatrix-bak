@@ -14,7 +14,7 @@ namespace LibMatrix.Services;
 
 public class HomeserverResolverService {
     private readonly MatrixHttpClient _httpClient = new() {
-        Timeout = TimeSpan.FromMilliseconds(10000)
+        Timeout = TimeSpan.FromSeconds(60)
     };
 
     private static readonly SemaphoreCache<WellKnownUris> WellKnownCache = new();
@@ -30,39 +30,44 @@ public class HomeserverResolverService {
         }
     }
 
-    private static SemaphoreSlim _wellKnownSemaphore = new(1, 1);
+    // private static SemaphoreSlim _wellKnownSemaphore = new(1, 1);
 
-    public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver) {
+    public async Task<WellKnownUris> ResolveHomeserverFromWellKnown(string homeserver, bool enableClient = true, bool enableServer = true) {
         ArgumentNullException.ThrowIfNull(homeserver);
 
         return await WellKnownCache.GetOrAdd(homeserver, async () => {
-            await _wellKnownSemaphore.WaitAsync();
+            // await _wellKnownSemaphore.WaitAsync();
             _logger.LogTrace($"Resolving homeserver well-knowns: {homeserver}");
-            var client = _tryResolveClientEndpoint(homeserver);
+            var client = enableClient ? _tryResolveClientEndpoint(homeserver) : null;
+            var server = enableServer ? _tryResolveServerEndpoint(homeserver) : null;
 
             var res = new WellKnownUris();
 
             // try {
-            res.Client = await client ?? throw new Exception("Could not resolve client URL.");
+            if (client != null)
+                res.Client = await client ?? throw new Exception($"Could not resolve client URL for {homeserver}.");
             // }
             // catch (Exception e) {
             // _logger.LogError(e, "Error resolving client well-known for {hs}", homeserver);
             // }
 
-            var server = _tryResolveServerEndpoint(homeserver);
-
             // try {
-            res.Server = await server ?? throw new Exception("Could not resolve server URL.");
+            if (server != null)
+                res.Server = await server ?? throw new Exception($"Could not resolve server URL for {homeserver}.");
             // }
             // catch (Exception e) {
             // _logger.LogError(e, "Error resolving server well-known for {hs}", homeserver);
             // }
 
             _logger.LogInformation("Resolved well-knowns for {hs}: {json}", homeserver, res.ToJson(indent: false));
-            _wellKnownSemaphore.Release();
+            // _wellKnownSemaphore.Release();
             return res;
         });
     }
+
+    // private async Task<WellKnownUris> InternalResolveHomeserverFromWellKnown(string homeserver) {
+
+    // }
 
     private async Task<string?> _tryResolveClientEndpoint(string homeserver) {
         ArgumentNullException.ThrowIfNull(homeserver);
@@ -90,7 +95,7 @@ public class HomeserverResolverService {
         if (!string.IsNullOrWhiteSpace(clientWellKnown?.Homeserver.BaseUrl))
             return clientWellKnown.Homeserver.BaseUrl;
 
-        _logger.LogInformation("No client well-known...");
+        _logger.LogInformation("No client well-known for {server}...", homeserver);
         return null;
     }
 
@@ -129,7 +134,7 @@ public class HomeserverResolverService {
         if (clientUrl is not null && await _httpClient.CheckSuccessStatus($"{clientUrl}/_matrix/federation/v1/version"))
             return clientUrl;
 
-        _logger.LogInformation("No server well-known...");
+        _logger.LogInformation("No server well-known for {server}...", homeserver);
         return null;
     }
 

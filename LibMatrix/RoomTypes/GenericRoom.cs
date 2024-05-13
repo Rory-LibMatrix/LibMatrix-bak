@@ -228,43 +228,43 @@ public class GenericRoom {
     }
 
     public async IAsyncEnumerable<StateEventResponse> GetMembersEnumerableAsync(bool joinedOnly = true) {
-        var sw = Stopwatch.StartNew();
+        // var sw = Stopwatch.StartNew();
         var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
-        if (sw.ElapsedMilliseconds > 1000)
-            Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
-        else sw.Restart();
+        // if (sw.ElapsedMilliseconds > 1000)
+            // Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
+        // else sw.Restart();
         // var resText = await res.Content.ReadAsStringAsync();
         // Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
             TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
         });
-        if (sw.ElapsedMilliseconds > 100)
-            Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
-        else sw.Restart();
+        // if (sw.ElapsedMilliseconds > 100)
+            // Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
+        // else sw.Restart();
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
             if (joinedOnly && resp.RawContent?["membership"]?.GetValue<string>() != "join") continue;
             yield return resp;
         }
 
-        if (sw.ElapsedMilliseconds > 100)
-            Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
+        // if (sw.ElapsedMilliseconds > 100)
+            // Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
     }
 
     public async Task<FrozenSet<StateEventResponse>> GetMembersListAsync(bool joinedOnly = true) {
-        var sw = Stopwatch.StartNew();
+        // var sw = Stopwatch.StartNew();
         var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
-        if (sw.ElapsedMilliseconds > 1000)
-            Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
-        else sw.Restart();
+        // if (sw.ElapsedMilliseconds > 1000)
+            // Console.WriteLine($"Members call responded in {sw.GetElapsedAndRestart()}");
+        // else sw.Restart();
         // var resText = await res.Content.ReadAsStringAsync();
         // Console.WriteLine($"Members call response read in {sw.GetElapsedAndRestart()}");
         var result = await JsonSerializer.DeserializeAsync<ChunkedStateEventResponse>(await res.Content.ReadAsStreamAsync(), new JsonSerializerOptions() {
             TypeInfoResolver = ChunkedStateEventResponseSerializerContext.Default
         });
-        if (sw.ElapsedMilliseconds > 100)
-            Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
-        else sw.Restart();
+        // if (sw.ElapsedMilliseconds > 100)
+            // Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
+        // else sw.Restart();
         var members = new List<StateEventResponse>();
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
@@ -272,8 +272,8 @@ public class GenericRoom {
             members.Add(resp);
         }
 
-        if (sw.ElapsedMilliseconds > 100)
-            Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
+        // if (sw.ElapsedMilliseconds > 100)
+            // Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
         return members.ToFrozenSet();
     }
 

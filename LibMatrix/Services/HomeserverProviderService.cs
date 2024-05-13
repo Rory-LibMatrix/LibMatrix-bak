@@ -10,16 +10,19 @@ namespace LibMatrix.Services;
 public class HomeserverProviderService(ILogger<HomeserverProviderService> logger, HomeserverResolverService hsResolver) {
     private static SemaphoreCache<AuthenticatedHomeserverGeneric> AuthenticatedHomeserverCache = new();
     private static SemaphoreCache<RemoteHomeserver> RemoteHomeserverCache = new();
+    private static SemaphoreCache<FederationClient> FederationClientCache = new();
 
     public async Task<AuthenticatedHomeserverGeneric> GetAuthenticatedWithToken(string homeserver, string accessToken, string? proxy = null, string? impersonatedMxid = null,
-        bool useGeneric = false) {
+        bool useGeneric = false, bool enableClient = true, bool enableServer = true) {
+        if (!enableClient && !enableServer)
+            throw new ArgumentException("At least one of enableClient or enableServer must be true");
+
         return await AuthenticatedHomeserverCache.GetOrAdd($"{homeserver}{accessToken}{proxy}{impersonatedMxid}", async () => {
-            var wellKnownUris = await hsResolver.ResolveHomeserverFromWellKnown(homeserver);
+            var wellKnownUris = await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableClient, enableServer);
             var rhs = new RemoteHomeserver(homeserver, wellKnownUris, ref proxy);
-            
+
             AuthenticatedHomeserverGeneric? hs = null;
-            if (!useGeneric)
-            {
+            if (!useGeneric) {
                 ClientVersionsResponse? clientVersions = new();
                 try {
                     clientVersions = await rhs.GetClientVersionsAsync();
@@ -50,7 +53,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
                     throw;
                 }
             }
-            
+
             hs ??= new AuthenticatedHomeserverGeneric(homeserver, wellKnownUris, ref proxy, accessToken);
 
             await hs.Initialise();
@@ -62,9 +65,17 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
         });
     }
 
-    public async Task<RemoteHomeserver> GetRemoteHomeserver(string homeserver, string? proxy = null) =>
-        await RemoteHomeserverCache.GetOrAdd($"{homeserver}{proxy}",
-            async () => { return new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver), ref proxy); });
+    public async Task<RemoteHomeserver> GetRemoteHomeserver(string homeserver, string? proxy = null, bool useCache = true, bool enableServer = true) =>
+        useCache
+            ? await RemoteHomeserverCache.GetOrAdd($"{homeserver}{proxy}",
+                async () => { return new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), ref proxy); })
+            : new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), ref proxy);
+
+    public async Task<FederationClient> GetFederationClient(string homeserver, string keyId, string? proxy = null, bool useCache = true) =>
+        useCache
+            ? await FederationClientCache.GetOrAdd($"{homeserver}{keyId}{proxy}",
+                async () => { return new FederationClient((await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableClient: false)).Server!, proxy); })
+            : new FederationClient((await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableClient: false)).Server!, proxy);
 
     public async Task<LoginResponse> Login(string homeserver, string user, string password, string? proxy = null) {
         var hs = await GetRemoteHomeserver(homeserver, proxy);
