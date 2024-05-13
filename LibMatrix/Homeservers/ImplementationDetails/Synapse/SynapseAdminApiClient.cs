@@ -11,7 +11,7 @@ public class SynapseAdminApiClient(AuthenticatedHomeserverSynapse authenticatedH
         var i = 0;
         int? totalRooms = null;
         do {
-            var url = $"/_synapse/admin/v1/rooms?limit={Math.Min(limit, 100)}&dir={dir}&order_by={orderBy}";
+            var url = $"/_synapse/admin/v1/rooms?limit={Math.Min(limit, 250)}&dir={dir}&order_by={orderBy}";
             if (!string.IsNullOrEmpty(searchTerm)) url += $"&search_term={searchTerm}";
 
             if (res?.NextBatch is not null) url += $"&from={res.NextBatch}";
