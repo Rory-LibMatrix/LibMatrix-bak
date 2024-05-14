@@ -26,4 +26,12 @@ public class RoomMemberEventContent : EventContent {
 
     [JsonPropertyName("join_authorised_via_users_server")]
     public string? JoinAuthorisedViaUsersServer { get; set; }
+    
+    public static class MembershipTypes {
+        public const string Invite = "invite";
+        public const string Join = "join";
+        public const string Leave = "leave";
+        public const string Ban = "ban";
+        public const string Knock = "knock";
+    }
 }
