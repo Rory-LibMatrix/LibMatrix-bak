@@ -19,7 +19,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
 
         return await AuthenticatedHomeserverCache.GetOrAdd($"{homeserver}{accessToken}{proxy}{impersonatedMxid}", async () => {
             var wellKnownUris = await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableClient, enableServer);
-            var rhs = new RemoteHomeserver(homeserver, wellKnownUris, ref proxy);
+            var rhs = new RemoteHomeserver(homeserver, wellKnownUris, proxy);
 
             AuthenticatedHomeserverGeneric? hs = null;
             if (!useGeneric) {
@@ -42,10 +42,10 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
 
                 try {
                     if (clientVersions.UnstableFeatures.TryGetValue("gay.rory.mxapiextensions.v0", out var a) && a)
-                        hs = new AuthenticatedHomeserverMxApiExtended(homeserver, wellKnownUris, ref proxy, accessToken);
+                        hs = new AuthenticatedHomeserverMxApiExtended(homeserver, wellKnownUris, proxy, accessToken);
                     else {
                         if (serverVersion is { Server.Name: "Synapse" })
-                            hs = new AuthenticatedHomeserverSynapse(homeserver, wellKnownUris, ref proxy, accessToken);
+                            hs = new AuthenticatedHomeserverSynapse(homeserver, wellKnownUris, proxy, accessToken);
                     }
                 }
                 catch (Exception e) {
@@ -54,7 +54,7 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
                 }
             }
 
-            hs ??= new AuthenticatedHomeserverGeneric(homeserver, wellKnownUris, ref proxy, accessToken);
+            hs ??= new AuthenticatedHomeserverGeneric(homeserver, wellKnownUris, proxy, accessToken);
 
             await hs.Initialise();
 
@@ -68,8 +68,8 @@ public class HomeserverProviderService(ILogger<HomeserverProviderService> logger
     public async Task<RemoteHomeserver> GetRemoteHomeserver(string homeserver, string? proxy = null, bool useCache = true, bool enableServer = true) =>
         useCache
             ? await RemoteHomeserverCache.GetOrAdd($"{homeserver}{proxy}",
-                async () => { return new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), ref proxy); })
-            : new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), ref proxy);
+                async () => { return new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), proxy); })
+            : new RemoteHomeserver(homeserver, await hsResolver.ResolveHomeserverFromWellKnown(homeserver, enableServer: enableServer), proxy);
 
     public async Task<FederationClient> GetFederationClient(string homeserver, string keyId, string? proxy = null, bool useCache = true) =>
         useCache

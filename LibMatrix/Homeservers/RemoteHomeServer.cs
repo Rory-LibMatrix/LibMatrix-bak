@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace LibMatrix.Homeservers;
 
 public class RemoteHomeserver {
-    public RemoteHomeserver(string baseUrl, HomeserverResolverService.WellKnownUris wellKnownUris, ref string? proxy) {
+    public RemoteHomeserver(string baseUrl, HomeserverResolverService.WellKnownUris wellKnownUris, string? proxy) {
         if (string.IsNullOrWhiteSpace(proxy))
             proxy = null;
         BaseUrl = baseUrl;
@@ -31,8 +31,12 @@ public class RemoteHomeserver {
     private Dictionary<string, object> _profileCache { get; set; } = new();
     public string BaseUrl { get; }
 
+    [JsonIgnore]
     public MatrixHttpClient ClientHttpClient { get; set; }
+
+    [JsonIgnore]
     public FederationClient? FederationClient { get; set; }
+
     public HomeserverResolverService.WellKnownUris WellKnownUris { get; set; }
 
     public async Task<UserProfileResponse> GetProfileAsync(string mxid, bool useCache = false) {

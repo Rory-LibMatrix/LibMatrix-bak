@@ -19,8 +19,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace LibMatrix.Homeservers;
 
 public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
-    public AuthenticatedHomeserverGeneric(string serverName, HomeserverResolverService.WellKnownUris wellKnownUris, ref string? proxy, string accessToken) : base(serverName,
-        wellKnownUris, ref proxy) {
+    public AuthenticatedHomeserverGeneric(string serverName, HomeserverResolverService.WellKnownUris wellKnownUris, string? proxy, string accessToken) : base(serverName,
+        wellKnownUris, proxy) {
         AccessToken = accessToken;
         ClientHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -42,6 +42,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
     public string UserLocalpart => UserId.Split(":")[0][1..];
     public string ServerName => UserId.Split(":", 2)[1];
 
+    [JsonIgnore]
     public string AccessToken { get; set; }
 
     public HsNamedCaches NamedCaches { get; set; } = null!;
