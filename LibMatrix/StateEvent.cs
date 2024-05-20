@@ -19,7 +19,11 @@ public class StateEvent {
         new Dictionary<string, Type>(),
         (dict, type) => {
             var attrs = type.GetCustomAttributes<MatrixEventAttribute>();
-            foreach (var attr in attrs) dict[attr.EventName] = type;
+            foreach (var attr in attrs) {
+                if (dict.TryGetValue(attr.EventName, out var existing))
+                    Console.WriteLine($"Duplicate event type '{attr.EventName}' registered for types '{existing.Name}' and '{type.Name}'");
+                dict[attr.EventName] = type;
+            }
 
             return dict;
         }).OrderBy(x => x.Key).ToFrozenDictionary();
