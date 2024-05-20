@@ -22,7 +22,7 @@ public class StateEvent {
             foreach (var attr in attrs) dict[attr.EventName] = type;
 
             return dict;
-        }).ToFrozenDictionary();
+        }).OrderBy(x => x.Key).ToFrozenDictionary();
 
     public static Type GetStateEventType(string? type) =>
         string.IsNullOrWhiteSpace(type) ? typeof(UnknownEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
@@ -55,8 +55,11 @@ public class StateEvent {
             // return null;
             // }
             try {
-                var c = (EventContent)RawContent.Deserialize(GetStateEventType(Type), TypedContentSerializerOptions)!;
-                return c;
+                var mappedType = GetStateEventType(Type);
+                if (mappedType == typeof(UnknownEventContent))
+                    Console.WriteLine($"Warning: unknown event type '{Type}'");
+                var deserialisedContent = (EventContent)RawContent.Deserialize(mappedType, TypedContentSerializerOptions)!;
+                return deserialisedContent;
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
@@ -206,7 +209,7 @@ public class PaginatedChunkedStateEventResponse : ChunkedStateEventResponse {
 public class BatchedChunkedStateEventResponse : ChunkedStateEventResponse {
     [JsonPropertyName("next_batch")]
     public string? NextBatch { get; set; }
-    
+
     [JsonPropertyName("prev_batch")]
     public string? PrevBatch { get; set; }
 }
