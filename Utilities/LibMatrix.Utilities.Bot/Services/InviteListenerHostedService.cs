@@ -80,7 +80,7 @@ public class InviteHandlerHostedService : IHostedService {
 
     public class InviteEventArgs {
         public string RoomId { get; set; }
-        public StateEventResponse MemberEvent { get; set; }
+        public LegacyMatrixEventResponse MemberEvent { get; set; }
         public AuthenticatedHomeserverGeneric Homeserver { get; set; }
     }
 }

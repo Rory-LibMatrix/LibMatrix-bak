@@ -12,7 +12,7 @@ using LibMatrix.Extensions;
 
 namespace LibMatrix;
 
-public class StateEvent {
+public class LegacyMatrixEvent {
     public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
 
     public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
@@ -97,39 +97,7 @@ public class StateEvent {
         get => _rawContent;
         set => _rawContent = value;
     }
-    //
-    // [JsonIgnore]
-    // public new Type GetType {
-    //     get {
-    //         var type = GetStateEventType(Type);
-    //
-    //         //special handling for some types
-    //         // if (type == typeof(RoomEmotesEventContent)) {
-    //         //     RawContent["emote"] = RawContent["emote"]?.AsObject() ?? new JsonObject();
-    //         // }
-    //         //
-    //         // if (this is StateEventResponse stateEventResponse) {
-    //         //     if (type == null || type == typeof(object)) {
-    //         //         Console.WriteLine($"Warning: unknown event type '{Type}'!");
-    //         //         Console.WriteLine(RawContent.ToJson());
-    //         //         Directory.CreateDirectory($"unknown_state_events/{Type}");
-    //         //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
-    //         //             RawContent.ToJson());
-    //         //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
-    //         //     }
-    //         //     else if (RawContent is not null && RawContent.FindExtraJsonObjectFields(type)) {
-    //         //         Directory.CreateDirectory($"unknown_state_events/{Type}");
-    //         //         File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
-    //         //             RawContent.ToJson());
-    //         //         Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
-    //         //     }
-    //         // }
-    //
-    //         return type;
-    //     }
-    // }
 
-    //debug
     [JsonIgnore]
     public string InternalSelfTypeName {
         get {
@@ -145,7 +113,7 @@ public class StateEvent {
     public string InternalContentTypeName => TypedContent?.GetType().Name ?? "null";
 }
 
-public class StateEventResponse : StateEvent {
+public class LegacyMatrixEventResponse : LegacyMatrixEvent {
     [JsonPropertyName("origin_server_ts")]
     public long? OriginServerTs { get; set; }
 
@@ -189,17 +157,17 @@ internal partial class ChunkedStateEventResponseSerializerContext : JsonSerializ
 public class EventList {
     public EventList() { }
 
-    public EventList(List<StateEventResponse>? events) {
+    public EventList(List<LegacyMatrixEventResponse>? events) {
         Events = events;
     }
 
     [JsonPropertyName("events")]
-    public List<StateEventResponse>? Events { get; set; } = new();
+    public List<LegacyMatrixEventResponse>? Events { get; set; } = new();
 }
 
 public class ChunkedStateEventResponse {
     [JsonPropertyName("chunk")]
-    public List<StateEventResponse>? Chunk { get; set; } = new();
+    public List<LegacyMatrixEventResponse>? Chunk { get; set; } = new();
 }
 
 public class PaginatedChunkedStateEventResponse : ChunkedStateEventResponse {

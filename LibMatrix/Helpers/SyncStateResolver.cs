@@ -37,13 +37,13 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
         oldState.NextBatch = newState.NextBatch ?? oldState.NextBatch;
 
         oldState.AccountData ??= new EventList();
-        oldState.AccountData.Events ??= new List<StateEventResponse>();
+        oldState.AccountData.Events ??= new List<LegacyMatrixEventResponse>();
         if (newState.AccountData?.Events is not null)
-            oldState.AccountData.Events.MergeStateEventLists(newState.AccountData?.Events ?? new List<StateEventResponse>());
+            oldState.AccountData.Events.MergeStateEventLists(newState.AccountData?.Events ?? new List<LegacyMatrixEventResponse>());
 
         oldState.Presence ??= new SyncResponse.PresenceDataStructure();
         if (newState.Presence?.Events is not null)
-            oldState.Presence.Events.MergeStateEventLists(newState.Presence?.Events ?? new List<StateEventResponse>());
+            oldState.Presence.Events.MergeStateEventLists(newState.Presence?.Events ?? new List<LegacyMatrixEventResponse>());
 
         oldState.DeviceOneTimeKeysCount ??= new Dictionary<string, int>();
         if (newState.DeviceOneTimeKeysCount is not null)
@@ -55,9 +55,9 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
             oldState.Rooms = MergeRoomsDataStructure(oldState.Rooms, newState.Rooms);
 
         oldState.ToDevice ??= new EventList();
-        oldState.ToDevice.Events ??= new List<StateEventResponse>();
+        oldState.ToDevice.Events ??= new List<LegacyMatrixEventResponse>();
         if (newState.ToDevice?.Events is not null)
-            oldState.ToDevice.Events.MergeStateEventLists(newState.ToDevice?.Events ?? new List<StateEventResponse>());
+            oldState.ToDevice.Events.MergeStateEventLists(newState.ToDevice?.Events ?? new List<LegacyMatrixEventResponse>());
 
         oldState.DeviceLists ??= new SyncResponse.DeviceListsDataStructure();
         if (newState.DeviceLists?.Changed is not null)
@@ -97,22 +97,22 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
     private SyncResponse.RoomsDataStructure.LeftRoomDataStructure MergeLeftRoomDataStructure(SyncResponse.RoomsDataStructure.LeftRoomDataStructure oldData,
         SyncResponse.RoomsDataStructure.LeftRoomDataStructure newData) {
         oldData.AccountData ??= new EventList();
-        oldData.AccountData.Events ??= new List<StateEventResponse>();
+        oldData.AccountData.Events ??= new List<LegacyMatrixEventResponse>();
         oldData.Timeline ??= new SyncResponse.RoomsDataStructure.JoinedRoomDataStructure.TimelineDataStructure();
-        oldData.Timeline.Events ??= new List<StateEventResponse>();
+        oldData.Timeline.Events ??= new List<LegacyMatrixEventResponse>();
         oldData.State ??= new EventList();
-        oldData.State.Events ??= new List<StateEventResponse>();
+        oldData.State.Events ??= new List<LegacyMatrixEventResponse>();
 
         if (newData.AccountData?.Events is not null)
-            oldData.AccountData.Events.MergeStateEventLists(newData.AccountData?.Events ?? new List<StateEventResponse>());
+            oldData.AccountData.Events.MergeStateEventLists(newData.AccountData?.Events ?? new List<LegacyMatrixEventResponse>());
 
         if (newData.Timeline?.Events is not null)
-            oldData.Timeline.Events.MergeStateEventLists(newData.Timeline?.Events ?? new List<StateEventResponse>());
+            oldData.Timeline.Events.MergeStateEventLists(newData.Timeline?.Events ?? new List<LegacyMatrixEventResponse>());
         oldData.Timeline.Limited = newData.Timeline?.Limited ?? oldData.Timeline.Limited;
         oldData.Timeline.PrevBatch = newData.Timeline?.PrevBatch ?? oldData.Timeline.PrevBatch;
 
         if (newData.State?.Events is not null)
-            oldData.State.Events.MergeStateEventLists(newData.State?.Events ?? new List<StateEventResponse>());
+            oldData.State.Events.MergeStateEventLists(newData.State?.Events ?? new List<LegacyMatrixEventResponse>());
 
         return oldData;
     }
@@ -120,9 +120,9 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
     private SyncResponse.RoomsDataStructure.InvitedRoomDataStructure MergeInvitedRoomDataStructure(SyncResponse.RoomsDataStructure.InvitedRoomDataStructure oldData,
         SyncResponse.RoomsDataStructure.InvitedRoomDataStructure newData) {
         oldData.InviteState ??= new EventList();
-        oldData.InviteState.Events ??= new List<StateEventResponse>();
+        oldData.InviteState.Events ??= new List<LegacyMatrixEventResponse>();
         if (newData.InviteState?.Events is not null)
-            oldData.InviteState.Events.MergeStateEventLists(newData.InviteState?.Events ?? new List<StateEventResponse>());
+            oldData.InviteState.Events.MergeStateEventLists(newData.InviteState?.Events ?? new List<LegacyMatrixEventResponse>());
 
         return oldData;
     }
@@ -130,27 +130,27 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
     private SyncResponse.RoomsDataStructure.JoinedRoomDataStructure MergeJoinedRoomDataStructure(SyncResponse.RoomsDataStructure.JoinedRoomDataStructure oldData,
         SyncResponse.RoomsDataStructure.JoinedRoomDataStructure newData) {
         oldData.AccountData ??= new EventList();
-        oldData.AccountData.Events ??= new List<StateEventResponse>();
+        oldData.AccountData.Events ??= new List<LegacyMatrixEventResponse>();
         oldData.Timeline ??= new SyncResponse.RoomsDataStructure.JoinedRoomDataStructure.TimelineDataStructure();
-        oldData.Timeline.Events ??= new List<StateEventResponse>();
+        oldData.Timeline.Events ??= new List<LegacyMatrixEventResponse>();
         oldData.State ??= new EventList();
-        oldData.State.Events ??= new List<StateEventResponse>();
+        oldData.State.Events ??= new List<LegacyMatrixEventResponse>();
         oldData.Ephemeral ??= new EventList();
-        oldData.Ephemeral.Events ??= new List<StateEventResponse>();
+        oldData.Ephemeral.Events ??= new List<LegacyMatrixEventResponse>();
 
         if (newData.AccountData?.Events is not null)
-            oldData.AccountData.Events.MergeStateEventLists(newData.AccountData?.Events ?? new List<StateEventResponse>());
+            oldData.AccountData.Events.MergeStateEventLists(newData.AccountData?.Events ?? new List<LegacyMatrixEventResponse>());
 
         if (newData.Timeline?.Events is not null)
-            oldData.Timeline.Events.MergeStateEventLists(newData.Timeline?.Events ?? new List<StateEventResponse>());
+            oldData.Timeline.Events.MergeStateEventLists(newData.Timeline?.Events ?? new List<LegacyMatrixEventResponse>());
         oldData.Timeline.Limited = newData.Timeline?.Limited ?? oldData.Timeline.Limited;
         oldData.Timeline.PrevBatch = newData.Timeline?.PrevBatch ?? oldData.Timeline.PrevBatch;
 
         if (newData.State?.Events is not null)
-            oldData.State.Events.MergeStateEventLists(newData.State?.Events ?? new List<StateEventResponse>());
+            oldData.State.Events.MergeStateEventLists(newData.State?.Events ?? new List<LegacyMatrixEventResponse>());
 
         if (newData.Ephemeral?.Events is not null)
-            oldData.Ephemeral.Events.MergeStateEventLists(newData.Ephemeral?.Events ?? new List<StateEventResponse>());
+            oldData.Ephemeral.Events.MergeStateEventLists(newData.Ephemeral?.Events ?? new List<LegacyMatrixEventResponse>());
 
         oldData.UnreadNotifications ??= new SyncResponse.RoomsDataStructure.JoinedRoomDataStructure.UnreadNotificationsDataStructure();
         oldData.UnreadNotifications.HighlightCount = newData.UnreadNotifications?.HighlightCount ?? oldData.UnreadNotifications.HighlightCount;

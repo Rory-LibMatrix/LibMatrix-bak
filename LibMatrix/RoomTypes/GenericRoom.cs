@@ -32,13 +32,13 @@ public class GenericRoom {
 
     public string RoomId { get; set; }
 
-    public async IAsyncEnumerable<StateEventResponse?> GetFullStateAsync() {
-        var result = Homeserver.ClientHttpClient.GetAsyncEnumerableFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
+    public async IAsyncEnumerable<LegacyMatrixEventResponse?> GetFullStateAsync() {
+        var result = Homeserver.ClientHttpClient.GetAsyncEnumerableFromJsonAsync<LegacyMatrixEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/state");
         await foreach (var resp in result) yield return resp;
     }
 
-    public Task<List<StateEventResponse>> GetFullStateAsListAsync() =>
-        Homeserver.ClientHttpClient.GetFromJsonAsync<List<StateEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
+    public Task<List<LegacyMatrixEventResponse>> GetFullStateAsListAsync() =>
+        Homeserver.ClientHttpClient.GetFromJsonAsync<List<LegacyMatrixEventResponse>>($"/_matrix/client/v3/rooms/{RoomId}/state");
 
     public async Task<T?> GetStateAsync<T>(string type, string stateKey = "") {
         if (string.IsNullOrEmpty(type)) throw new ArgumentNullException(nameof(type), "Event type must be specified");
@@ -68,7 +68,7 @@ public class GenericRoom {
         }
     }
 
-    public async Task<StateEventResponse> GetStateEventAsync(string type, string stateKey = "") {
+    public async Task<LegacyMatrixEventResponse> GetStateEventAsync(string type, string stateKey = "") {
         if (string.IsNullOrEmpty(type)) throw new ArgumentNullException(nameof(type), "Event type must be specified");
         var url = $"/_matrix/client/v3/rooms/{RoomId}/state/{type}";
         if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
@@ -81,7 +81,7 @@ public class GenericRoom {
                     ErrorCode = LibMatrixException.ErrorCodes.M_UNSUPPORTED
                 };
             // throw new InvalidDataException("Returned event type does not match requested type, or server does not support passing `format`.");
-            return resp.Deserialize<StateEventResponse>();
+            return resp.Deserialize<LegacyMatrixEventResponse>();
         }
         catch (MatrixException e) {
             // if (e is not { ErrorCodode: "M_NOT_FOUND" }) {
@@ -132,7 +132,7 @@ public class GenericRoom {
         }
     }
 
-    public async Task<StateEventResponse?> GetStateEventOrNullAsync(string type, string stateKey = "") {
+    public async Task<LegacyMatrixEventResponse?> GetStateEventOrNullAsync(string type, string stateKey = "") {
         try {
             return await GetStateEventAsync(type, stateKey);
         }
@@ -227,7 +227,7 @@ public class GenericRoom {
         return await res.Content.ReadFromJsonAsync<RoomIdResponse>() ?? throw new Exception("Failed to join room?");
     }
 
-    public async IAsyncEnumerable<StateEventResponse> GetMembersEnumerableAsync(bool joinedOnly = true) {
+    public async IAsyncEnumerable<LegacyMatrixEventResponse> GetMembersEnumerableAsync(bool joinedOnly = true) {
         // var sw = Stopwatch.StartNew();
         var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
         // if (sw.ElapsedMilliseconds > 1000)
@@ -251,7 +251,7 @@ public class GenericRoom {
             // Console.WriteLine($"Members call iterated in {sw.GetElapsedAndRestart()}");
     }
 
-    public async Task<FrozenSet<StateEventResponse>> GetMembersListAsync(bool joinedOnly = true) {
+    public async Task<FrozenSet<LegacyMatrixEventResponse>> GetMembersListAsync(bool joinedOnly = true) {
         // var sw = Stopwatch.StartNew();
         var res = await Homeserver.ClientHttpClient.GetAsync($"/_matrix/client/v3/rooms/{RoomId}/members");
         // if (sw.ElapsedMilliseconds > 1000)
@@ -265,7 +265,7 @@ public class GenericRoom {
         // if (sw.ElapsedMilliseconds > 100)
             // Console.WriteLine($"Members call deserialised in {sw.GetElapsedAndRestart()}");
         // else sw.Restart();
-        var members = new List<StateEventResponse>();
+        var members = new List<LegacyMatrixEventResponse>();
         foreach (var resp in result.Chunk) {
             if (resp?.Type != "m.room.member") continue;
             if (joinedOnly && resp.RawContent?["membership"]?.GetValue<string>() != "join") continue;
@@ -451,8 +451,8 @@ public class GenericRoom {
         }
     }
 
-    public Task<StateEventResponse> GetEventAsync(string eventId) =>
-        Homeserver.ClientHttpClient.GetFromJsonAsync<StateEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
+    public Task<LegacyMatrixEventResponse> GetEventAsync(string eventId) =>
+        Homeserver.ClientHttpClient.GetFromJsonAsync<LegacyMatrixEventResponse>($"/_matrix/client/v3/rooms/{RoomId}/event/{eventId}");
 
     public async Task<EventIdResponse> RedactEventAsync(string eventToRedact, string reason) {
         var data = new { reason };
@@ -516,7 +516,7 @@ public class GenericRoom {
 
 #endregion
 
-    public async IAsyncEnumerable<StateEventResponse> GetRelatedEventsAsync(string eventId, string? relationType = null, string? eventType = null, string? dir = "f",
+    public async IAsyncEnumerable<LegacyMatrixEventResponse> GetRelatedEventsAsync(string eventId, string? relationType = null, string? eventType = null, string? dir = "f",
         string? from = null, int? chunkLimit = 100, bool? recurse = null, string? to = null) {
         var path = $"/_matrix/client/v1/rooms/{RoomId}/relations/{HttpUtility.UrlEncode(eventId)}";
         if (!string.IsNullOrEmpty(relationType)) path += $"/{relationType}";

@@ -35,7 +35,7 @@ public class PaginationTokenResolverService(ILogger<PaginationTokenResolverServi
         }
     }
 
-    public async Task<StateEventResponse?> ResolveTokenToEvent(string token, RoomStore.Room room) {
+    public async Task<LegacyMatrixEventResponse?> ResolveTokenToEvent(string token, RoomStore.Room room) {
         if (token.StartsWith('$')) {
             //we have an event ID
             logger.LogTrace("ResolveTokenToEvent(EventId({token}), Room({room})): searching for event...", token, room.RoomId);

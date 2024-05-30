@@ -39,7 +39,7 @@ public class RoomTimelineController(
                 Error = "User is not in the room"
             };
 
-        var evt = new StateEvent() {
+        var evt = new LegacyMatrixEvent() {
             RawContent = content,
             Type = eventType
         }.ToStateEvent(user, room);
@@ -98,7 +98,7 @@ public class RoomTimelineController(
     }
 
     [HttpGet("event/{eventId}")]
-    public async Task<StateEventResponse> GetEvent(string roomId, string eventId) {
+    public async Task<LegacyMatrixEventResponse> GetEvent(string roomId, string eventId) {
         var token = tokenService.GetAccessToken(HttpContext);
         var user = await userStore.GetUserByToken(token);
 
@@ -221,7 +221,7 @@ public class RoomTimelineController(
         };
     }
     
-    private async Task<IEnumerable<StateEventResponse>> GetRelationsInternal(string roomId, string eventId, string dir, string? from, int? limit, bool? recurse, string? to) {
+    private async Task<IEnumerable<LegacyMatrixEventResponse>> GetRelationsInternal(string roomId, string eventId, string dir, string? from, int? limit, bool? recurse, string? to) {
         var room = roomStore.GetRoomById(roomId);
         var evt = room.Timeline.SingleOrDefault(x => x.EventId == eventId);
         if (evt == null)
@@ -249,7 +249,7 @@ public class RoomTimelineController(
 
     private void InternalSendMessage(RoomStore.Room room, RoomMessageEventContent content) {
         logger.LogInformation("Sending internal message: {content}", content.Body);
-        room.Timeline.Add(new StateEventResponse() {
+        room.Timeline.Add(new LegacyMatrixEventResponse() {
             Type = RoomMessageEventContent.EventId,
             TypedContent = content,
             Sender = $"@hse:{tokenService.GenerateServerName(HttpContext)}",
@@ -259,7 +259,7 @@ public class RoomTimelineController(
         });
     }
 
-    private async Task HandleHseCommand(StateEventResponse evt, RoomStore.Room room, UserStore.User user) {
+    private async Task HandleHseCommand(LegacyMatrixEventResponse evt, RoomStore.Room room, UserStore.User user) {
         try {
             var msgContent = evt.TypedContent as RoomMessageEventContent;
             var parts = msgContent.Body.Split('\n')[0].Split(" ");
@@ -323,7 +323,7 @@ public class RoomTimelineController(
                         if (Random.Shared.Next(100) > 75) {
                             crq.CreationContent["type"] = "m.space";
                             foreach (var item in Random.Shared.GetItems(roomStore._rooms.ToArray(), 50)) {
-                                crq.InitialState!.Add(new StateEvent() {
+                                crq.InitialState!.Add(new LegacyMatrixEvent() {
                                     Type = "m.space.child",
                                     StateKey = item.RoomId,
                                     TypedContent = new SpaceChildEventContent() {
@@ -358,7 +358,7 @@ public class RoomTimelineController(
         }
     }
 
-    private async Task HandleImportNhekoProfilesCommand(string[] args, StateEventResponse evt, RoomStore.Room room, UserStore.User user) {
+    private async Task HandleImportNhekoProfilesCommand(string[] args, LegacyMatrixEventResponse evt, RoomStore.Room room, UserStore.User user) {
         var msgContent = evt.TypedContent as RoomMessageEventContent;
         var parts = msgContent.Body.Split('\n');
 
@@ -396,7 +396,7 @@ public class RoomTimelineController(
         }
     }
 
-    private async Task HandleImportCommand(string[] args, StateEventResponse evt, RoomStore.Room room, UserStore.User user) {
+    private async Task HandleImportCommand(string[] args, LegacyMatrixEventResponse evt, RoomStore.Room room, UserStore.User user) {
         var roomId = args[0];
         var profile = args[1];
 

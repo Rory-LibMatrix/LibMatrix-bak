@@ -38,7 +38,7 @@ public class RoomAccountDataController(ILogger<RoomAccountDataController> logger
         if (!room.AccountData.ContainsKey(user.UserId))
             room.AccountData[user.UserId] = new();
 
-        room.AccountData[user.UserId].Add(new StateEventResponse() {
+        room.AccountData[user.UserId].Add(new LegacyMatrixEventResponse() {
             Type = "m.fully_read",
             StateKey = user.UserId,
             RawContent = new() {
@@ -46,7 +46,7 @@ public class RoomAccountDataController(ILogger<RoomAccountDataController> logger
             }
         });
 
-        room.AccountData[user.UserId].Add(new StateEventResponse() {
+        room.AccountData[user.UserId].Add(new LegacyMatrixEventResponse() {
             Type = "m.read",
             StateKey = user.UserId,
             RawContent = new() {
@@ -54,7 +54,7 @@ public class RoomAccountDataController(ILogger<RoomAccountDataController> logger
             }
         });
 
-        room.AccountData[user.UserId].Add(new StateEventResponse() {
+        room.AccountData[user.UserId].Add(new LegacyMatrixEventResponse() {
             Type = "m.read.private",
             StateKey = user.UserId,
             RawContent = new() {

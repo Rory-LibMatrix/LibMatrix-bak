@@ -204,12 +204,12 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
     /// <summary>
     /// Event fired when a timeline event is received
     /// </summary>
-    public List<Func<StateEventResponse, Task>> TimelineEventHandlers { get; } = new();
+    public List<Func<LegacyMatrixEventResponse, Task>> TimelineEventHandlers { get; } = new();
 
     /// <summary>
     /// Event fired when an account data event is received
     /// </summary>
-    public List<Func<StateEventResponse, Task>> AccountDataReceivedHandlers { get; } = new();
+    public List<Func<LegacyMatrixEventResponse, Task>> AccountDataReceivedHandlers { get; } = new();
     
     private void Log(string message) {
         if (logger is null) Console.WriteLine(message);

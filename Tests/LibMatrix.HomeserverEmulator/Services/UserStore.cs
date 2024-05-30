@@ -71,13 +71,13 @@ public class UserStore {
         var user = new User() {
             UserId = userId,
             AccountData = new() {
-                new StateEventResponse() {
+                new LegacyMatrixEventResponse() {
                     Type = "im.vector.analytics",
                     RawContent = new JsonObject() {
                         ["pseudonymousAnalyticsOptIn"] = false
                     },
                 },
-                new StateEventResponse() {
+                new LegacyMatrixEventResponse() {
                     Type = "im.vector.web.settings",
                     RawContent = new JsonObject() {
                         ["developerMode"] = true
@@ -116,7 +116,7 @@ public class UserStore {
         private ObservableDictionary<string, SessionInfo> _accessTokens;
         private ObservableDictionary<string, SyncFilter> _filters;
         private ObservableDictionary<string, object> _profile;
-        private ObservableCollection<StateEventResponse> _accountData;
+        private ObservableCollection<LegacyMatrixEventResponse> _accountData;
         private ObservableDictionary<string, RoomKeysResponse> _roomKeys;
         private ObservableDictionary<string, AuthorizedSession> _authorizedSessions;
 
@@ -155,7 +155,7 @@ public class UserStore {
             }
         }
 
-        public ObservableCollection<StateEventResponse> AccountData {
+        public ObservableCollection<LegacyMatrixEventResponse> AccountData {
             get => _accountData;
             set {
                 if (value == _accountData) return;
