@@ -9,12 +9,12 @@ using TestDataGenerator.Bot;
 Console.WriteLine("Hello, World!");
 
 var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
-    services.AddScoped<TieredStorageService>(_ =>
-        new TieredStorageService(
-            new FileStorageProvider("bot_data/cache/"),
-            new FileStorageProvider("bot_data/data/")
-        )
-    );
+    // services.AddScoped<TieredStorageService>(_ =>
+        // new TieredStorageService(
+            // new FileStorageProvider("bot_data/cache/"),
+            // new FileStorageProvider("bot_data/data/")
+        // )
+    // );
     // services.AddSingleton<DataFetcherConfiguration>();
     services.AddSingleton<AppServiceConfiguration>();
 

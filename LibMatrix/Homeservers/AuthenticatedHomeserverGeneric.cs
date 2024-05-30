@@ -117,6 +117,8 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
     }
 
     public virtual async Task Logout() {
+        // var res = await ClientHttpClient.PostAsync("/_matrix/client/v3/logout", null);
+        // TODO: investigate
         var res = await ClientHttpClient.PostAsync("/_matrix/client/v3/logout", null);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to logout: {await res.Content.ReadAsStringAsync()}");

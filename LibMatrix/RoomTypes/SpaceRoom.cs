@@ -1,9 +1,12 @@
+using System.Text.Json.Nodes;
 using ArcaneLibs.Extensions;
 using LibMatrix.Homeservers;
 
 namespace LibMatrix.RoomTypes;
 
 public class SpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomId) : GenericRoom(homeserver, roomId) {
+    public const string TypeName = "m.space";
+
     public async IAsyncEnumerable<GenericRoom> GetChildrenAsync(bool includeRemoved = false) {
         // var rooms = new List<GenericRoom>();
         var state = GetFullStateAsync();
@@ -31,7 +34,7 @@ public class SpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomId)
         });
         return resp;
     }
-    
+
     public async Task<EventIdResponse> AddChildByIdAsync(string id) {
         return await AddChildAsync(Homeserver.GetRoom(id));
     }

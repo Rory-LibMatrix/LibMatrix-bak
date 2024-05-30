@@ -14,7 +14,7 @@ namespace LibMatrix.Services;
 
 public class HomeserverResolverService {
     private readonly MatrixHttpClient _httpClient = new() {
-        Timeout = TimeSpan.FromSeconds(60)
+        // Timeout = TimeSpan.FromSeconds(60) //TODO: investigate need
     };
 
     private static readonly SemaphoreCache<WellKnownUris> WellKnownCache = new();

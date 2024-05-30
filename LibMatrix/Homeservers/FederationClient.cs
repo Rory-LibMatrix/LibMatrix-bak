@@ -9,7 +9,7 @@ public class FederationClient {
     public FederationClient(string federationEndpoint, string? proxy = null) {
         HttpClient = new MatrixHttpClient {
             BaseAddress = new Uri(proxy?.TrimEnd('/') ?? federationEndpoint.TrimEnd('/')),
-            Timeout = TimeSpan.FromSeconds(120)
+            // Timeout = TimeSpan.FromSeconds(120) // TODO: investigate need
         };
         if (proxy is not null) HttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", federationEndpoint);
     }

@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -54,6 +55,8 @@ public class StateEvent {
     [JsonIgnore]
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
     public EventContent? TypedContent {
+        [RequiresDynamicCode("TypedContent requires reflection to deserialize the content of the event.")]
+        [RequiresUnreferencedCode("TypedContent requires reflection to deserialize the content of the event.")]
         get {
             // if (Type == "m.receipt") {
             // return null;
@@ -72,6 +75,9 @@ public class StateEvent {
 
             return null;
         }
+        
+        [RequiresDynamicCode("TypedContent requires reflection to deserialize the content of the event.")]
+        [RequiresUnreferencedCode("TypedContent requires reflection to deserialize the content of the event.")]
         set {
             if (value is null)
                 RawContent?.Clear();

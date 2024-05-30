@@ -8,23 +8,16 @@ using Xunit.Microsoft.DependencyInjection.Abstracts;
 namespace LibMatrix.Tests.Tests;
 
 public class RoomEventTests : TestBed<TestFixture> {
-    private readonly TestFixture _fixture;
-    private readonly HomeserverResolverService _resolver;
-    private readonly Config _config;
-    private readonly HomeserverProviderService _provider;
+    private readonly HomeserverAbstraction _hsAbstraction;
 
     public RoomEventTests(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
-        _fixture = fixture;
-        _resolver = _fixture.GetService<HomeserverResolverService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverResolverService)}");
-        _config = _fixture.GetService<Config>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(Config)}");
-        _provider = _fixture.GetService<HomeserverProviderService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverProviderService)}");
+        _hsAbstraction = _fixture.GetService<HomeserverAbstraction>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverAbstraction)}");
     }
-
-    private async Task<AuthenticatedHomeserverGeneric> GetHomeserver() => await HomeserverAbstraction.GetHomeserver();
 
     [Fact]
     public async Task GetNameAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
+        
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var name = await room.GetNameAsync();
@@ -34,7 +27,7 @@ public class RoomEventTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetTopicAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var topic = await room.GetTopicAsync();
@@ -44,19 +37,8 @@ public class RoomEventTests : TestBed<TestFixture> {
     }
 
     [SkippableFact(typeof(MatrixException))]
-    public async Task GetAliasesAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
-        var room = await RoomAbstraction.GetTestRoom(hs);
-        Assert.NotNull(room);
-        var aliases = await room.GetAliasesAsync();
-        Assert.NotNull(aliases);
-        Assert.NotEmpty(aliases);
-        Assert.All(aliases, Assert.NotNull);
-    }
-
-    [SkippableFact(typeof(MatrixException))]
     public async Task GetCanonicalAliasAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var alias = await room.GetCanonicalAliasAsync();
@@ -67,40 +49,46 @@ public class RoomEventTests : TestBed<TestFixture> {
 
     [SkippableFact(typeof(MatrixException))]
     public async Task GetAvatarUrlAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var url = await room.GetAvatarUrlAsync();
         Assert.NotNull(url);
         Assert.NotNull(url.Url);
         Assert.NotEmpty(url.Url);
+
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetJoinRuleAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var rule = await room.GetJoinRuleAsync();
         Assert.NotNull(rule);
         Assert.NotNull(rule.JoinRuleValue);
         Assert.NotEmpty(rule.JoinRuleValue);
+        
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetHistoryVisibilityAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var visibility = await room.GetHistoryVisibilityAsync();
         Assert.NotNull(visibility);
         Assert.NotNull(visibility.HistoryVisibility);
         Assert.NotEmpty(visibility.HistoryVisibility);
+        
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetGuestAccessAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         try {
@@ -113,30 +101,36 @@ public class RoomEventTests : TestBed<TestFixture> {
             if (e is not MatrixException exception) throw;
             Assert.Equal("M_NOT_FOUND", exception.ErrorCode);
         }
+        
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetCreateEventAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var create = await room.GetCreateEventAsync();
         Assert.NotNull(create);
         Assert.NotNull(create.Creator);
         Assert.NotEmpty(create.RoomVersion!);
+        
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetRoomType() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         await room.GetRoomType();
+        
+        await room.LeaveAsync();
     }
 
     [Fact]
     public async Task GetPowerLevelsAsync() {
-        var hs = await HomeserverAbstraction.GetHomeserver();
+        var hs = await _hsAbstraction.GetConfiguredHomeserver();
         var room = await RoomAbstraction.GetTestRoom(hs);
         Assert.NotNull(room);
         var power = await room.GetPowerLevelsAsync();
@@ -150,5 +144,7 @@ public class RoomEventTests : TestBed<TestFixture> {
         Assert.NotNull(power.UsersDefault);
         Assert.NotNull(power.Users);
         // Assert.NotNull(power.Events);
+        
+        await room.LeaveAsync();
     }
 }

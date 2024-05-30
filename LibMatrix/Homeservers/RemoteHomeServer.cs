@@ -19,7 +19,7 @@ public class RemoteHomeserver {
         WellKnownUris = wellKnownUris;
         ClientHttpClient = new MatrixHttpClient {
             BaseAddress = new Uri(proxy?.TrimEnd('/') ?? wellKnownUris.Client?.TrimEnd('/') ?? throw new InvalidOperationException($"No client URI for {baseUrl}!")),
-            Timeout = TimeSpan.FromSeconds(300)
+            // Timeout = TimeSpan.FromSeconds(300) // TODO: investigate need
         };
 
         if (proxy is not null) ClientHttpClient.DefaultRequestHeaders.Add("MXAE_UPSTREAM", baseUrl);
