@@ -1,3 +1,4 @@
+#if !DISABLE_LEGACY_EVENTS
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -223,3 +224,4 @@ public class StateEventContentPolymorphicTypeInfoResolver : DefaultJsonTypeInfoR
 */
 
 #endregion
+#endif

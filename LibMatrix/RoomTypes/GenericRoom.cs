@@ -105,16 +105,16 @@ public class GenericRoom {
                 if (!fallbackToSync) throw;
                 Console.WriteLine("WARNING: Homeserver does not support getting event ID from state events, falling back to sync");
                 var sh = new SyncHelper(Homeserver);
-                var emptyFilter = new SyncFilter.EventFilter(types: [], limit: 1, senders: [], notTypes: ["*"]);
-                var emptyStateFilter = new SyncFilter.RoomFilter.StateFilter(types: [], limit: 1, senders: [], notTypes: ["*"], rooms:[]);
+                var emptyFilter = new MatrixFilter.EventFilter(types: [], limit: 1, senders: [], notTypes: ["*"]);
+                var emptyStateFilter = new MatrixFilter.RoomFilter.StateFilter(types: [], limit: 1, senders: [], notTypes: ["*"], rooms:[]);
                 sh.Filter = new() {
                     Presence = emptyFilter,
                     AccountData = emptyFilter,
-                    Room = new SyncFilter.RoomFilter() {
+                    Room = new MatrixFilter.RoomFilter() {
                         AccountData = emptyStateFilter,
                         Timeline = emptyStateFilter,
                         Ephemeral = emptyStateFilter,
-                        State = new SyncFilter.RoomFilter.StateFilter(),
+                        State = new MatrixFilter.RoomFilter.StateFilter(),
                         Rooms = [RoomId]
                     }
                 };

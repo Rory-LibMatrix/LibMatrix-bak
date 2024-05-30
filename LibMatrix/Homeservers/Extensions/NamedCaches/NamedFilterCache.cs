@@ -13,7 +13,7 @@ public class NamedFilterCache(AuthenticatedHomeserverGeneric hs) : NamedCache<st
     /// <param name="filter">Filter to upload if not cached, otherwise defaults to common filters if that exists.</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public async Task<string> GetOrSetValueAsync(string key, SyncFilter? filter = null) {
+    public async Task<string> GetOrSetValueAsync(string key, MatrixFilter? filter = null) {
         var existingValue = await GetValueAsync(key);
         if (existingValue != null) {
             return existingValue;

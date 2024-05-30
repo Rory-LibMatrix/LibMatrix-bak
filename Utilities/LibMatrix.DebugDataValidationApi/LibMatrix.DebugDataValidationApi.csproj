@@ -14,7 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj"/>
+        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj">
+            <Properties>ExtraDefineConstants=WITH_LEGACY_EVENTS</Properties>
+        </ProjectReference>
     </ItemGroup>
 
 </Project>

@@ -1,3 +1,4 @@
+#if !DISABLE_LEGACY_EVENTS
 using LibMatrix.LegacyEvents.EventTypes.Spec;
 
 namespace LibMatrix.Helpers;
@@ -119,3 +120,5 @@ public class MessageBuilder(string msgType = "m.text", string format = "org.matr
         }
     }
 }
+
+#endif

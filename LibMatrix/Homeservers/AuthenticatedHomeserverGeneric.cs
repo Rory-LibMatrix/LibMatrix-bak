@@ -192,8 +192,8 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         var oldProfile = await GetProfileAsync(WhoAmI.UserId!);
         Dictionary<string, RoomMemberLegacyEventContent> expectedRoomProfiles = new();
         var syncHelper = new SyncHelper(this) {
-            Filter = new SyncFilter {
-                AccountData = new SyncFilter.EventFilter() {
+            Filter = new MatrixFilter {
+                AccountData = new MatrixFilter.EventFilter() {
                     Types = new List<string> {
                         "m.room.member"
                     }
@@ -312,7 +312,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
     /// <param name="filter"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<FilterIdResponse> UploadFilterAsync(SyncFilter filter) {
+    public async Task<FilterIdResponse> UploadFilterAsync(MatrixFilter filter) {
         List<List<string>?> senderLists = [
             filter.AccountData?.Senders,
             filter.AccountData?.NotSenders,
@@ -338,10 +338,10 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         return await resp.Content.ReadFromJsonAsync<FilterIdResponse>() ?? throw new Exception("Failed to upload filter?");
     }
 
-    public async Task<SyncFilter> GetFilterAsync(string filterId) {
+    public async Task<MatrixFilter> GetFilterAsync(string filterId) {
         if (_filterCache.TryGetValue(filterId, out var filter)) return filter;
         var resp = await ClientHttpClient.GetAsync("/_matrix/client/v3/user/" + UserId + "/filter/" + filterId);
-        return _filterCache[filterId] = await resp.Content.ReadFromJsonAsync<SyncFilter>() ?? throw new Exception("Failed to get filter?");
+        return _filterCache[filterId] = await resp.Content.ReadFromJsonAsync<MatrixFilter>() ?? throw new Exception("Failed to get filter?");
     }
 
     public class FilterIdResponse {
@@ -385,7 +385,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
     }
 
     private Dictionary<string, string>? _namedFilterCache;
-    private Dictionary<string, SyncFilter> _filterCache = new();
+    private Dictionary<string, MatrixFilter> _filterCache = new();
 
     public async Task<JsonObject?> GetCapabilitiesAsync() {
         var res = await ClientHttpClient.GetAsync("/_matrix/client/v3/capabilities");

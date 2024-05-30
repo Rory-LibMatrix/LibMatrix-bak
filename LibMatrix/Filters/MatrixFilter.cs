@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.Filters;
 
-public class SyncFilter {
+public class MatrixFilter {
     [JsonPropertyName("account_data")]
     public EventFilter? AccountData { get; set; }
 

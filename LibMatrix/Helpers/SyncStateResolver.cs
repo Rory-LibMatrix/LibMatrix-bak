@@ -10,7 +10,7 @@ public class SyncStateResolver(AuthenticatedHomeserverGeneric homeserver, ILogge
     public string? Since { get; set; }
     public int Timeout { get; set; } = 30000;
     public string? SetPresence { get; set; } = "online";
-    public SyncFilter? Filter { get; set; }
+    public MatrixFilter? Filter { get; set; }
     public bool FullState { get; set; } = false;
 
     public SyncResponse? MergedState { get; set; }

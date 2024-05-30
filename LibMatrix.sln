@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.HomeserverEmulato
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.EventTypes", "LibMatrix.EventTypes\LibMatrix.EventTypes.csproj", "{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{6254A2BA-279F-49F7-B3F3-675397F0F644}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -104,6 +106,10 @@ Global
 		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6254A2BA-279F-49F7-B3F3-675397F0F644}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6254A2BA-279F-49F7-B3F3-675397F0F644}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6254A2BA-279F-49F7-B3F3-675397F0F644}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6254A2BA-279F-49F7-B3F3-675397F0F644}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1B1B2197-61FB-416F-B6C8-845F2E5A0442} = {840309F0-435B-43A7-8471-8C2BE643889D}

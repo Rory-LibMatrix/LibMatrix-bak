@@ -1,6 +1,7 @@
 namespace LibMatrix.Extensions;
 
 public static class EnumerableExtensions {
+#if !DISABLE_LEGACY_EVENTS
     public static void MergeStateEventLists(this IList<LegacyMatrixEvent> oldState, IList<LegacyMatrixEvent> newState) {
         foreach (var stateEvent in newState) {
             var old = oldState.FirstOrDefault(x => x.Type == stateEvent.Type && x.StateKey == stateEvent.StateKey);
@@ -26,4 +27,5 @@ public static class EnumerableExtensions {
             oldState.Add(stateEvent);
         }
     }
+#endif
 }

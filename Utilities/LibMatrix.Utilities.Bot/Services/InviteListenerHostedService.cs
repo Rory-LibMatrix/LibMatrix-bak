@@ -31,14 +31,14 @@ public class InviteHandlerHostedService : IHostedService {
 
     private async Task? Run(CancellationToken cancellationToken) {
         _logger.LogInformation("Starting invite listener!");
-        var filter = await _hs.NamedCaches.FilterCache.GetOrSetValueAsync("gay.rory.libmatrix.utilities.bot.command_listener_syncfilter.dev2", new SyncFilter() {
-            AccountData = new SyncFilter.EventFilter(notTypes: ["*"], limit: 1),
-            Presence = new SyncFilter.EventFilter(notTypes: ["*"]),
-            Room = new SyncFilter.RoomFilter() {
-                AccountData = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
-                Ephemeral = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
-                State = new SyncFilter.RoomFilter.StateFilter(notTypes: ["*"]),
-                Timeline = new SyncFilter.RoomFilter.StateFilter(types: ["m.room.message"], notSenders: [_hs.WhoAmI.UserId]),
+        var filter = await _hs.NamedCaches.FilterCache.GetOrSetValueAsync("gay.rory.libmatrix.utilities.bot.command_listener_syncfilter.dev2", new MatrixFilter() {
+            AccountData = new MatrixFilter.EventFilter(notTypes: ["*"], limit: 1),
+            Presence = new MatrixFilter.EventFilter(notTypes: ["*"]),
+            Room = new MatrixFilter.RoomFilter() {
+                AccountData = new MatrixFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                Ephemeral = new MatrixFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                State = new MatrixFilter.RoomFilter.StateFilter(notTypes: ["*"]),
+                Timeline = new MatrixFilter.RoomFilter.StateFilter(types: ["m.room.message"], notSenders: [_hs.WhoAmI.UserId]),
             }
         });
 

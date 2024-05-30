@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace LibMatrix.Helpers;
 
 public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logger = null) {
-    private SyncFilter? _filter;
+    private MatrixFilter? _filter;
     private string? _namedFilterName;
     private bool _filterIsDirty = false;
     private string? _filterId = null;
@@ -36,7 +36,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         }
     }
 
-    public SyncFilter? Filter {
+    public MatrixFilter? Filter {
         get => _filter;
         set {
             _filter = value;
