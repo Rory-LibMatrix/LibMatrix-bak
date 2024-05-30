@@ -1,6 +1,6 @@
 using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes.Spec;
 using LibMatrix.Homeservers;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
 using LibMatrix.RoomTypes;
 using LibMatrix.Utilities.Bot;
 using Microsoft.Extensions.Hosting;

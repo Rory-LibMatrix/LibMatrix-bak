@@ -1,19 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>preview</LangVersion>
-
-        <Optimize>true</Optimize>
-        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0"/>
-    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Condition="Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')" Include="..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj"/>
@@ -24,12 +15,8 @@
                 instead, since this will be locked by the MatrixUtils project, which contains both LibMatrix and ArcaneLibs as a submodule. -->
         <PackageReference Condition="!Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')" Include="ArcaneLibs" Version="*-preview*"/>
     </ItemGroup>
-    
-    <ItemGroup Condition="!$(DefineConstants.Contains('DISABLE_LEGACY_EVENTS'))">
-        <ProjectReference Include="..\LibMatrix.LegacyEvents.EventTypes\LibMatrix.LegacyEvents.EventTypes.csproj" />
-    </ItemGroup>
+
     <Target Name="ArcaneLibsNugetWarning" AfterTargets="AfterBuild">
         <Warning Text="ArcaneLibs is being referenced from NuGet, which is dangerous. Please read the warning in LibMatrix.csproj!" Condition="!Exists('..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj')"/>
     </Target>
-
 </Project>

@@ -1,7 +1,5 @@
 using ArcaneLibs;
-using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Homeservers;
-using LibMatrix.Responses;
 using LibMatrix.Services;
 using LibMatrix.Utilities.Bot.Interfaces;
 using LibMatrix.Utilities.Bot.Services;

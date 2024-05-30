@@ -1,5 +1,5 @@
-using LibMatrix.EventTypes.Spec;
 using LibMatrix.Homeservers;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
 using LibMatrix.RoomTypes;
 
 namespace LibMatrix.Utilities.Bot.Interfaces;

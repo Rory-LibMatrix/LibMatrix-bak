@@ -1,4 +1,4 @@
-using LibMatrix.EventTypes.Spec;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
 using LibMatrix.Utilities.Bot.Interfaces;
 
 namespace LibMatrix.Utilities.Bot.Commands;

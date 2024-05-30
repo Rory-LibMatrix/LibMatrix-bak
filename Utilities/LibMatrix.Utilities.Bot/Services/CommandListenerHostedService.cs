@@ -1,10 +1,8 @@
-using System.Reflection.Metadata;
-using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes.Spec;
-using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Filters;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
+using LibMatrix.LegacyEvents.EventTypes.Spec.State;
 using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

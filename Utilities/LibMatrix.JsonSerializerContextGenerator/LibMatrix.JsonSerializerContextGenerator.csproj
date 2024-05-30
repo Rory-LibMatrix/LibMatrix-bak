@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj"/>
+        <ProjectReference Include="..\..\LibMatrix.LegacyEvents.EventTypes\LibMatrix.LegacyEvents.EventTypes.csproj" />
         <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj"/>
     </ItemGroup>
 

@@ -1,4 +1,4 @@
-using LibMatrix.EventTypes.Spec;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
 
 namespace LibMatrix.Helpers;
 

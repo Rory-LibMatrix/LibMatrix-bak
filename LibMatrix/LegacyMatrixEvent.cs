@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using ArcaneLibs;
 using ArcaneLibs.Attributes;
 using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes;
+using LibMatrix.LegacyEvents.EventTypes;
 using LibMatrix.Extensions;
 
 namespace LibMatrix;

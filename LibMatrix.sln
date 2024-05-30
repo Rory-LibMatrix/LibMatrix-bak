@@ -33,9 +33,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ArcaneLibs", "ArcaneLibs", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs", "ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj", "{13A797D1-7E13-4789-A167-8628B1641AC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.EventTypes", "LibMatrix.EventTypes\LibMatrix.EventTypes.csproj", "{CD13665B-B964-4AB0-991B-12F067B16DA3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.LegacyEvents.EventTypes", "LibMatrix.LegacyEvents.EventTypes\LibMatrix.LegacyEvents.EventTypes.csproj", "{CD13665B-B964-4AB0-991B-12F067B16DA3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.HomeserverEmulator", "Tests\LibMatrix.HomeserverEmulator\LibMatrix.HomeserverEmulator.csproj", "{D44DB78D-9BAD-4AB6-A054-839ECA9D68D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.EventTypes", "LibMatrix.EventTypes\LibMatrix.EventTypes.csproj", "{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -98,6 +100,10 @@ Global
 		{D44DB78D-9BAD-4AB6-A054-839ECA9D68D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D44DB78D-9BAD-4AB6-A054-839ECA9D68D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D44DB78D-9BAD-4AB6-A054-839ECA9D68D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9E9567D-58F4-4E17-BBC1-D4746C2526DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1B1B2197-61FB-416F-B6C8-845F2E5A0442} = {840309F0-435B-43A7-8471-8C2BE643889D}

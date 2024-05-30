@@ -1,6 +1,6 @@
 ﻿using ArcaneLibs;
 using ArcaneLibs.Extensions.Streams;
-using LibMatrix.EventTypes;
+using LibMatrix.LegacyEvents.EventTypes;
 
 // string binary = args.Length > 1 ? args[0] : Console.ReadLine()!;
 

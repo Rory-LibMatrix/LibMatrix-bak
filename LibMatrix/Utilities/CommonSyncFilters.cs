@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
-using LibMatrix.EventTypes.Common;
-using LibMatrix.EventTypes.Spec.State;
-using LibMatrix.EventTypes.Spec.State.RoomInfo;
+using LibMatrix.LegacyEvents.EventTypes.Common;
+using LibMatrix.LegacyEvents.EventTypes.Spec.State;
+using LibMatrix.LegacyEvents.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Filters;
 
 namespace LibMatrix.Utilities;

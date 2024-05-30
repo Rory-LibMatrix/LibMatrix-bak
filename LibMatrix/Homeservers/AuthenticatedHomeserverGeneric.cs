@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Web;
 using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.LegacyEvents.EventTypes.Spec.State;
 using LibMatrix.Extensions;
 using LibMatrix.Filters;
 using LibMatrix.Helpers;

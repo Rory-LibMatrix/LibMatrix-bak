@@ -3,4 +3,6 @@
 	<s:String x:Key="/Default/CodeInspection/Highlighting/SweaWarningsMode/@EntryValue">ShowAndRun</s:String>
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
   &lt;Assembly Path="/home/root@Rory/.cache/NuGetPackages/microsoft.extensions.hosting.abstractions/7.0.0/lib/net7.0/Microsoft.Extensions.Hosting.Abstractions.dll" /&gt;
-&lt;/AssemblyExplorer&gt;</s:String></wpf:ResourceDictionary>
+&lt;/AssemblyExplorer&gt;</s:String>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=345934ff_002Dca81_002D4a4b_002Db137_002D9f198102c65f_0023LibMatrix_002ETests/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=d44db78d_002D9bad_002D4ab6_002Da054_002D839eca9d68d2_0023LibMatrix_002EHomeserverEmulator/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>

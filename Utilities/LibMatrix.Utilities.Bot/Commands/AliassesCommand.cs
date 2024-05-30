@@ -1,7 +1,6 @@
-using System.Collections.Frozen;
 using System.Text;
-using LibMatrix.EventTypes.Spec;
 using LibMatrix.Helpers;
+using LibMatrix.LegacyEvents.EventTypes.Spec;
 using LibMatrix.Utilities.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
