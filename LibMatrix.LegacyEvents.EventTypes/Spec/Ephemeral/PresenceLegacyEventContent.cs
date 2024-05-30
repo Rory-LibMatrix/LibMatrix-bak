@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.Ephemeral;
 
-[MatrixEvent(EventName = EventId)]
-public class PresenceEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class PresenceLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.presence";
 
     [JsonPropertyName("presence")]

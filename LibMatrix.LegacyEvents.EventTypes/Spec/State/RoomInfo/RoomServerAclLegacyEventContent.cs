@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = EventId)]
-public class RoomServerACLEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class RoomServerAclLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.room.server_acl";
 
     [JsonPropertyName("allow")]

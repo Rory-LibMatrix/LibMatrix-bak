@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = EventId)]
-public class RoomCreateEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class RoomCreateLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.room.create";
 
     [JsonPropertyName("room_version")]

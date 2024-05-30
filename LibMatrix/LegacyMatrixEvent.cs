@@ -13,12 +13,12 @@ using LibMatrix.Extensions;
 namespace LibMatrix;
 
 public class LegacyMatrixEvent {
-    public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
+    public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<LegacyEventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
 
     public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),
         (dict, type) => {
-            var attrs = type.GetCustomAttributes<MatrixEventAttribute>();
+            var attrs = type.GetCustomAttributes<LegacyMatrixEventAttribute>();
             foreach (var attr in attrs) {
                 if (dict.TryGetValue(attr.EventName, out var existing))
                     Console.WriteLine($"Duplicate event type '{attr.EventName}' registered for types '{existing.Name}' and '{type.Name}'");
@@ -29,13 +29,13 @@ public class LegacyMatrixEvent {
         }).OrderBy(x => x.Key).ToFrozenDictionary();
 
     public static Type GetStateEventType(string? type) =>
-        string.IsNullOrWhiteSpace(type) ? typeof(UnknownEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownEventContent);
+        string.IsNullOrWhiteSpace(type) ? typeof(UnknownLegacyEventContent) : KnownStateEventTypesByName.GetValueOrDefault(type) ?? typeof(UnknownLegacyEventContent);
 
     [JsonIgnore]
     public Type MappedType => GetStateEventType(Type);
 
     [JsonIgnore]
-    public bool IsLegacyType => MappedType.GetCustomAttributes<MatrixEventAttribute>().FirstOrDefault(x => x.EventName == Type)?.Legacy ?? false;
+    public bool IsLegacyType => MappedType.GetCustomAttributes<LegacyMatrixEventAttribute>().FirstOrDefault(x => x.EventName == Type)?.Legacy ?? false;
 
     [JsonIgnore]
     public string FriendlyTypeName => MappedType.GetFriendlyNameOrNull() ?? Type;
@@ -53,16 +53,16 @@ public class LegacyMatrixEvent {
 
     [JsonIgnore]
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
-    public EventContent? TypedContent {
+    public LegacyEventContent? TypedContent {
         get {
             // if (Type == "m.receipt") {
             // return null;
             // }
             try {
                 var mappedType = GetStateEventType(Type);
-                if (mappedType == typeof(UnknownEventContent))
+                if (mappedType == typeof(UnknownLegacyEventContent))
                     Console.WriteLine($"Warning: unknown event type '{Type}'");
-                var deserialisedContent = (EventContent)RawContent.Deserialize(mappedType, TypedContentSerializerOptions)!;
+                var deserialisedContent = (LegacyEventContent)RawContent.Deserialize(mappedType, TypedContentSerializerOptions)!;
                 return deserialisedContent;
             }
             catch (JsonException e) {

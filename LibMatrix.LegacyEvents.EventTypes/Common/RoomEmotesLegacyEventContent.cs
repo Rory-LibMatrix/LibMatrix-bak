@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Common;
 
-[MatrixEvent(EventName = EventId)]
-public class RoomEmotesEventContent : TimelineEventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class RoomEmotesLegacyEventContent : TimelineLegacyEventContent {
     public const string EventId = "im.ponies.room_emotes";
 
     [JsonPropertyName("emoticons")]

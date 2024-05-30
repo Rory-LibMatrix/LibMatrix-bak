@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Common;
 
-[MatrixEvent(EventName = EventId)]
-public class MjolnirShortcodeEventContent : TimelineEventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class MjolnirShortcodeLegacyEventContent : TimelineLegacyEventContent {
     public const string EventId = "org.matrix.mjolnir.shortcode";
 
     [JsonPropertyName("shortcode")]

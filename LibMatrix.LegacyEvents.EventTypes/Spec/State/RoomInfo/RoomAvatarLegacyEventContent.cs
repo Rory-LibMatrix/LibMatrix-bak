@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State.RoomInfo;
 
-[MatrixEvent(EventName = EventId)]
-public class RoomAvatarEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class RoomAvatarLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.room.avatar";
 
     [JsonPropertyName("url")]

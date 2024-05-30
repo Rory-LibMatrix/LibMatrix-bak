@@ -205,7 +205,7 @@ public class GenericRoom {
         Console.WriteLine("End of GetManyAsync");
     }
 
-    public async Task<string?> GetNameAsync() => (await GetStateOrNullAsync<RoomNameEventContent>("m.room.name"))?.Name;
+    public async Task<string?> GetNameAsync() => (await GetStateOrNullAsync<RoomNameLegacyEventContent>("m.room.name"))?.Name;
 
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
         if (checkIfAlreadyMember)
@@ -279,42 +279,42 @@ public class GenericRoom {
 
 #region Utility shortcuts
 
-    public Task<EventIdResponse> SendMessageEventAsync(RoomMessageEventContent content) =>
+    public Task<EventIdResponse> SendMessageEventAsync(RoomMessageLegacyEventContent content) =>
         SendTimelineEventAsync("m.room.message", content);
 
     public async Task<List<string>?> GetAliasesAsync() {
-        var res = await GetStateAsync<RoomAliasEventContent>("m.room.aliases");
+        var res = await GetStateAsync<RoomAliasLegacyEventContent>("m.room.aliases");
         return res.Aliases;
     }
 
-    public Task<RoomCanonicalAliasEventContent?> GetCanonicalAliasAsync() =>
-        GetStateAsync<RoomCanonicalAliasEventContent>("m.room.canonical_alias");
+    public Task<RoomCanonicalAliasLegacyEventContent?> GetCanonicalAliasAsync() =>
+        GetStateAsync<RoomCanonicalAliasLegacyEventContent>("m.room.canonical_alias");
 
-    public Task<RoomTopicEventContent?> GetTopicAsync() =>
-        GetStateAsync<RoomTopicEventContent>("m.room.topic");
+    public Task<RoomTopicLegacyEventContent?> GetTopicAsync() =>
+        GetStateAsync<RoomTopicLegacyEventContent>("m.room.topic");
 
-    public Task<RoomAvatarEventContent?> GetAvatarUrlAsync() =>
-        GetStateAsync<RoomAvatarEventContent>("m.room.avatar");
+    public Task<RoomAvatarLegacyEventContent?> GetAvatarUrlAsync() =>
+        GetStateAsync<RoomAvatarLegacyEventContent>("m.room.avatar");
 
-    public Task<RoomJoinRulesEventContent?> GetJoinRuleAsync() =>
-        GetStateAsync<RoomJoinRulesEventContent>("m.room.join_rules");
+    public Task<RoomJoinRulesLegacyEventContent?> GetJoinRuleAsync() =>
+        GetStateAsync<RoomJoinRulesLegacyEventContent>("m.room.join_rules");
 
-    public Task<RoomHistoryVisibilityEventContent?> GetHistoryVisibilityAsync() =>
-        GetStateAsync<RoomHistoryVisibilityEventContent?>("m.room.history_visibility");
+    public Task<RoomHistoryVisibilityLegacyEventContent?> GetHistoryVisibilityAsync() =>
+        GetStateAsync<RoomHistoryVisibilityLegacyEventContent?>("m.room.history_visibility");
 
-    public Task<RoomGuestAccessEventContent?> GetGuestAccessAsync() =>
-        GetStateAsync<RoomGuestAccessEventContent>("m.room.guest_access");
+    public Task<RoomGuestAccessLegacyEventContent?> GetGuestAccessAsync() =>
+        GetStateAsync<RoomGuestAccessLegacyEventContent>("m.room.guest_access");
 
-    public Task<RoomCreateEventContent?> GetCreateEventAsync() =>
-        GetStateAsync<RoomCreateEventContent>("m.room.create");
+    public Task<RoomCreateLegacyEventContent?> GetCreateEventAsync() =>
+        GetStateAsync<RoomCreateLegacyEventContent>("m.room.create");
 
     public async Task<string?> GetRoomType() {
-        var res = await GetStateAsync<RoomCreateEventContent>("m.room.create");
+        var res = await GetStateAsync<RoomCreateLegacyEventContent>("m.room.create");
         return res.Type;
     }
 
-    public Task<RoomPowerLevelEventContent?> GetPowerLevelsAsync() =>
-        GetStateAsync<RoomPowerLevelEventContent>("m.room.power_levels");
+    public Task<RoomPowerLevelLegacyEventContent?> GetPowerLevelsAsync() =>
+        GetStateAsync<RoomPowerLevelLegacyEventContent>("m.room.power_levels");
 
     public async Task<string> GetNameOrFallbackAsync(int maxMemberNames = 2) {
         try {
@@ -393,7 +393,7 @@ public class GenericRoom {
             new UserIdAndReason { UserId = userId });
 
     public async Task InviteUserAsync(string userId, string? reason = null, bool skipExisting = true) {
-        if (skipExisting && await GetStateAsync<RoomMemberEventContent>("m.room.member", userId) is not null)
+        if (skipExisting && await GetStateAsync<RoomMemberLegacyEventContent>("m.room.member", userId) is not null)
             return;
         await Homeserver.ClientHttpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/invite", new UserIdAndReason(userId, reason));
     }
@@ -410,7 +410,7 @@ public class GenericRoom {
         await (await Homeserver.ClientHttpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}/{stateKey}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendTimelineEventAsync(string eventType, TimelineEventContent content) {
+    public async Task<EventIdResponse> SendTimelineEventAsync(string eventType, TimelineLegacyEventContent content) {
         var res = await Homeserver.ClientHttpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content, new JsonSerializerOptions {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -420,12 +420,12 @@ public class GenericRoom {
 
     public async Task<EventIdResponse?> SendFileAsync(string fileName, Stream fileStream, string messageType = "m.file", string contentType = "application/octet-stream") {
         var url = await Homeserver.UploadFile(fileName, fileStream);
-        var content = new RoomMessageEventContent() {
+        var content = new RoomMessageLegacyEventContent() {
             MessageType = messageType,
             Url = url,
             Body = fileName,
             FileName = fileName,
-            FileInfo = new RoomMessageEventContent.FileInfoStruct {
+            FileInfo = new RoomMessageLegacyEventContent.FileInfoStruct {
                 Size = fileStream.Length,
                 MimeType = contentType
             }

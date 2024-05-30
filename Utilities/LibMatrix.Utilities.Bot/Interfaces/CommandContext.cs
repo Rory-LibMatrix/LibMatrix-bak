@@ -9,7 +9,7 @@ public class CommandContext {
     public required LegacyMatrixEventResponse MessageEvent { get; set; }
 
     public string MessageContentWithoutReply =>
-        (MessageEvent.TypedContent as RoomMessageEventContent)!
+        (MessageEvent.TypedContent as RoomMessageLegacyEventContent)!
         .Body.Split('\n')
         .SkipWhile(x => x.StartsWith(">"))
         .Aggregate((x, y) => $"{x}\n{y}");
@@ -18,7 +18,7 @@ public class CommandContext {
     public required string[] Args;
     public required AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
-    public async Task<EventIdResponse> Reply(RoomMessageEventContent content) => await Room.SendMessageEventAsync(content);
+    public async Task<EventIdResponse> Reply(RoomMessageLegacyEventContent content) => await Room.SendMessageEventAsync(content);
 }
 
 public class CommandResult {

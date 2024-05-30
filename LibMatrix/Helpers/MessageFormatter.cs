@@ -4,25 +4,25 @@ using LibMatrix.LegacyEvents.EventTypes.Spec;
 namespace LibMatrix.Helpers;
 
 public static class MessageFormatter {
-    public static RoomMessageEventContent FormatError(string error) =>
+    public static RoomMessageLegacyEventContent FormatError(string error) =>
         new(body: error, messageType: "m.text") {
             FormattedBody = $"<font color=\"#EE4444\">{error}</font>",
             Format = "org.matrix.custom.html"
         };
 
-    public static RoomMessageEventContent FormatException(string error, Exception e) =>
+    public static RoomMessageLegacyEventContent FormatException(string error, Exception e) =>
         new(body: $"{error}: {e.Message}", messageType: "m.text") {
             FormattedBody = $"<font color=\"#EE4444\">{error}: <pre><code>{e.Message}</code></pre></font>",
             Format = "org.matrix.custom.html"
         };
 
-    public static RoomMessageEventContent FormatSuccess(string text) =>
+    public static RoomMessageLegacyEventContent FormatSuccess(string text) =>
         new(body: text, messageType: "m.text") {
             FormattedBody = $"<font color=\"#00FF00\">{text}</font>",
             Format = "org.matrix.custom.html"
         };
 
-    public static RoomMessageEventContent FormatSuccessJson(string text, object data) =>
+    public static RoomMessageLegacyEventContent FormatSuccessJson(string text, object data) =>
         new(body: text, messageType: "m.text") {
             FormattedBody = $"<font color=\"#00FF00\">{text}: <pre><code>{data.ToJson(ignoreNull: true)}</code></pre></font>",
             Format = "org.matrix.custom.html"
@@ -37,29 +37,29 @@ public static class MessageFormatter {
 
 #region Extension functions
 
-    public static RoomMessageEventContent ToMatrixMessage(this Exception e, string error) => FormatException(error, e);
+    public static RoomMessageLegacyEventContent ToMatrixMessage(this Exception e, string error) => FormatException(error, e);
 
 #endregion
 
-    public static RoomMessageEventContent FormatWarning(string warning) =>
+    public static RoomMessageLegacyEventContent FormatWarning(string warning) =>
         new(body: warning, messageType: "m.text") {
             FormattedBody = $"<font color=\"#FFFF00\">{warning}</font>",
             Format = "org.matrix.custom.html"
         };
 
-    public static RoomMessageEventContent FormatWarningJson(string warning, object data) =>
+    public static RoomMessageLegacyEventContent FormatWarningJson(string warning, object data) =>
         new(body: warning, messageType: "m.text") {
             FormattedBody = $"<font color=\"#FFFF00\">{warning}: <pre><code>{data.ToJson(ignoreNull: true)}</code></pre></font>",
             Format = "org.matrix.custom.html"
         };
 
-    public static RoomMessageEventContent Concat(this RoomMessageEventContent a, RoomMessageEventContent b) =>
+    public static RoomMessageLegacyEventContent Concat(this RoomMessageLegacyEventContent a, RoomMessageLegacyEventContent b) =>
         new(body: $"{a.Body}{b.Body}", messageType: a.MessageType) {
             FormattedBody = $"{a.FormattedBody}{b.FormattedBody}",
             Format = a.Format
         };
 
-    public static RoomMessageEventContent ConcatLine(this RoomMessageEventContent a, RoomMessageEventContent b) =>
+    public static RoomMessageLegacyEventContent ConcatLine(this RoomMessageLegacyEventContent a, RoomMessageLegacyEventContent b) =>
         new(body: $"{a.Body}\n{b.Body}", messageType: "m.text") {
             FormattedBody = $"{a.FormattedBody}<br/>{b.FormattedBody}",
             Format = "org.matrix.custom.html"

@@ -38,7 +38,7 @@ public class CreateRoomRequest {
     public string? Visibility { get; set; }
 
     [JsonPropertyName("power_level_content_override")]
-    public RoomPowerLevelEventContent? PowerLevelContentOverride { get; set; } = null!;
+    public RoomPowerLevelLegacyEventContent? PowerLevelContentOverride { get; set; } = null!;
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();
@@ -57,10 +57,10 @@ public class CreateRoomRequest {
                 InitialState.Add(stateEvent = new LegacyMatrixEvent {
                     Type = eventType,
                     StateKey = eventKey,
-                    TypedContent = (EventContent)Activator.CreateInstance(
+                    TypedContent = (LegacyEventContent)Activator.CreateInstance(
                         LegacyMatrixEvent.KnownStateEventTypes.FirstOrDefault(x =>
-                            x.GetCustomAttributes<MatrixEventAttribute>()?
-                                .Any(y => y.EventName == eventType) ?? false) ?? typeof(UnknownEventContent)
+                            x.GetCustomAttributes<LegacyMatrixEventAttribute>()?
+                                .Any(y => y.EventName == eventType) ?? false) ?? typeof(UnknownLegacyEventContent)
                     )!
                 });
 
@@ -89,7 +89,7 @@ public class CreateRoomRequest {
             Name = name ?? "New public Room",
             Visibility = "public",
             CreationContent = new JsonObject(),
-            PowerLevelContentOverride = new RoomPowerLevelEventContent {
+            PowerLevelContentOverride = new RoomPowerLevelLegacyEventContent {
                 EventsDefault = 0,
                 UsersDefault = 0,
                 Kick = 50,
@@ -97,7 +97,7 @@ public class CreateRoomRequest {
                 Invite = 25,
                 StateDefault = 10,
                 Redact = 50,
-                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPL {
+                NotificationsPl = new RoomPowerLevelLegacyEventContent.NotificationsPL {
                     Room = 10
                 },
                 Events = new Dictionary<string, long> {
@@ -129,7 +129,7 @@ public class CreateRoomRequest {
             Name = name ?? "New private Room",
             Visibility = "private",
             CreationContent = new JsonObject(),
-            PowerLevelContentOverride = new RoomPowerLevelEventContent {
+            PowerLevelContentOverride = new RoomPowerLevelLegacyEventContent {
                 EventsDefault = 0,
                 UsersDefault = 0,
                 Kick = 50,
@@ -137,7 +137,7 @@ public class CreateRoomRequest {
                 Invite = 25,
                 StateDefault = 10,
                 Redact = 50,
-                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPL {
+                NotificationsPl = new RoomPowerLevelLegacyEventContent.NotificationsPL {
                     Room = 10
                 },
                 Events = new Dictionary<string, long> {

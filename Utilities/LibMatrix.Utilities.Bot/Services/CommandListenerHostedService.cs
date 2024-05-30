@@ -61,7 +61,7 @@ public class CommandListenerHostedService : IHostedService {
             try {
                 var room = _hs.GetRoom(@event.RoomId);
                 // _logger.LogInformation(eventResponse.ToJson(indent: false));
-                if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventContent message })
+                if (@event is { Type: "m.room.message", TypedContent: RoomMessageLegacyEventContent message })
                     if (message is { MessageType: "m.text" }) {
                         var usedPrefix = await GetUsedPrefix(@event);
                         if (usedPrefix is null) return;
@@ -89,12 +89,12 @@ public class CommandListenerHostedService : IHostedService {
     }
 
     private async Task<string?> GetUsedPrefix(LegacyMatrixEventResponse evt) {
-        var messageContent = evt.TypedContent as RoomMessageEventContent;
+        var messageContent = evt.TypedContent as RoomMessageLegacyEventContent;
         var message = messageContent!.BodyWithoutReplyFallback;
         var prefix = _config.Prefixes.OrderByDescending(x => x.Length).FirstOrDefault(message.StartsWith);
         if (prefix is null && _config.MentionPrefix) {
             var profile = await _hs.GetProfileAsync(_hs.WhoAmI.UserId);
-            var roomProfile = await _hs.GetRoom(evt.RoomId!).GetStateAsync<RoomMemberEventContent>(RoomMemberEventContent.EventId, _hs.WhoAmI.UserId);
+            var roomProfile = await _hs.GetRoom(evt.RoomId!).GetStateAsync<RoomMemberLegacyEventContent>(RoomMemberLegacyEventContent.EventId, _hs.WhoAmI.UserId);
             if (message.StartsWith(_hs.WhoAmI.UserId + ": ")) prefix = profile.DisplayName + ": ";    // `@bot:server.xyz: `
             else if (message.StartsWith(_hs.WhoAmI.UserId + " ")) prefix = profile.DisplayName + " "; // `@bot:server.xyz `
             else if (!string.IsNullOrWhiteSpace(roomProfile?.DisplayName) && message.StartsWith(roomProfile.DisplayName + ": "))
@@ -109,7 +109,7 @@ public class CommandListenerHostedService : IHostedService {
     }
 
     private async Task<CommandResult> InvokeCommand(LegacyMatrixEventResponse evt, string usedPrefix) {
-        var message = evt.TypedContent as RoomMessageEventContent;
+        var message = evt.TypedContent as RoomMessageLegacyEventContent;
         var room = _hs.GetRoom(evt.RoomId!);
 
         var commandWithoutPrefix = message.BodyWithoutReplyFallback[usedPrefix.Length..].Trim();
@@ -124,7 +124,7 @@ public class CommandListenerHostedService : IHostedService {
             var command = _commands.SingleOrDefault(x => x.Name == commandWithoutPrefix.Split(' ')[0] || x.Aliases?.Contains(commandWithoutPrefix.Split(' ')[0]) == true);
             if (command == null) {
                 await room.SendMessageEventAsync(
-                    new RoomMessageEventContent("m.notice", $"Command \"{ctx.CommandName}\" not found!"));
+                    new RoomMessageLegacyEventContent("m.notice", $"Command \"{ctx.CommandName}\" not found!"));
                 return new() {
                     Success = false,
                     Result = CommandResult.CommandResultType.Failure_InvalidCommand,
@@ -153,7 +153,7 @@ public class CommandListenerHostedService : IHostedService {
                     Success = false
                 };
             // await room.SendMessageEventAsync(
-            // new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"));
+            // new RoomMessageLegacyEventContent("m.notice", "You do not have permission to run this command!"));
 
             return new CommandResult() {
                 Context = ctx,
@@ -176,8 +176,8 @@ public class CommandListenerHostedService : IHostedService {
         var room = res.Context.Room;
         var msg = res.Result switch {
             CommandResult.CommandResultType.Failure_Exception => MessageFormatter.FormatException("An error occurred during the execution of this command", res.Exception!),
-            CommandResult.CommandResultType.Failure_NoPermission => new RoomMessageEventContent("m.notice", "You do not have permission to run this command!"),
-            CommandResult.CommandResultType.Failure_InvalidCommand => new RoomMessageEventContent("m.notice", $"Command \"{res.Context.CommandName}\" not found!"),
+            CommandResult.CommandResultType.Failure_NoPermission => new RoomMessageLegacyEventContent("m.notice", "You do not have permission to run this command!"),
+            CommandResult.CommandResultType.Failure_InvalidCommand => new RoomMessageLegacyEventContent("m.notice", $"Command \"{res.Context.CommandName}\" not found!"),
             _ => throw new ArgumentOutOfRangeException()
         };
 

@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = EventId)]
-public class SpaceParentEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class SpaceParentLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.space.parent";
 
     [JsonPropertyName("via")]

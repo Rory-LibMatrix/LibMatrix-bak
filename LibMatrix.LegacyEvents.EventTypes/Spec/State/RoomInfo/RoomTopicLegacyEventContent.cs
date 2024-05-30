@@ -2,9 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = EventId)]
-[MatrixEvent(EventName = "org.matrix.msc3765.topic", Legacy = true)]
-public class RoomTopicEventContent : EventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+[LegacyMatrixEvent(EventName = "org.matrix.msc3765.topic", Legacy = true)]
+public class RoomTopicLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.room.topic";
 
     [JsonPropertyName("topic")]

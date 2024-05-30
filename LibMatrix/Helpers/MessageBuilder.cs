@@ -3,12 +3,12 @@ using LibMatrix.LegacyEvents.EventTypes.Spec;
 namespace LibMatrix.Helpers;
 
 public class MessageBuilder(string msgType = "m.text", string format = "org.matrix.custom.html") {
-    private RoomMessageEventContent Content { get; set; } = new() {
+    private RoomMessageLegacyEventContent Content { get; set; } = new() {
         MessageType = msgType,
         Format = format
     };
 
-    public RoomMessageEventContent Build() => Content;
+    public RoomMessageLegacyEventContent Build() => Content;
 
     public MessageBuilder WithBody(string body) {
         Content.Body += body;

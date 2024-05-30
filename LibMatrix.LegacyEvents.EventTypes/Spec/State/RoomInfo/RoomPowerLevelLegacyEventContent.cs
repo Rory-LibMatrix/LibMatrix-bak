@@ -2,9 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State;
 
-[MatrixEvent(EventName = EventId)]
+[LegacyMatrixEvent(EventName = EventId)]
 [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-public class RoomPowerLevelEventContent : EventContent {
+public class RoomPowerLevelLegacyEventContent : LegacyEventContent {
     public const string EventId = "m.room.power_levels";
 
     [JsonPropertyName("ban")]

@@ -4,18 +4,18 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes;
 
-public abstract class EventContent;
+public abstract class LegacyEventContent;
 
-public class UnknownEventContent : TimelineEventContent;
+public class UnknownLegacyEventContent : TimelineLegacyEventContent;
 
-public abstract class TimelineEventContent : EventContent {
+public abstract class TimelineLegacyEventContent : LegacyEventContent {
     [JsonPropertyName("m.relates_to")]
     public MessageRelatesTo? RelatesTo { get; set; }
 
     [JsonPropertyName("m.new_content")]
     public JsonObject? NewContent { get; set; }
 
-    public TimelineEventContent SetReplaceRelation(string eventId) {
+    public TimelineLegacyEventContent SetReplaceRelation(string eventId) {
         NewContent = JsonSerializer.SerializeToNode(this, GetType())!.AsObject();
         // NewContent = JsonSerializer.Deserialize(jsonText, GetType());
         RelatesTo = new MessageRelatesTo {
@@ -25,7 +25,7 @@ public abstract class TimelineEventContent : EventContent {
         return this;
     }
 
-    public T SetReplaceRelation<T>(string eventId) where T : TimelineEventContent => SetReplaceRelation(eventId) as T ?? throw new InvalidOperationException();
+    public T SetReplaceRelation<T>(string eventId) where T : TimelineLegacyEventContent => SetReplaceRelation(eventId) as T ?? throw new InvalidOperationException();
 
     public class MessageRelatesTo {
         [JsonPropertyName("m.in_reply_to")]

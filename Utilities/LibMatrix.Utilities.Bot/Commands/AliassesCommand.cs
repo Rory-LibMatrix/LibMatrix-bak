@@ -19,7 +19,7 @@ public class AliassesCommand(IServiceProvider services) : ICommand {
         var commands = services.GetServices<ICommand>().Where(x => !x.Unlisted).ToList();
         foreach (var command in commands) sb.AppendLine($"- {command.Name}: {command.Description}");
 
-        await ctx.Room.SendMessageEventAsync(new RoomMessageEventContent("m.notice", sb.ToString()));
+        await ctx.Room.SendMessageEventAsync(new RoomMessageLegacyEventContent("m.notice", sb.ToString()));
         
         var msb = new MessageBuilder("m.notice");
         msb.WithHtmlTag("table", tb => {

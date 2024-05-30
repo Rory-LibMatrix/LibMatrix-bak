@@ -190,7 +190,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         if (newProfile is null) return;
         Console.WriteLine($"Updating profile for {WhoAmI.UserId} to {newProfile.ToJson(ignoreNull: true)} (preserving room profiles: {preserveCustomRoomProfile})");
         var oldProfile = await GetProfileAsync(WhoAmI.UserId!);
-        Dictionary<string, RoomMemberEventContent> expectedRoomProfiles = new();
+        Dictionary<string, RoomMemberLegacyEventContent> expectedRoomProfiles = new();
         var syncHelper = new SyncHelper(this) {
             Filter = new SyncFilter {
                 AccountData = new SyncFilter.EventFilter() {
@@ -209,7 +209,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
             targetSyncCount = rooms.Count;
             await foreach (var (roomId, currentRoomProfile) in roomProfiles)
                 try {
-                    // var currentRoomProfile = await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!);
+                    // var currentRoomProfile = await room.GetStateAsync<RoomMemberLegacyEventContent>("m.room.member", WhoAmI.UserId!);
                     //build new profiles
                     if (currentRoomProfile.DisplayName == oldProfile.DisplayName) currentRoomProfile.DisplayName = newProfile.DisplayName;
 
@@ -243,7 +243,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
             foreach (var (roomId, roomData) in sync.Rooms.Join)
                 if (roomData.State is { Events.Count: > 0 }) {
                     var incommingRoomProfile =
-                        roomData.State?.Events?.FirstOrDefault(x => x.Type == "m.room.member" && x.StateKey == WhoAmI.UserId)?.TypedContent as RoomMemberEventContent;
+                        roomData.State?.Events?.FirstOrDefault(x => x.Type == "m.room.member" && x.StateKey == WhoAmI.UserId)?.TypedContent as RoomMemberLegacyEventContent;
                     if (incommingRoomProfile is null) continue;
                     if (!expectedRoomProfiles.ContainsKey(roomId)) continue;
                     var targetRoomProfileOverride = expectedRoomProfiles[roomId];
@@ -276,7 +276,7 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         }
     }
 
-    public async IAsyncEnumerable<KeyValuePair<string, RoomMemberEventContent>> GetRoomProfilesAsync() {
+    public async IAsyncEnumerable<KeyValuePair<string, RoomMemberLegacyEventContent>> GetRoomProfilesAsync() {
         var rooms = await GetJoinedRooms();
         var results = rooms.Select(GetOwnRoomProfileWithIdAsync).ToAsyncEnumerable();
         await foreach (var res in results) yield return res;
@@ -295,8 +295,8 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
 
 #region Room Profile Utility
 
-    private async Task<KeyValuePair<string, RoomMemberEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) =>
-        new(room.RoomId, await room.GetStateAsync<RoomMemberEventContent>("m.room.member", WhoAmI.UserId!));
+    private async Task<KeyValuePair<string, RoomMemberLegacyEventContent>> GetOwnRoomProfileWithIdAsync(GenericRoom room) =>
+        new(room.RoomId, await room.GetStateAsync<RoomMemberLegacyEventContent>("m.room.member", WhoAmI.UserId!));
 
 #endregion
 

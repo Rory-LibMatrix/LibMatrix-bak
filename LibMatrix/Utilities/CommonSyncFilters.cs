@@ -37,11 +37,11 @@ public static class CommonSyncFilters {
             Ephemeral = new SyncFilter.RoomFilter.StateFilter(rooms: []),
             State = new SyncFilter.RoomFilter.StateFilter {
                 Types = new List<string> {
-                    RoomCreateEventContent.EventId,
-                    RoomNameEventContent.EventId,
-                    RoomAvatarEventContent.EventId,
-                    MjolnirShortcodeEventContent.EventId,
-                    RoomPowerLevelEventContent.EventId
+                    RoomCreateLegacyEventContent.EventId,
+                    RoomNameLegacyEventContent.EventId,
+                    RoomAvatarLegacyEventContent.EventId,
+                    MjolnirShortcodeLegacyEventContent.EventId,
+                    RoomPowerLevelLegacyEventContent.EventId
                 },
                 LazyLoadMembers = true, IncludeRedundantMembers = false
             },
@@ -57,8 +57,8 @@ public static class CommonSyncFilters {
             Ephemeral = new SyncFilter.RoomFilter.StateFilter(rooms: []),
             State = new SyncFilter.RoomFilter.StateFilter {
                 Types = new List<string> {
-                    SpaceChildEventContent.EventId,
-                    SpaceParentEventContent.EventId
+                    SpaceChildLegacyEventContent.EventId,
+                    SpaceParentLegacyEventContent.EventId
                 },
                 LazyLoadMembers = true, IncludeRedundantMembers = false
             },
@@ -74,7 +74,7 @@ public static class CommonSyncFilters {
             Ephemeral = new SyncFilter.RoomFilter.StateFilter(rooms: []),
             State = new SyncFilter.RoomFilter.StateFilter {
                 Types = new List<string> {
-                    RoomMemberEventContent.EventId
+                    RoomMemberLegacyEventContent.EventId
                 },
                 LazyLoadMembers = true, IncludeRedundantMembers = false,
                 Senders = ["@me"]

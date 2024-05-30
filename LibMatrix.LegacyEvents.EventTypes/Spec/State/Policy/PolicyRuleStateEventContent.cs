@@ -4,32 +4,32 @@ using ArcaneLibs.Attributes;
 namespace LibMatrix.LegacyEvents.EventTypes.Spec.State.Policy;
 
 //spec
-[MatrixEvent(EventName = EventId)]                                         //spec
-[MatrixEvent(EventName = "m.room.rule.server", Legacy = true)]             //???
-[MatrixEvent(EventName = "org.matrix.mjolnir.rule.server", Legacy = true)] //legacy
+[LegacyMatrixEvent(EventName = EventId)]                                         //spec
+[LegacyMatrixEvent(EventName = "m.room.rule.server", Legacy = true)]             //???
+[LegacyMatrixEvent(EventName = "org.matrix.mjolnir.rule.server", Legacy = true)] //legacy
 [FriendlyName(Name = "Server policy", NamePlural = "Server policies")]
-public class ServerPolicyRuleEventContent : PolicyRuleEventContent {
+public class ServerPolicyRuleLegacyEventContent : PolicyRuleLegacyEventContent {
     public const string EventId = "m.policy.rule.server";
 }
 
-[MatrixEvent(EventName = EventId)]                                       //spec
-[MatrixEvent(EventName = "m.room.rule.user", Legacy = true)]             //???
-[MatrixEvent(EventName = "org.matrix.mjolnir.rule.user", Legacy = true)] //legacy
+[LegacyMatrixEvent(EventName = EventId)]                                       //spec
+[LegacyMatrixEvent(EventName = "m.room.rule.user", Legacy = true)]             //???
+[LegacyMatrixEvent(EventName = "org.matrix.mjolnir.rule.user", Legacy = true)] //legacy
 [FriendlyName(Name = "User policy", NamePlural = "User policies")]
-public class UserPolicyRuleEventContent : PolicyRuleEventContent {
+public class UserPolicyRuleLegacyEventContent : PolicyRuleLegacyEventContent {
     public const string EventId = "m.policy.rule.user";
 }
 
-[MatrixEvent(EventName = EventId)]                                       //spec
-[MatrixEvent(EventName = "m.room.rule.room", Legacy = true)]             //???
-[MatrixEvent(EventName = "org.matrix.mjolnir.rule.room", Legacy = true)] //legacy
+[LegacyMatrixEvent(EventName = EventId)]                                       //spec
+[LegacyMatrixEvent(EventName = "m.room.rule.room", Legacy = true)]             //???
+[LegacyMatrixEvent(EventName = "org.matrix.mjolnir.rule.room", Legacy = true)] //legacy
 [FriendlyName(Name = "Room policy", NamePlural = "Room policies")]
-public class RoomPolicyRuleEventContent : PolicyRuleEventContent {
+public class RoomPolicyRuleLegacyEventContent : PolicyRuleLegacyEventContent {
     public const string EventId = "m.policy.rule.room";
 }
 
-public abstract class PolicyRuleEventContent : EventContent {
-    public PolicyRuleEventContent() => Console.WriteLine($"init policy {GetType().Name}");
+public abstract class PolicyRuleLegacyEventContent : LegacyEventContent {
+    public PolicyRuleLegacyEventContent() => Console.WriteLine($"init policy {GetType().Name}");
     private string? _reason;
 
     /// <summary>

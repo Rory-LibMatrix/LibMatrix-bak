@@ -2,11 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.LegacyEvents.EventTypes.Spec;
 
-[MatrixEvent(EventName = EventId)]
-public class RoomMessageEventContent : TimelineEventContent {
+[LegacyMatrixEvent(EventName = EventId)]
+public class RoomMessageLegacyEventContent : TimelineLegacyEventContent {
     public const string EventId = "m.room.message";
 
-    public RoomMessageEventContent(string messageType = "m.notice", string? body = null) {
+    public RoomMessageLegacyEventContent(string messageType = "m.notice", string? body = null) {
         MessageType = messageType;
         Body = body ?? "";
     }

@@ -26,19 +26,19 @@ public class DataFetcher(AuthenticatedHomeserverGeneric hs, ILogger<DataFetcher>
         Directory.GetFiles("bot_data/cache").ToList().ForEach(File.Delete);
         _logRoom = hs.GetRoom(botConfiguration.LogRoom!);
 
-        await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: "Test data collector started!"));
-        await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: "Fetching rooms..."));
+        await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: "Test data collector started!"));
+        await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: "Fetching rooms..."));
 
         var rooms = await hs.GetJoinedRooms();
-        await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Fetched {rooms.Count} rooms!"));
+        await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: $"Fetched {rooms.Count} rooms!"));
 
-        await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: "Fetching room data..."));
+        await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: "Fetching room data..."));
 
         var roomAliasTasks = rooms.Select(room => room.GetCanonicalAliasAsync()).ToAsyncEnumerable();
         List<Task<(string, string)>> aliasResolutionTasks = new();
         await foreach (var @event in roomAliasTasks)
             if (@event?.Alias != null) {
-                await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Fetched room alias {@event.Alias}!"));
+                await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: $"Fetched room alias {@event.Alias}!"));
                 aliasResolutionTasks.Add(Task.Run(async () => {
                     var alias = await hs.ResolveRoomAliasAsync(@event.Alias);
                     return (@event.Alias, alias.RoomId);
@@ -47,7 +47,7 @@ public class DataFetcher(AuthenticatedHomeserverGeneric hs, ILogger<DataFetcher>
 
         var aliasResolutionTaskEnumerator = aliasResolutionTasks.ToAsyncEnumerable();
         await foreach (var result in aliasResolutionTaskEnumerator)
-            await _logRoom.SendMessageEventAsync(new RoomMessageEventContent(body: $"Resolved room alias {result.Item1} to {result.Item2}!"));
+            await _logRoom.SendMessageEventAsync(new RoomMessageLegacyEventContent(body: $"Resolved room alias {result.Item1} to {result.Item2}!"));
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>
