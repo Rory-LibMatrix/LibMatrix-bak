@@ -36,13 +36,13 @@ public static class CommonSyncFilters {
             AccountData = new MatrixFilter.RoomFilter.StateFilter(rooms: []),
             Ephemeral = new MatrixFilter.RoomFilter.StateFilter(rooms: []),
             State = new MatrixFilter.RoomFilter.StateFilter {
-                Types = new List<string> {
+                Types = [
                     RoomCreateLegacyEventContent.EventId,
                     RoomNameLegacyEventContent.EventId,
                     RoomAvatarLegacyEventContent.EventId,
                     MjolnirShortcodeLegacyEventContent.EventId,
                     RoomPowerLevelLegacyEventContent.EventId
-                },
+                ],
                 LazyLoadMembers = true, IncludeRedundantMembers = false
             },
             Timeline = new MatrixFilter.RoomFilter.StateFilter(rooms: [])

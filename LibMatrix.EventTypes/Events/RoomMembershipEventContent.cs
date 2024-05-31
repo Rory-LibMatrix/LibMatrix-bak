@@ -2,9 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace LibMatrix.EventTypes.Events;
 
+[MatrixEvent("m.room.member")]
+[JsonConverter(typeof(MatrixEventContentConverter<RoomMembershipEventContent>))]
 public class RoomMembershipEventContent : MatrixEventContent {
     public string Membership {
-        get => _json["membership"]!.GetValue<string>();
-        set => Console.WriteLine(value);
+        get => InternalJson["membership"]!.GetValue<string>();
+        set => InternalJson["membership"] = value;
     }
 }
