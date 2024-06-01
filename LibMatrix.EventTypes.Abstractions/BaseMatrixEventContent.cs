@@ -12,21 +12,18 @@ namespace LibMatrix.EventTypes;
 ///     <seealso cref="System.Text.Json.Nodes.JsonNode"/>
 ///     <seealso cref="System.Text.Json.Nodes.JsonObject"/>
 /// </summary>
-[JsonConverter(typeof(MatrixEventContentConverter<MatrixEventContent>))]
-public class MatrixEventContent {
-
-    [JsonExtensionData, JsonInclude]
+[JsonConverter(typeof(MatrixEventContentConverter<BaseMatrixEventContent>))]
+// [JsonSerializable(typeof(MatrixEventContent))]
+public class BaseMatrixEventContent {
     public JsonObject InternalJson { get; set; } = new();
 
-    
+    public BaseMatrixEventContent() { }
 
-    public MatrixEventContent() { }
-
-    public MatrixEventContent(JsonNode json) {
+    public BaseMatrixEventContent(JsonNode json) {
         InternalJson = json.AsObject();
     }
 
-    public static implicit operator MatrixEventContent(JsonNode json) => new(json);
+    public static implicit operator BaseMatrixEventContent(JsonNode json) => new(json);
 
     // public static implicit operator JsonNode(MatrixEventContent content) => content.InternalJson;
 
@@ -41,20 +38,17 @@ public class MatrixEventContent {
     public string ToJson() => InternalJson.ToJson();
 
 
-    public class MatrixEventContentConverter<T> : JsonConverter<T> where T : MatrixEventContent, new() {
+    public class MatrixEventContentConverter<T> : JsonConverter<T> where T : BaseMatrixEventContent, new() {
         public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
             // read entire object into a JsonObject
+            // Console.WriteLine($"MatrixEventContentConverter<T>: Reading {typeToConvert}");
             var json = JsonNode.Parse(ref reader);
             return new T { InternalJson = json.AsObject() };
         }
 
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) {
+            // Console.WriteLine($"MatrixEventContentConverter<T>: Writing {value.GetType()}");
             value.InternalJson.WriteTo(writer);
         }
     }
-}
-
-public class MatrixEventAttribute(string eventType, bool deprecated = false) : Attribute {
-    public string EventType { get; } = eventType;
-    public bool Deprecated { get; } = deprecated;
 }

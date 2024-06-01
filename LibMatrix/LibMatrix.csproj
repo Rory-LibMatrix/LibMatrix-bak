@@ -10,7 +10,7 @@
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         
         <!-- event rewrite dev... -->
-        <DefineConstants Condition="!$(ExtraDefineConstants.Contains('WITH_LEGACY_EVENTS'))">$(DefineConstants);DISABLE_LEGACY_EVENTS</DefineConstants>
+<!--        <DefineConstants Condition="!$(ExtraDefineConstants.Contains('WITH_LEGACY_EVENTS'))">$(DefineConstants);DISABLE_LEGACY_EVENTS</DefineConstants>-->
         <DefineConstants Condition=" '$(ExtraDefineConstants)' != '' ">$(DefineConstants);$(ExtraDefineConstants)</DefineConstants>
     </PropertyGroup>
 
