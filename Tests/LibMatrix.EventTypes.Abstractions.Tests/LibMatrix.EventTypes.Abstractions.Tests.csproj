@@ -20,9 +20,6 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0"/>
-        <PackageReference Include="Xunit.Microsoft.DependencyInjection" Version="8.1.0"/>
-        <PackageReference Include="Xunit.SkippableFact" Version="1.4.13"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -30,12 +27,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\LibMatrix\LibMatrix.csproj"/>
+        <ProjectReference Include="..\..\LibMatrix.EventTypes.Abstractions\LibMatrix.EventTypes.Abstractions.csproj"/>
+        <ProjectReference Include="..\..\LibMatrix.EventTypes.Spec\LibMatrix.EventTypes.Spec.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <Content Include="appsettings*.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="TestData\**\*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 

@@ -1,37 +1,50 @@
-﻿using System.Text.Json;
+﻿// See https://aka.ms/new-console-template for more information
+
+using System.Text.Json;
 using ArcaneLibs.Extensions;
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using BenchmarkDotNet.Running;
 using LibMatrix.EventTypes;
-using LibMatrix.EventTypes.Events;
+using LibMatrix.EventTypes.Abstractions;
+using LibMatrix.EventTypes.Spec;
 
-BenchmarkRunner.Run<Tests>();
+Console.WriteLine("Hello, World!");
 
-[ShortRunJob]
-[MemoryDiagnoser]
-public class Tests {
-    // public MatrixEventCollection<MatrixEventContent> Members = [
-    //     new MatrixEvent<RoomMembershipEventContent>() {
-    //         Content = new() {
-    //             Membership = "join"
-    //         }
-    //     }
-    // ];
+MatrixEventCollection Members = [
+     new MatrixEvent<RoomMembershipEventContent>() {
+         Content = new() {
+             Membership = "join"
+         }
+     }
+];
 
-    private static string eventJson = File.ReadAllText("test-event.json");
-    private static MatrixEvent<RoomMembershipEventContent> evt2 = JsonSerializer.Deserialize<MatrixEvent<RoomMembershipEventContent>>(eventJson);
-    [Benchmark]
-    public void Deserialise() {
-        JsonSerializer.Deserialize<MatrixEvent<RoomMembershipEventContent>>(eventJson);
+string eventJson = File.ReadAllText("test-event.json");
+MatrixEvent<RoomMembershipEventContent> evt2 = JsonSerializer.Deserialize<MatrixEvent<RoomMembershipEventContent>>(eventJson);
+
+JsonSerializer.Deserialize<MatrixEvent<RoomMembershipEventContent>>(eventJson);
+
+evt2.ToJson();
+evt2.Content.Membership = "meow";
+
+MatrixEventCollection collection = new();
+collection.Add(new MatrixEvent<RoomMembershipEventContent>() {
+    Content = new RoomMembershipEventContent() {
+        Membership = "yes"
     }
-    [Benchmark]
-    public void Serialise() {
-        evt2.ToJson();
+});
+MatrixEventCollection<RoomMembershipEventContent> collection4 = new();
+collection4.Add(new MatrixEvent<RoomMembershipEventContent>() {
+    Content = new RoomMembershipEventContent() {
+        Membership = "yes"
     }
-    
-    [Benchmark]
-    public void Modify() {
-        evt2.Content.Membership = "meow";
+});
+
+List<MatrixEvent<BaseMatrixEventContent>> collection2 = new();
+collection2.Add(new MatrixEvent<RoomMembershipEventContent>() {
+    Content = new RoomMembershipEventContent() {
+        Membership = "yes"
     }
-}
+});
+
+List<BaseMatrixEventContent> collection3 = new();
+collection3.Add(new RoomMembershipEventContent() {
+    Membership = "yes"
+});

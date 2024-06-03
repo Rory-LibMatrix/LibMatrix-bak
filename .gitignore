@@ -11,3 +11,5 @@ appsettings.Local*.json
 appservice.yaml
 appservice.json
 Tests/LibMatrix.Tests/appsettings.json
+**/BenchmarkDotNet.Artifacts/
+Utilities/LibMatrix.EventTypes.Benchmark/*.json

@@ -1,0 +1,18 @@
+{
+    "content": {
+        "body": "This is a test message",
+        "format": "org.matrix.custom.html",
+        "formatted_body": "This is a test message <b>with HTML!</b>",
+        "m.mentions": {
+            "user_ids": [
+                "@emma:rory.gay"
+            ]
+        },
+        "msgtype": "m.text"
+    },
+    "event_id": "$qBmS2SyNAA-ODcOZpAd_RRfApzXuMmy0VHsCqnMebzI",
+    "origin_server_ts": 1717100265714,
+    "sender": "@user:example.xyz",
+    "type": "m.room.message",
+    "unsigned": null
+}

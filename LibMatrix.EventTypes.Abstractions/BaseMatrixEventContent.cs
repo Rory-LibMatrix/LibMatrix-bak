@@ -6,15 +6,19 @@ using ArcaneLibs.Extensions;
 
 namespace LibMatrix.EventTypes;
 
+public interface IMatrixEvent {
+    
+}
+
 // <T> : MatrixEventContent where T : MatrixEventContent<T>, new() {
 /// <summary>
 ///     Extensible Event Content, aims to provide an API similar to JsonNode/JsonObject
 ///     <seealso cref="System.Text.Json.Nodes.JsonNode"/>
 ///     <seealso cref="System.Text.Json.Nodes.JsonObject"/>
 /// </summary>
-[JsonConverter(typeof(MatrixEventContentConverter<BaseMatrixEventContent>))]
+// [JsonConverter(typeof(BaseMatrixEventContent.MatrixEventContentConverter<BaseMatrixEventContent>))]
 // [JsonSerializable(typeof(MatrixEventContent))]
-public class BaseMatrixEventContent {
+public abstract class BaseMatrixEventContent {
     public JsonObject InternalJson { get; set; } = new();
 
     public BaseMatrixEventContent() { }
@@ -23,7 +27,7 @@ public class BaseMatrixEventContent {
         InternalJson = json.AsObject();
     }
 
-    public static implicit operator BaseMatrixEventContent(JsonNode json) => new(json);
+    // public static implicit operator BaseMatrixEventContent(JsonNode json) => new(json);
 
     // public static implicit operator JsonNode(MatrixEventContent content) => content.InternalJson;
 
@@ -33,7 +37,10 @@ public class BaseMatrixEventContent {
     [JsonIgnore]
     public string EventType => EventTypes.First();
 
-    public JsonNode? this[string key] => InternalJson[key];
+    public JsonNode? this[string key] {
+        get => InternalJson[key];
+        set => InternalJson[key] = value;
+    }
     
     public string ToJson() => InternalJson.ToJson();
 

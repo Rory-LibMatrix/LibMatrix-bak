@@ -1,0 +1,17 @@
+{
+  "content": {
+    "avatar_url": "mxc://server1/abcdefgh",
+    "displayname": "User 1",
+    "is_direct": false,
+    "membership": "join"
+  },
+  "event_id": "$DLgeeol91D36xqZQvEwRJrOoBKttZ_S66hco8Ci-qb0",
+  "origin_server_ts": 1717146801732,
+  "sender": "@user1:server1",
+  "state_key": "@user1:server1",
+  "type": "m.room.member",
+  "unsigned": {
+    "prev_sender": "@user1:server1",
+    "replaces_state": "$4QptWS_8YzaZfROeFzOdhoV2wzYPEzQDx0Q6u2UOt8c"
+  }
+}

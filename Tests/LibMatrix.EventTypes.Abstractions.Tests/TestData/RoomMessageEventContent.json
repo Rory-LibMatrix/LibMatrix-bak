@@ -1,0 +1,11 @@
+{
+  "body": "This is a test message",
+  "format": "org.matrix.custom.html",
+  "formatted_body": "This is a test message <b>with HTML!</b>",
+  "m.mentions": {
+    "user_ids": [
+      "@emma:rory.gay"
+    ]
+  },
+  "msgtype": "m.text"
+}
