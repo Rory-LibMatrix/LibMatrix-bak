@@ -14,19 +14,18 @@ using ArcaneLibs.Extensions;
 namespace LibMatrix.Extensions;
 
 #if SINGLE_HTTPCLIENT
+// TODO: Add URI wrapper for 
 public class MatrixHttpClient {
-    private static readonly SocketsHttpHandler handler;
-
-    private static readonly HttpClient client;
+    private static readonly HttpClient Client;
 
     static MatrixHttpClient() {
         try {
-            handler = new SocketsHttpHandler {
+            var handler = new SocketsHttpHandler {
                 PooledConnectionLifetime = TimeSpan.FromMinutes(15),
                 MaxConnectionsPerServer = 4096,
                 EnableMultipleHttp2Connections = true
             };
-            client = new HttpClient(handler) {
+            Client = new HttpClient(handler) {
                 DefaultRequestVersion = new Version(3, 0)
             };
         }
@@ -35,7 +34,7 @@ public class MatrixHttpClient {
             Console.WriteLine("Original exception (safe to ignore!):");
             Console.WriteLine(e);
 
-            client = new HttpClient {
+            Client = new HttpClient {
                 DefaultRequestVersion = new Version(3, 0)
             };
         }
@@ -84,7 +83,7 @@ public class MatrixHttpClient {
 
         HttpResponseMessage? responseMessage;
         try {
-            responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            responseMessage = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
         catch (Exception e) {
             Console.WriteLine(
@@ -208,7 +207,7 @@ public class MatrixHttpClient {
     public async Task<bool> CheckSuccessStatus(string url) {
         //cors causes failure, try to catch
         try {
-            var resp = await client.GetAsync(url);
+            var resp = await Client.GetAsync(url);
             return resp.IsSuccessStatusCode;
         }
         catch (Exception e) {

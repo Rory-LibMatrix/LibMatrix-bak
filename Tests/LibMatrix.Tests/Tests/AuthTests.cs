@@ -60,7 +60,7 @@ public class AuthTests : TestBed<TestFixture> {
         Assert.NotNull(reg.AccessToken);
         Assert.NotNull(reg.DeviceId);
         Assert.NotNull(reg.UserId);
-        var hs = await reg.GetAuthenticatedHomeserver();
+        var hs = await _provider.GetAuthenticatedWithToken(reg.Homeserver, reg.AccessToken);
         Assert.NotNull(hs);
         Assert.NotNull(hs.WhoAmI);
         hs.WhoAmI.VerifyRequiredFields();

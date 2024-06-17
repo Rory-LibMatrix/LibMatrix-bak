@@ -531,14 +531,14 @@ public class GenericRoom {
         if (!string.IsNullOrEmpty(to)) uri = uri.AddQuery("to", to);
 
         // Console.WriteLine($"Getting related events from {uri}");
-        var result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri);
+        var result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri.ToString());
         while (result!.Chunk.Count > 0) {
             foreach (var resp in result.Chunk) {
                 yield return resp;
             }
 
             if (result.NextBatch is null) break;
-            result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri.AddQuery("from", result.NextBatch));
+            result = await Homeserver.ClientHttpClient.GetFromJsonAsync<RecursedBatchedChunkedStateEventResponse>(uri.AddQuery("from", result.NextBatch).ToString());
         }
     }
 

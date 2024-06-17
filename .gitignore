@@ -1,5 +1,6 @@
 **/bin/
 **/obj/
+**/*.[Dd]ot[Ss]ettings.[Uu]ser
 MatrixRoomUtils/
 MatrixRoomUtils.Web/wwwroot/MRU.tar.xz
 /src/
