@@ -146,6 +146,10 @@ public class MatrixHttpClient {
         try {
             return await GetFromJsonAsync<T>(requestUri, options, cancellationToken);
         }
+        catch (JsonException e) {
+            Console.WriteLine($"Failed to deserialize response from {requestUri}: {e.Message}");
+            return default;
+        }
         catch (HttpRequestException e) {
             Console.WriteLine($"Failed to get {requestUri}: {e.Message}");
             return default;
