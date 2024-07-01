@@ -61,15 +61,18 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         return rooms;
     }
 
+    [Obsolete("Use UploadMedia instead, as this method is deprecated.")]
     public virtual async Task<string> UploadFile(string fileName, IEnumerable<byte> data, string contentType = "application/octet-stream") {
         return await UploadFile(fileName, data.ToArray(), contentType);
     }
 
+    [Obsolete("Use UploadMedia instead, as this method is deprecated.")]
     public virtual async Task<string> UploadFile(string fileName, byte[] data, string contentType = "application/octet-stream") {
         await using var ms = new MemoryStream(data);
         return await UploadFile(fileName, ms, contentType);
     }
 
+    [Obsolete("Use UploadMedia instead, as this method is deprecated.")]
     public virtual async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
         var req = new HttpRequestMessage(HttpMethod.Post, $"/_matrix/media/v3/upload?filename={fileName}");
         req.Content = new StreamContent(fileStream);
@@ -406,4 +409,33 @@ public class AuthenticatedHomeserverGeneric : RemoteHomeserver {
         public NamedFilterCache FilterCache { get; init; }
         public NamedFileCache FileCache { get; init; }
     }
+
+#region Authenticated Media
+
+    // TODO: implement /_matrix/client/v1/media/config when it's actually useful - https://spec.matrix.org/v1.11/client-server-api/#get_matrixclientv1mediaconfig
+
+    private (string ServerName, string MediaId) ParseMxcUri(string mxcUri) {
+        if (!mxcUri.StartsWith("mxc://")) throw new ArgumentException("Matrix Content URIs must start with 'mxc://'", nameof(mxcUri));
+        var parts = mxcUri[6..].Split('/');
+        if (parts.Length != 2) throw new ArgumentException($"Invalid Matrix Content URI '{mxcUri}' passed! Matrix Content URIs must exist of only 2 parts!", nameof(mxcUri));
+        return (parts[0], parts[1]);
+    }
+    
+    public async Task<Stream> GetMediaStreamAsync(string mxcUri, int timeout = 0) {
+        var (serverName, mediaId) = ParseMxcUri(mxcUri);
+        try {
+            var res = await ClientHttpClient.GetAsync($"/_matrix/client/v1/media/download/{serverName}/{mediaId}");
+            return await res.Content.ReadAsStreamAsync();
+        }
+        catch (LibMatrixException e) {
+            Console.WriteLine($"Failed to get media stream: {e.Message}");
+            throw;
+        }
+
+        // return default;
+    }
+    
+    
+
+#endregion
 }
