@@ -1,0 +1,39 @@
+﻿@page "/CSTJTest"
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using LibMatrix.Extensions
+
+<PageTitle>Counter</PageTitle>
+
+<h3>Canonicalise JSON</h3>
+<hr/>
+
+<InputTextArea @bind-Value="@JsonInput" rows="@(JsonInput.Split('\n').Length + 1)"></InputTextArea>
+<br/>
+<pre>@JsonOutput</pre>
+
+@code {
+    private string _jsonInput = "";
+
+    private string JsonInput {
+        get => _jsonInput;
+        set {
+            _jsonInput = value;
+            try {
+                Console.WriteLine("Input updated");
+                var obj = JsonSerializer.Deserialize<dynamic>(value);
+                Console.WriteLine("Deserialised");
+                JsonOutput = CanonicalJsonSerializer.Serialize(obj);
+                Console.WriteLine("Serialised: " + JsonOutput ?? "null");
+            }
+            catch (Exception e) {
+                JsonOutput = e.ToString();
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private string? JsonOutput { get; set; }
+
+}

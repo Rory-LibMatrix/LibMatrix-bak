@@ -8,6 +8,7 @@
 
         <Optimize>true</Optimize>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks> <!-- Required for UnicodeJsonEncoder... -->
     </PropertyGroup>
 
     <ItemGroup>
