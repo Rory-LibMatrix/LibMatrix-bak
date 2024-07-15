@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ArcaneLibs.Extensions;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
@@ -16,28 +17,28 @@ public static class RoomAbstraction {
         };
         crq.InitialState ??= new List<StateEvent>();
         crq.InitialState.Add(new StateEvent() {
-            Type = "m.room.topic",
+            Type = RoomTopicEventContent.EventId,
             StateKey = "",
             TypedContent = new RoomTopicEventContent() {
                 Topic = "LibMatrix Test Room " + DateTime.Now.ToString("O")
             }
         });
         crq.InitialState.Add(new StateEvent() {
-            Type = "m.room.name",
+            Type = RoomNameEventContent.EventId,
             StateKey = "",
             TypedContent = new RoomNameEventContent() {
                 Name = "LibMatrix Test Room " + DateTime.Now.ToString("O")
             }
         });
         crq.InitialState.Add(new StateEvent() {
-            Type = "m.room.avatar",
+            Type = RoomAvatarEventContent.EventId,
             StateKey = "",
             TypedContent = new RoomAvatarEventContent() {
                 Url = "mxc://conduit.rory.gay/r9KiT0f9eQbv8pv4RxwBZFuzhfKjGWHx"
             }
         });
         crq.InitialState.Add(new StateEvent() {
-            Type = "m.room.aliases",
+            Type = RoomAliasEventContent.EventId,
             StateKey = "",
             TypedContent = new RoomAliasEventContent() {
                 Aliases = Enumerable
