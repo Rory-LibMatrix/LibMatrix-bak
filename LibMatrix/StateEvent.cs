@@ -156,13 +156,13 @@ public class StateEventResponse : StateEvent {
     public string? Sender { get; set; }
 
     [JsonPropertyName("unsigned")]
-    public UnsignedData? Unsigned { get; set; }
+    public JsonObject? Unsigned { get; set; }
 
     [JsonPropertyName("event_id")]
     public string? EventId { get; set; }
 
     public class UnsignedData {
-        [JsonPropertyName("age")]
+        [JsonPropertyName("age"), JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public ulong? Age { get; set; }
 
         [JsonPropertyName("redacted_because")]
