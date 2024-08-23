@@ -52,6 +52,12 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
 
     public TimeSpan MinimumDelay { get; set; } = new(0);
 
+    public async Task<int> GetUnoptimisedStoreCount() {
+        if (storageProvider is null) return -1;
+        var keys = await storageProvider.GetAllKeysAsync();
+        return keys.Count(x => !x.StartsWith("old/")) - 1;
+    }
+
     private async Task UpdateFilterAsync() {
         if (!string.IsNullOrWhiteSpace(NamedFilterName)) {
             _filterId = await homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(NamedFilterName);
@@ -101,7 +107,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
         if (!string.IsNullOrWhiteSpace(Since)) url += $"&since={Since}";
         if (_filterId is not null) url += $"&filter={_filterId}";
 
-        logger?.LogInformation("SyncHelper: Calling: {}", url);
+        // logger?.LogInformation("SyncHelper: Calling: {}", url);
 
         try {
             var httpResp = await homeserver.ClientHttpClient.GetAsync(url, cancellationToken ?? CancellationToken.None);
@@ -111,6 +117,7 @@ public class SyncHelper(AuthenticatedHomeserverGeneric homeserver, ILogger? logg
             var resp = await httpResp.Content.ReadFromJsonAsync(cancellationToken: cancellationToken ?? CancellationToken.None,
                 jsonTypeInfo: SyncResponseSerializerContext.Default.SyncResponse);
             logger?.LogInformation("Deserialized sync response: {} bytes, {} elapsed, {} total", httpResp.GetContentLength(), deserializeSw.Elapsed, sw.Elapsed);
+
             var timeToWait = MinimumDelay.Subtract(sw.Elapsed);
             if (timeToWait.TotalMilliseconds > 0)
                 await Task.Delay(timeToWait);
