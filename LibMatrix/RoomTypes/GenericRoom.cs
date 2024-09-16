@@ -210,10 +210,11 @@ public class GenericRoom {
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
         if (checkIfAlreadyMember)
             try {
-                _ = await GetCreateEventAsync();
-                return new RoomIdResponse {
-                    RoomId = RoomId
-                };
+                var ser = await GetStateEventOrNullAsync(RoomMemberEventContent.EventId, Homeserver.UserId);
+                if (ser?.TypedContent is RoomMemberEventContent { Membership: "join" })
+                    return new RoomIdResponse {
+                        RoomId = RoomId
+                    };
             }
             catch { } //ignore
 
