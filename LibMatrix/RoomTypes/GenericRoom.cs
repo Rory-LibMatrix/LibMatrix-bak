@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -211,10 +212,11 @@ public class GenericRoom {
     public async Task<RoomIdResponse> JoinAsync(string[]? homeservers = null, string? reason = null, bool checkIfAlreadyMember = true) {
         if (checkIfAlreadyMember)
             try {
-                _ = await GetCreateEventAsync();
-                return new RoomIdResponse {
-                    RoomId = RoomId
-                };
+                var ser = await GetStateEventOrNullAsync(RoomMemberEventContent.EventId, Homeserver.UserId);
+                if (ser?.TypedContent is RoomMemberEventContent { Membership: "join" })
+                    return new RoomIdResponse {
+                        RoomId = RoomId
+                    };
             }
             catch { } //ignore
 

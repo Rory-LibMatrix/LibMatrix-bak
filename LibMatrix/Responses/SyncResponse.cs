@@ -86,7 +86,7 @@ public class SyncResponse {
             [JsonPropertyName("summary")]
             public SummaryDataStructure? Summary { get; set; }
 
-            public class TimelineDataStructure {
+            public class TimelineDataStructure : EventList {
                 public TimelineDataStructure() { }
 
                 public TimelineDataStructure(List<StateEventResponse>? events, bool? limited) {
@@ -94,8 +94,8 @@ public class SyncResponse {
                     Limited = limited;
                 }
 
-                [JsonPropertyName("events")]
-                public List<StateEventResponse>? Events { get; set; }
+                // [JsonPropertyName("events")]
+                // public List<StateEventResponse>? Events { get; set; }
 
                 [JsonPropertyName("prev_batch")]
                 public string? PrevBatch { get; set; }
