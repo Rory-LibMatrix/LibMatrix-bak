@@ -5,13 +5,13 @@ using Xunit.Microsoft.DependencyInjection.Abstracts;
 
 namespace LibMatrix.Tests.Tests;
 
-public class ResolverTest : TestBed<TestFixture> {
+public class RemoteHomeserverTests : TestBed<TestFixture> {
     private readonly TestFixture _fixture;
     private readonly HomeserverResolverService _resolver;
     private readonly Config _config;
     private readonly HomeserverProviderService _provider;
 
-    public ResolverTest(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
+    public RemoteHomeserverTests(ITestOutputHelper testOutputHelper, TestFixture fixture) : base(testOutputHelper, fixture) {
         _fixture = fixture;
         _resolver = _fixture.GetService<HomeserverResolverService>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(HomeserverResolverService)}");
         _config = _fixture.GetService<Config>(_testOutputHelper) ?? throw new InvalidOperationException($"Failed to get {nameof(Config)}");
@@ -19,29 +19,30 @@ public class ResolverTest : TestBed<TestFixture> {
     }
 
     [Fact]
-    public async Task ResolveServer() {
-        foreach (var (domain, expected) in _config.ExpectedHomeserverMappings) {
-            var server = await _resolver.ResolveHomeserverFromWellKnown(domain);
-            Assert.Equal(expected, server.Client);
-        }
-    }
-
-    [Fact]
     public async Task ResolveMedia() {
-        var media = await _resolver.ResolveMediaUri("matrix.org", "mxc://matrix.org/eqwrRZRoPpNbcMeUwyXAuVRo");
+        var hs = await _provider.GetRemoteHomeserver("matrix.org");
+        var media = hs.ResolveMediaUri("mxc://matrix.org/eqwrRZRoPpNbcMeUwyXAuVRo");
+        
         Assert.Equal("https://matrix-client.matrix.org/_matrix/media/v3/download/matrix.org/eqwrRZRoPpNbcMeUwyXAuVRo", media);
     }
 
     [Fact]
     public async Task ResolveRoomAliasAsync() {
-        var hs = await _provider.GetRemoteHomeserver("matrix.org");
-        var alias = await hs.ResolveRoomAliasAsync("#matrix:matrix.org");
-        Assert.Equal("!OGEhHVWSdvArJzumhm:matrix.org", alias.RoomId);
+        // var hs = await _provider.GetRemoteHomeserver("matrix.org");
+        // var alias = await hs.ResolveRoomAliasAsync("#matrix:matrix.org");
+        // Assert.Equal("!OGEhHVWSdvArJzumhm:matrix.org", alias.RoomId);
+        var tasks = _config.ExpectedAliasMappings.Select(async mapping => {
+            var hs = await _provider.GetRemoteHomeserver("matrix.org");
+            var alias = await hs.ResolveRoomAliasAsync(mapping.Key);
+            Assert.Equal(mapping.Value, alias.RoomId);
+            return alias;
+        }).ToList();
+        await Task.WhenAll(tasks);
     }
 
     [Fact]
     public async Task GetClientVersionsAsync() {
-        var hs = await _provider.GetRemoteHomeserver("matrix.org");
+        var hs = await _provider.GetRemoteHomeserver(_config.TestHomeserver);
         var versions = await hs.GetClientVersionsAsync();
         Assert.NotNull(versions);
     }

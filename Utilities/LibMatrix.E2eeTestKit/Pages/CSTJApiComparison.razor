@@ -1,0 +1,134 @@
+﻿@page "/CSTJApiComparison"
+@using System.Reflection
+@using System.Text
+@using System.Text.Json
+@using LibMatrix.Extensions
+
+<PageTitle>Counter</PageTitle>
+
+<h3>Compare STJ API</h3>
+
+// side by side table
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            @foreach (var type in TypesToCompare) {
+                <th>@type.Name</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @* // display all public static methods in matching rows, put non matching at the end, by signature *@
+        @* // do not use type.GetMethod as it throws ambiguous match errors *@
+        @{ var methods = TypesToCompare.Select(t => (Type: t, Methods: t.GetMethods())); }
+        @foreach (var method in methods.SelectMany(m => m.Methods).DistinctBy(m => GetMethodSignature(m))) {
+            <tr>
+                @foreach (var (type, _) in methods) {
+                    var methodInfo = type.GetMethods().FirstOrDefault(m => GetMethodSignature(m) == GetMethodSignature(method));
+                    if (methodInfo != null) {
+                        <td>@GetMethodSignature(methodInfo)</td>
+                    }
+                    else {
+                        <td></td>
+                    }
+                }
+            </tr>
+        }
+
+    </tbody>
+</table>
+
+@code {
+    private static readonly Type[] TypesToCompare = [typeof(JsonSerializer), typeof(CanonicalJsonSerializer)];
+
+    private string GetMethodSignature(MethodInfo method, bool includeModifiers = true, bool includeReturnType = true, bool includeParameters = true) {
+        var sb = new StringBuilder();
+        
+        //modifiers
+        if (includeModifiers) {
+            if (method.IsPublic) {
+                sb.Append("public ");
+            }
+            if (method.IsStatic) {
+                sb.Append("static ");
+            }
+        }
+        
+        //return type
+        if (includeReturnType) {
+            if (method.ReturnType.IsGenericType) {
+                sb.Append(method.ReturnType.Name.Split('`')[0]);
+                sb.Append("<");
+                var genericArguments = method.ReturnType.GetGenericArguments();
+                foreach (var genericArgument in genericArguments) {
+                    sb.Append(genericArgument.Name);
+                    if (genericArgument != genericArguments.Last())
+                        sb.Append(", ");
+                }
+
+                sb.Append(">");
+            }
+            else {
+                //lowercase primitives
+                sb.Append(method.ReturnType.Name);
+            }
+
+            sb.Append(' ');
+        }
+
+        sb.Append(method.Name);
+        if (method.IsGenericMethod) {
+            sb.Append("<");
+            var genericArguments = method.GetGenericArguments();
+            foreach (var genericArgument in genericArguments) {
+                sb.Append(genericArgument.Name);
+                if (genericArgument != genericArguments.Last())
+                    sb.Append(", ");
+            }
+
+            sb.Append(">");
+        }
+        sb.Append("(");
+        var parameters = method.GetParameters();
+        foreach (var parameter in parameters) {
+            //handle generics
+            if (parameter.ParameterType.IsGenericType) {
+                sb.Append(parameter.ParameterType.Name.Split('`')[0]);
+                sb.Append("<");
+                var genericArguments = parameter.ParameterType.GetGenericArguments();
+                foreach (var genericArgument in genericArguments) {
+                    sb.Append(genericArgument.Name);
+                    if (genericArgument != genericArguments.Last())
+                        sb.Append(", ");
+                }
+
+                sb.Append(">");
+            }
+            else {
+                sb.Append(parameter.ParameterType.Name);
+            }
+            sb.Append(" ");
+            sb.Append(parameter.Name);
+            if (parameter.HasDefaultValue) {
+                sb.Append(" = ");
+                //handle default value
+                if (parameter.DefaultValue == null) {
+                    sb.Append("null");
+                }
+                else if (parameter.ParameterType == typeof(string)) {
+                    sb.Append($"\"{parameter.DefaultValue}\"");
+                }
+                else {
+                    sb.Append(parameter.DefaultValue);
+                }
+            }
+
+            if (parameter != parameters.Last())
+                sb.Append(", ");
+        }
+
+        sb.Append(")");
+        return sb.ToString();
+    }
+
+}
