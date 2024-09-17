@@ -37,7 +37,7 @@ public class BotInstaller(IServiceCollection services) {
     }
 
     public BotInstaller DiscoverAllCommands() {
-        foreach (var commandClass in new ClassCollector<ICommand>().ResolveFromAllAccessibleAssemblies()) {
+        foreach (var commandClass in ClassCollector<ICommand>.ResolveFromAllAccessibleAssemblies()) {
             Console.WriteLine($"Adding command {commandClass.Name}");
             services.AddScoped(typeof(ICommand), commandClass);
         }

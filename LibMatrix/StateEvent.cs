@@ -13,7 +13,7 @@ using LibMatrix.Extensions;
 namespace LibMatrix;
 
 public class StateEvent {
-    public static FrozenSet<Type> KnownStateEventTypes { get; } = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies().ToFrozenSet();
+    public static FrozenSet<Type> KnownStateEventTypes { get; } = ClassCollector<EventContent>.ResolveFromAllAccessibleAssemblies().ToFrozenSet();
 
     public static FrozenDictionary<string, Type> KnownStateEventTypesByName { get; } = KnownStateEventTypes.Aggregate(
         new Dictionary<string, Type>(),

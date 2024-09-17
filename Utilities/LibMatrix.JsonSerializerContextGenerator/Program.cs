@@ -7,7 +7,7 @@ using LibMatrix.EventTypes;
 // var asm = Assembly.LoadFrom(binary);
 File.Delete("EventSerializerContexts.g.cs");
 var stream = File.OpenWrite("EventSerializerContexts.g.cs");
-var eventContentTypes = new ClassCollector<EventContent>().ResolveFromAllAccessibleAssemblies();
+var eventContentTypes = ClassCollector<EventContent>.ResolveFromAllAccessibleAssemblies();
 
 stream.WriteString("using System.Text.Json.Serialization;\n");
 
